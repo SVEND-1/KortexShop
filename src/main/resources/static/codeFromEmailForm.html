@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/mainFormStyle.css">
+    <link rel="stylesheet" href="css/authStyle.css">
+    <title>Вход в аккаунт</title>
+</head>
+<body>
+    <!--Шапка страницы-->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="mainForm.html" class="logo">Kortex marketplace</a>
+                
+                <form class="search-form">
+                    <div class="search-container">
+                        <input id="search-input" type="text" class="search-input" placeholder="Поиск товаров...">
+                        <button type="submit" class="search-button">
+                            <img id="findImg" src="images/findImg.png" alt="Поиск">
+                        </button>
+                    </div>
+                </form>
+
+                <nav class="nav">
+                    <a href="cartForm.html" class="nav-link">
+                        <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
+                        Корзина
+                    </a>
+
+                    <a href="profile.html" class="nav-link">
+                        <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
+                        <span class="profile-text">Профиль</span>
+                    </a>
+
+                    <a href="/loginForm" class="nav-link">
+                        <img src="images/join-img.png" alt="Войти" class="nav-icon">
+                        Войти
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+    
+
+    <!-- Форма ввода кода -->
+    <main class="auth-container">
+        <div class="auth-form code-form">
+            <h2 class="registerH2">Ввод кода</h2>
+            
+            <div class="notification-info">
+                <div class="notification-icon">🔔</div>
+                <p>Откройте уведомление в приложении почты</p>
+            </div>
+            
+            <p class="code-message">Вам пришло уведомление</p>
+            <p class="code-hint">Код XXX-XXX</p>
+
+            <form class="loginForm" id="codeFromEmailForm">
+                <div class="code-inputs-container">
+                    <div class="code-inputs">
+                        <input type="text" maxlength="1" inputmode="numeric" class="code-input" name="code1" required>
+                        <input type="text" maxlength="1" inputmode="numeric" class="code-input" name="code2" required>
+                        <input type="text" maxlength="1" inputmode="numeric" class="code-input" name="code3" required>
+                        <span class="code-separator">-</span>
+                        <input type="text" maxlength="1" inputmode="numeric" class="code-input" name="code4" required>
+                        <input type="text" maxlength="1" inputmode="numeric" class="code-input" name="code5" required>
+                        <input type="text" maxlength="1" inputmode="numeric" class="code-input" name="code6" required>
+                    </div>
+                </div>
+                
+                <div class="resend-code">
+                    <button type="button" class="resend-btn" id="resendCodeBtn">
+                        Запросить код на телефон
+                    </button>
+                    <div class="timer" id="timer">00:60</div>
+                </div>
+
+                <button type="button" id="continueBtn1" class="loginBtn">Подтвердить</button>
+            </form>
+
+            <div class="auth-links">
+                <a href="/forgotPasswordForm" class="back-link">Вернуться назад</a>
+                <a href="/" class="back-to-main">Вернуться на главную</a>
+            </div>
+        </div>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const continueBtn1 = document.getElementById('continueBtn1');
+
+            continueBtn1.addEventListener('click', function() {
+                console.log('Кнопка подтверждения нажата');
+
+                // Получаем код из полей ввода
+                const codeInputs = document.querySelectorAll('.code-input');
+                let code = '';
+
+                codeInputs.forEach(input => {
+                    code += input.value;
+                });
+
+                if (code.length !== 6) {
+                    alert('Введите все 6 цифр кода');
+                    return;
+                }
+
+                // Форматируем код в XXX-XXX
+                const formattedCode = code.substring(0, 3) + '-' + code.substring(3, 6);
+                console.log('Сформированный код:', formattedCode);
+
+                // Здесь будет вызов API
+                // Пока просто переходим дальше
+                window.location.href = 'recoveryPasswordForm.html';
+            });
+        });
+    </script>
+
+    <script src="js/codeFromEmail.js"></script>
+    <script src="js/api-integration.js"></script>
+</body>
+</html>
