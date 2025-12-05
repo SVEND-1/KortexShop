@@ -1,13 +1,9 @@
 package org.example.kortex.config;
 
-import org.example.kortex.entity.User;
-import org.example.kortex.repository.UserRepository;
-import org.example.kortex.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.kortex.users.db.User;
+import org.example.kortex.users.domain.UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

@@ -1,0 +1,18 @@
+package org.example.kortex.orderItems.db;
+
+import org.example.kortex.cartItems.db.CartItem;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
+
+    List<CartItem> findByOrderId(Long orderId);
+
+    Optional<OrderItem> findByOrderIdAndProductId(Long orderId, Long productId);
+
+    void deleteByOrderIdAndProductId(Long cartId, Long productId);
+}
