@@ -32,14 +32,17 @@ public class User {
     @Column(name = "address")
     private String address;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private Cart cart;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Column(name = "orders", nullable = false)
     private List<Order> orders = new ArrayList<>();
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Cart cart;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<RoleRequest> roleRequests = new ArrayList<>();
 
-    public User(Long id, String email, String name, String password, Role role, String address, List<Order> orders, Cart cart) {
+    public User(Long id, String email, String name, String password, Role role, String address, List<Order> orders, Cart cart, List<RoleRequest> roleRequests) {
         this.id = id;
         this.email = email;
         this.name = name;
@@ -48,6 +51,7 @@ public class User {
         this.address = address;
         this.orders = orders;
         this.cart = cart;
+        this.roleRequests = roleRequests;
     }
 
     public User(String email, String name, String password, String address, Cart cart) {
@@ -134,6 +138,13 @@ public class User {
         this.cart = cart;
     }
 
+    public List<RoleRequest> getRoleRequests() {
+        return roleRequests;
+    }
+
+    public void setRoleRequests(List<RoleRequest> roleRequests) {
+        this.roleRequests = roleRequests;
+    }
 
     public enum Role {
         USER, ADMIN, COURIER, SELLER;

@@ -1,11 +1,14 @@
 package org.example.kortex.products.domain;
 
 import javax.persistence.EntityNotFoundException;
+
+import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,17 @@ public class ProductService {
 
     public Page<Product> getProductsByCategoryWithPagination(Product.Category category, int page, int size) {
         return productRepository.findByCategoryAndCountGreaterThan(category, 0, PageRequest.of(page, size));
+    }
+
+    public List<Product> findProductsFilter(ProductSearchFilter filter){
+        Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
+        int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
+        int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
+        String query = filter.query() != null ? filter.query() : "";
+
+        Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
+
+        return productRepository.findProductsFilter(category,query,pageable);
     }
 
     public List<Product> find48Product(){

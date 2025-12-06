@@ -81,7 +81,7 @@ public class SellerController {
             @RequestParam("count") Integer count,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("category") Product.Category category,
-            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
+            @RequestParam(value = "imageFile") MultipartFile imageFile) {
 
         try {
             User seller = userService.getCurrentUser();

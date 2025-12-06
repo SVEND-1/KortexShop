@@ -1,9 +1,9 @@
-package org.example.kortex.cartItems.api;
+package org.example.kortex.users.api;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/cart-item")
-public class CartItemsController {
+@RequestMapping("/api/admin/role-request")
+public class AdminRoleRequestController {
 }

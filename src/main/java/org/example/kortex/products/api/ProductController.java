@@ -24,40 +24,13 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getProducts(@RequestParam(required = false) String category,//ToDO переписать
-                                                       @RequestParam(defaultValue = "0") int page,
-                                                       @RequestParam(defaultValue = "12") int size) {
-        Page<Product> productsPage;
-        List<Product> availableProducts;
-
-        if (category != null && !category.isEmpty()) {
-            try {
-                Product.Category productCategory = Product.Category.valueOf(category.toUpperCase());
-                productsPage = productService.getProductsByCategoryWithPagination(productCategory, page, size);
-            } catch (IllegalArgumentException e) {
-                productsPage = productService.getAvailableProductsWithPagination(page, size);
-            }
-        } else {
-            productsPage = productService.getAvailableProductsWithPagination(page, size);
-        }
-
-        availableProducts = productsPage.getContent().stream()
-                .filter(product -> product.getCount() > 0)
-                .collect(Collectors.toList());
-
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("redirectUrl", "/");
-        response.put("products", availableProducts);
-        response.put("categories", Product.Category.values());
-        response.put("currentPage", page);
-        response.put("pageSize", size);
-        response.put("totalPages", productsPage.getTotalPages());
-        response.put("totalItems", productsPage.getTotalElements());
-        response.put("hasNext", productsPage.hasNext());
-        response.put("hasPrevious", productsPage.hasPrevious());
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> getProducts(@RequestParam(name = "category",required = false) String category,
+                                         @RequestParam(name = "query", required = false) String query,
+                                         @RequestParam(name = "pageSize",required = false) Integer pageSize,
+                                         @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
+        //Можно фильтровать по катерогиям и запросы,можнол только по категориям и только по запросу ,а можно вообще полный список
+        ProductSearchFilter filter = new ProductSearchFilter(category, query, pageSize, pageNumber);
+        return ResponseEntity.ok().body(productService.findProductsFilter(filter));
     }
 
     @GetMapping("/{id}")
