@@ -5,6 +5,7 @@ import javax.persistence.EntityNotFoundException;
 import org.example.kortex.cartItems.db.CartItem;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orderItems.db.OrderItem;
+import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.db.Product;
@@ -46,16 +47,56 @@ public class OrderService {
     public List<Order> getAll(){
         return orderRepository.findAll();
     }
+
     public List<Order> getPageUserOrders(Long userId,int pageSize,int pageNumber){//Поставить в контроллер не обезательное заполнение
         pageSize = pageSize != 0 ? pageSize : 8;
         Pageable pageable = Pageable
                 .ofSize(pageSize)
                 .withPage(pageNumber);
-        return orderRepository.findPageFilter(userId,pageable);
+        return orderRepository.findOrderByUser(userId,pageable);
     }
+
+    public List<Order> assignedCourierOrders(Long userId){
+        User courier = userService.getById(userId);
+        validateCourier(courier);
+        return orderRepository.assignedOrders(userId);
+    }
+
+    public List<Order> assignedCourierOrdersPage(OrdersSearchCourierFilter filter){
+        User courier = userService.getById(filter.userId());
+
+        validateCourier(courier);
+
+        int pageSize = filter.pageSize() != null ? filter.pageSize() : 8;
+        int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
+        Pageable pageable = Pageable
+                .ofSize(pageSize)
+                .withPage(pageNumber);
+
+        return orderRepository.assignedOrdersPage(filter.userId(),pageable);
+    }
+
+    public List<Order> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
+        pageSize = pageSize != null ? pageSize : 36;
+        pageNumber = pageNumber != null ? pageNumber : 0;
+        Pageable pageable = Pageable
+                .ofSize(pageSize)
+                .withPage(pageNumber);
+
+        return orderRepository.availableOrdersPage(pageable);
+    }
+
 
     public Order getById(Long id) {
         return orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("не найден"));
+    }
+
+    public Order setCourier(Order order,Long courierId) {
+        User user = userService.getById(courierId);
+        validateCourier(user);
+
+        order.setCourier(userService.getById(courierId));
+        return orderRepository.save(order);
     }
 
 
@@ -114,6 +155,14 @@ public class OrderService {
         return finalOrder;
     }
 
+    private void validateCourier(User user) {
+        if (user.getRole() != User.Role.COURIER) {
+            throw new IllegalArgumentException(
+                    String.format("Пользователь с ID %d не является курьером", user.getId())
+            );
+        }
+    }
+
     private void validateCartItems(Cart cart) {
 
         for (CartItem cartItem : cart.getCartItems()) {
@@ -164,9 +213,7 @@ public class OrderService {
             orderItems.add(orderItem);
         }
 
-        List<OrderItem> savedItems = orderItemService.saveAll(orderItems);
-
-        return savedItems;
+        return orderItemService.saveAll(orderItems);
     }
 
 
@@ -182,6 +229,7 @@ public class OrderService {
                 orderToUpdate.getUser(),
                 orderToUpdate.getCourier(),
                 orderToUpdate.getStatus(),
+                orderToUpdate.getMessage(),
                 orderToUpdate.getTotalAmount(),
                 order.getOrderItems());
         return orderRepository.save(updatedOrder);

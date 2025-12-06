@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.db.User;
@@ -10,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -24,21 +24,15 @@ public class CourierController {
         this.userService = userService;
     }
 
-    @GetMapping("/allOrders")
-    public ResponseEntity<?> getAllOrders() {
+    @GetMapping("/assignedOrders")//Заказы курьера
+    public ResponseEntity<?> getAssignedOrders(
+            @RequestParam(name = "courierId") Long courierId,
+            @RequestParam(name = "pageSize",required = false) Integer pageSize,
+            @RequestParam(name = "pageNumber", required = false) Integer pageNumber
+    ) {
         try {
-            return ResponseEntity.ok().body(orderService.getAll());
-        }catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Ошибка при получении всех заказов: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
-    }
-
-    @GetMapping("/assignedOrders")
-    public ResponseEntity<?> getAssignedOrders() {
-        try {
-            return ResponseEntity.ok().body(orderService.getAll());
+            OrdersSearchCourierFilter filter = new OrdersSearchCourierFilter(courierId, pageSize, pageNumber);
+            return ResponseEntity.ok().body(orderService.assignedCourierOrdersPage(filter));
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении выполненых заказов: " + e.getMessage());
@@ -46,10 +40,11 @@ public class CourierController {
         }
     }
 
-    @GetMapping("/availableOrders")
-    public ResponseEntity<?> getAvailableOrders() {
+    @GetMapping("/availableOrders")//Доступные заказы
+    public ResponseEntity<?> getAvailableOrders(@RequestParam(name = "pageSize",required = false) Integer pageSize,
+                                                 @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
         try {
-            return ResponseEntity.ok().body(orderService.getAll());
+            return ResponseEntity.ok().body(orderService.availableCourierOrdersPage(pageSize, pageNumber));
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении доступных заказов: " + e.getMessage());
@@ -58,12 +53,19 @@ public class CourierController {
     }
 
     @PostMapping("/{id}/assign")
-    public ResponseEntity<?> assignOrder(@PathVariable Long id) {//TODO: Проверить что у курьера нету активыных заказов
+    public ResponseEntity<?> assignOrder(@PathVariable Long id) {
         try {
             User courier = userService.getCurrentUser();
-            Order order = orderService.getById(id);
-            order.setCourier(courier);
-            return ResponseEntity.ok().body(orderService.update(order.getId(), order));//Todo добавить другое изменение курьера
+
+            for (Order order : orderService.assignedCourierOrders(courier.getId())) {
+                if(order.getStatus() == Order.OrderStatus.DISPATCHED) {
+                    throw new IllegalStateException(
+                            "Невозможно взять новый заказ: у курьера уже есть активный заказ в доставке. " +
+                                    "ID активного заказа: " + order.getId()
+                    );
+                }
+            }
+            return ResponseEntity.ok().body(orderService.setCourier(orderService.getById(id), courier.getId()));
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при взятия заказа курьером: " + e.getMessage());
@@ -83,4 +85,6 @@ public class CourierController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+
+
 }

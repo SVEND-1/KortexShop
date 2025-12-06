@@ -37,7 +37,7 @@ public class AdminRoleRequestController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getAdminRoleRequests(@PathVariable("id") long id){
+    public ResponseEntity<?> getAdminRoleRequest(@PathVariable("id") long id){
         try{
             return ResponseEntity.ok().body(roleRequestService.getRoleRequest(id));
         }

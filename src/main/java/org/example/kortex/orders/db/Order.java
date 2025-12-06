@@ -35,6 +35,9 @@ public class Order {
     @Column(name = "shipping_address")
     private String shippingAddress;
 
+    @Column(name = "message",length = 500)
+    private String message;
+
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
@@ -45,11 +48,12 @@ public class Order {
         this.orderDate = LocalDateTime.now();
     }
 
-    public Order(Long id, User user,User courier, OrderStatus status, BigDecimal totalAmount, List<OrderItem> orderItems) {
+    public Order(Long id, User user,User courier, OrderStatus status,String message ,BigDecimal totalAmount, List<OrderItem> orderItems) {
         this.id = id;
         this.user = user;
         this.courier = courier;
         this.status = status;
+        this.message = message;
         this.orderDate = LocalDateTime.now();
         this.shippingAddress = user.getAddress();
         this.totalAmount = totalAmount;
@@ -66,6 +70,14 @@ public class Order {
 
     public User getCourier() {
         return courier;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public void setCourier(User courier) {
@@ -128,7 +140,7 @@ public class Order {
 
     public enum OrderStatus {
         //PENDING, , DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED;
-        PENDING, CONFIRMED, PROCESSING,AWAITING_COURIER, DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED;
+        PENDING, DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED;
         public SimpleGrantedAuthority toAuthority() {
             return new SimpleGrantedAuthority("ROLE_" + this.name());
         }

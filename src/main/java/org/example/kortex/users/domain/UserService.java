@@ -97,7 +97,8 @@ public class UserService {
                 userToUpdate.getRole(),
                 userToUpdate.getAddress(),
                 user.getOrders(),
-                user.getCart());
+                user.getCart(),
+                userToUpdate.getRoleRequests());
         return userRepository.save(updatedUser);
     }
 

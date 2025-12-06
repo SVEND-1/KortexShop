@@ -18,7 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
-public class OrderController {
+public class OrderController {//todo
     private final OrderService orderService;
     private final UserService userService;
     private final CartService cartService;
@@ -32,8 +32,8 @@ public class OrderController {
         this.cartItemService = cartItemService;
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<?> getMeOrders() {
+    @GetMapping("/me-create")
+    public ResponseEntity<?> getMeCreateOrders() {
         try {
             User user = userService.getCurrentUser();
             Cart cart = cartService.getCartByUserId(userService.getCurrentUser().getId());
@@ -44,6 +44,7 @@ public class OrderController {
             response.put("totalPrice", cart.totalPrice());
             response.put("totalItems", cart.getQuantity());
             response.put("user", user);
+            response.put("redirect","/orders");
 
             return ResponseEntity.ok().body(response);
         }catch (Exception e) {
@@ -57,7 +58,10 @@ public class OrderController {
     public ResponseEntity<?> createOrder() {
         try {
             User user = userService.getCurrentUser();
-            return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrderFromCart(user.getId()));
+            Map<String, Object> response = new HashMap<>();
+            response.put("order", orderService.createOrderFromCart(user.getId()));
+            response.put("redirect","/");
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
         catch (Exception e) {
             Map<String, String> error = new HashMap<>();

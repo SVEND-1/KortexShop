@@ -1,6 +1,8 @@
 package org.example.kortex.users.api;
 
 import org.example.kortex.carts.db.Cart;
+import org.example.kortex.orders.db.Order;
+import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.db.User;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.users.domain.UserService;
@@ -15,27 +17,41 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-
+    //todo профиль
     private final UserService userService;
     private final CartService cartService;
+    private final OrderService orderService;
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserController(UserService userService, CartService cartService, PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService, CartService cartService,OrderService orderService ,PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.cartService = cartService;
+        this.orderService = orderService;
         this.passwordEncoder = passwordEncoder;
     }
 
 
-    @GetMapping("/{email}")
-    public ResponseEntity<User> getUserEmail(@PathVariable String email) {
-        return ResponseEntity.ok().body(userService.getByEmail(email));
+    @GetMapping("/me")
+    public ResponseEntity<?> profile(){
+        try {
+            return ResponseEntity.ok().body(userService.getCurrentUser());
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
-    @GetMapping
-    public ResponseEntity<List<User>> getAllUser() {
-        return ResponseEntity.ok().body(userService.getAll());
+    @GetMapping("/me-orders")
+    public ResponseEntity<?> orders(){
+        try {
+            User user = userService.getCurrentUser();
+            List<Order> userOrders = orderService.getOrdersByUserId(user.getId());
+            return ResponseEntity.ok().body(userOrders);
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PostMapping
@@ -66,42 +82,14 @@ public class UserController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable("id") Long id,@RequestBody User user) {
-        try {
-            User existingUser = userService.getById(id);
-
-            if (user.getName() != null) {
-                existingUser.setName(user.getName());
-            }
-            if (user.getPassword() != null) {
-                existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
-            }
-            if (user.getRole() != null) {
-                existingUser.setRole(user.getRole());
-            }
-
-            User updatedUser = userService.update(id,existingUser);
-            return ResponseEntity.ok(updatedUser);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @PostMapping("/{id}/password")
+    @PostMapping("/password")
     public ResponseEntity<?> changePassword(
-            @PathVariable Long id,
             @RequestParam String newPassword) {
 
         try {
-            User user = userService.getById(id);
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("Пользователь не найден");
-            }
-
+            User user = userService.getCurrentUser();
             user.setPassword(passwordEncoder.encode(newPassword));
-            userService.update(id, user);
+            userService.update(user.getId(), user);
 
             return ResponseEntity.ok("Пароль изменен");
         } catch (Exception e) {
@@ -110,20 +98,15 @@ public class UserController {
         }
     }
 
-    @PostMapping("/{id}/address")
+    @PostMapping("/address")
     public ResponseEntity<?> changeAddress(
-            @PathVariable Long id,
             @RequestParam String newAddress) {
 
         try {
-            User user = userService.getById(id);
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("Пользователь не найден");
-            }
+            User user = userService.getCurrentUser();
 
             user.setAddress(newAddress);
-            userService.update(id, user);
+            userService.update(user.getId(), user);
 
             return ResponseEntity.ok("Пароль изменен");
         } catch (Exception e) {
