@@ -16,23 +16,32 @@ public class RoleRequest {//Добавить снять или повысить
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "request_role",nullable = false)
     private User.Role requestedRole;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_action",nullable = false)
+    private TypeAction typeAction;
 
     @Column(length = 500)
     private String message;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name="status",nullable = false)
     private Status status = Status.PENDING;
 
-    @Column(nullable = false)
+    @Column(name = "create_at",nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum Status {
         PENDING,
         APPROVED,
         REJECTED
+    }
+
+    public enum TypeAction{
+        REMOVE,
+        ENHANCE
     }
 
     public Long getId() {
@@ -49,6 +58,14 @@ public class RoleRequest {//Добавить снять или повысить
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public TypeAction getTypeAction() {
+        return typeAction;
+    }
+
+    public void setTypeAction(TypeAction typeAction) {
+        this.typeAction = typeAction;
     }
 
     public User.Role getRequestedRole() {

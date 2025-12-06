@@ -16,9 +16,11 @@ public interface RoleRequestRepository  extends JpaRepository<RoleRequest, Long>
     SELECT r FROM RoleRequest r
     WHERE (:role IS NULL OR r.requestedRole = :role)
     AND (:status IS NULL OR r.status = :status)
+    AND (:type IS NULL OR r.typeAction = :type)
     ORDER BY r.createdAt DESC
 """)
     List<RoleRequest> findSearchFilter(@Param("role")User.Role role,
                                        @Param("status")RoleRequest.Status status,
+                                       @Param("type") RoleRequest.TypeAction type,
                                        Pageable pageable);
 }
