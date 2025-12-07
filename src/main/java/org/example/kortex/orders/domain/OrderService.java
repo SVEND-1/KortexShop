@@ -99,7 +99,7 @@ public class OrderService {
         User user = userService.getById(courierId);
         validateCourier(user);
 
-        order.setCourier(userService.getById(courierId));
+        order.setCourier(user);
         Order saveOrder = orderRepository.save(order);
         log.info("На заказ " +  saveOrder.getId() + " назначен курьер: " + saveOrder.getCourier().getId());
         return saveOrder;
@@ -136,7 +136,7 @@ public class OrderService {
         log.info("Создания заказа из корзины");
         User user = userService.getById(userId);
 
-        Cart cart = cartService.getCartByUserId(userId);
+        Cart cart = user.getCart();
         if (cart == null) {
             log.error("Корзина не найдена для пользователя с ID: " + userId);
             throw new RuntimeException("Корзина не найдена для пользователя с ID: " + userId);

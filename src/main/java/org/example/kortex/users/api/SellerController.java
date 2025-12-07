@@ -54,19 +54,12 @@ public class SellerController {
     @GetMapping("/products/{id}")
     public ResponseEntity<?> getProduct(@PathVariable Long id) {
         try {
-            User seller = userService.getCurrentUser();
             Product product = productService.getById(id);
 
             if (product == null) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Товар не найден");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-            }
-
-            if (!product.getSeller().getId().equals(seller.getId())) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Этот товар не принадлежит вам");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
 
             return ResponseEntity.ok(product);
@@ -107,7 +100,6 @@ public class SellerController {
 
             Product createdProduct = productService.create(product);
 
-
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Товар с изображением успешно создан");
             response.put("product", createdProduct);
@@ -135,19 +127,12 @@ public class SellerController {
 
         try {
             log.info("Обновление товара с id: " + id);
-            User seller = userService.getCurrentUser();
             Product existingProduct = productService.getById(id);
 
             if (existingProduct == null) {//TODO в service мб
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Товар не найден");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-            }
-
-            if (!existingProduct.getSeller().getId().equals(seller.getId())) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Этот товар не принадлежит вам");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
 
             existingProduct.setName(name);
@@ -185,20 +170,12 @@ public class SellerController {
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {
             log.info("Удаление товара с id: " + id);
-            User seller = userService.getCurrentUser();
             Product product = productService.getById(id);
 
             if (product == null) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Товар не найден");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-            }
-
-            // Проверяем, принадлежит ли товар текущему продавцу
-            if (!product.getSeller().getId().equals(seller.getId())) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Этот товар не принадлежит вам");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
 
             // Удаляем изображение если оно есть

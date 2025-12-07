@@ -40,8 +40,8 @@ public class OrderController {//todo
     public ResponseEntity<?> getMeCreateOrders() {
         try {
             User user = userService.getCurrentUser();
-            Cart cart = cartService.getCartByUserId(userService.getCurrentUser().getId());
-            List<CartItem> cartItems = cartItemService.findAllByCartId(cart.getId());
+            Cart cart = user.getCart();
+            List<CartItem> cartItems = cart.getCartItems();
 
             Map<String, Object> response = new HashMap<>();
             response.put("cartItems", cartItems);

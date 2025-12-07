@@ -45,7 +45,7 @@ public class UserController {
     public ResponseEntity<?> orders(){
         try {
             User user = userService.getCurrentUser();
-            List<Order> userOrders = orderService.getOrdersByUserId(user.getId());
+            List<Order> userOrders = user.getOrders();
             return ResponseEntity.ok().body(userOrders);
         }
         catch (Exception e) {

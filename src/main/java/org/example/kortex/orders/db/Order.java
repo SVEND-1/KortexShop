@@ -38,7 +38,7 @@ public class Order {
     private String message;
 
     @Column(name = "total_amount", nullable = false)
-    private BigDecimal totalAmount;
+    private BigDecimal totalAmount;//todo убрать мб
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<OrderItem> orderItems = new ArrayList<>();
@@ -129,12 +129,6 @@ public class Order {
 
     public void setOrderItems(List<OrderItem> orderItems) {
         this.orderItems = orderItems;
-    }
-
-    public void calculateTotalAmount() {
-        this.totalAmount = orderItems.stream()
-                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public enum OrderStatus {
