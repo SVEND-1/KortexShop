@@ -6,27 +6,27 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class PageController {
-    @GetMapping("/loginForm")
+    @GetMapping("/login")
     public String login(Model model) {
         return "forward:/loginForm.html";
     }
 
-    @GetMapping("/codeFromEmailForm")
+    @GetMapping("/codeEmail")
     public String code(Model model) {
         return "forward:/codeFromEmailForm.html";
     }
 
-    @GetMapping("/forgotPasswordForm")
+    @GetMapping("/forgotPassword")
     public String forgot(Model model) {
         return "forward:/forgotPasswordForm.html";
     }
 
-    @GetMapping("/recoveryPasswordForm")
+    @GetMapping("/recoveryPassword")
     public String recovery(Model model) {
         return "forward:/recoveryPasswordForm.html";
     }
 
-    @GetMapping("/registerForm")
+    @GetMapping("/register")
     public String register(Model model) {
         return "forward:/registerForm.html";
     }

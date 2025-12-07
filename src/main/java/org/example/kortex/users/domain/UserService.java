@@ -83,10 +83,6 @@ public class UserService {
         return saveUser;
     }
 
-    public List<User> getAll() {
-        return userRepository.findAll();
-    }
-
     public User getByEmail(String email) {
         log.info("Поиск пользователя с email: " + email);
 

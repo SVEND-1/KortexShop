@@ -30,13 +30,20 @@ public class SecurityConfig {
         return http.csrf()
                 .disable()//Отключить защиту от кибер атак
                 .authorizeRequests()
-                .antMatchers("/", "/login", "/register", "/error"
-                        ,"forgot-password","/products","/product**",
-                        "email").permitAll()// всем пользователем даже без регистрации к этим url
-                .antMatchers("/cart","/profile","/checkout","/user/**","/home/add").hasAnyRole(User.Role.USER.name(), User.Role.ADMIN.name(),User.Role.COURIER.name(),User.Role.SELLER.name())//Всем пользователя
-                .antMatchers("/seller/**").hasAnyRole(User.Role.SELLER.name(),User.Role.ADMIN.name())
-                .antMatchers("/courier/**").hasAnyRole(User.Role.ADMIN.name(),User.Role.COURIER.name())
-                .antMatchers("/admin/**").hasRole(User.Role.ADMIN.name())
+
+                .antMatchers("/","/login","/codeEmail","/forgotPassword","/recoveryPassword","/register",
+                        "/api/auth/**","/error","/api/products/**","/*.html","/*.css","/*js")
+                        .permitAll()
+                .antMatchers("/profile",
+                        "/api/users/role-request/**","/api/users/**","/api/orders/**","/api/carts/**")
+                        .hasAnyRole(User.Role.USER.name(),User.Role.ADMIN.name(),User.Role.COURIER.name(),User.Role.SELLER.name())
+                .antMatchers("/api/couriers/**")
+                        .hasAnyRole(User.Role.ADMIN.name(),User.Role.COURIER.name())
+                .antMatchers("/seller","/api/sellers/**")
+                        .hasAnyRole(User.Role.ADMIN.name(),User.Role.SELLER.name())
+                .antMatchers("/admin","/api/admin/role-request/**")
+                        .hasRole(User.Role.ADMIN.name())
+
                 .and().formLogin().loginPage("/login").permitAll().usernameParameter("email").defaultSuccessUrl("/")
                 .and().logout().logoutUrl("/logout").permitAll().logoutSuccessUrl("/")
                 .and().build();
