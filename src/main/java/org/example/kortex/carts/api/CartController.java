@@ -1,8 +1,9 @@
 package org.example.kortex.carts.api;
 
 
-import org.example.kortex.cartItems.db.CartItem;
-import org.example.kortex.cartItems.domain.CartItemService;
+import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.carts.db.CartItem;
+import org.example.kortex.carts.domain.CartItemService;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.users.db.User;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/carts")
 public class CartController {
@@ -43,6 +45,7 @@ public class CartController {
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении данных корзины: " + e.getMessage());
+            log.error("Ошибка при получении данных корзины: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -50,13 +53,16 @@ public class CartController {
     @PostMapping("/items")
     public ResponseEntity<?> addItemToCart(@RequestParam Long productId) {
         try {
+            log.info("Добавление товара в корзину");
             User user = userService.getCurrentUser();
-            Cart cart = cartService.getCartByUserId(user.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(cartService.cartAddProduct(cart.getId(), productId));
+            Cart cart = cartService.cartAddProduct(cartService.getCartByUserId(user.getId()).getId(), productId);
+            log.info("Продукт с id: " + productId + " добавлен в корзину с id: " + cart.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(cart);
         }
         catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при добавлении товара в корзину: " + e.getMessage());
+            log.error("Ошибка при добавлении товара в корзину: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -65,10 +71,13 @@ public class CartController {
     @PatchMapping("/items/{itemId}/increase")
     public ResponseEntity<?> increaseQuantity(@PathVariable Long itemId) {
         try {
+            log.info("Инкремент товара");
             CartItem item = cartItemService.findById(itemId);
             CartItem updated = cartItemService.updateQuantity(itemId, item.getQuantity() + 1);
+            log.info("Успешно инкремент товара id cartItem: " + updated.getId());
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
+            log.error("Ошибка инкремента: " + e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("error", e.getMessage()));
         }
@@ -77,16 +86,20 @@ public class CartController {
     @PatchMapping("/items/{itemId}/decrease")
     public ResponseEntity<?> decreaseQuantity(@PathVariable Long itemId) {
         try {
+            log.info("Декрменет товара");
             CartItem item = cartItemService.findById(itemId);
 
             if (item.getQuantity() <= 1) {
                 cartItemService.removeItemFromCart(itemId);
+                log.info("Товар удален из корзины id cartItem: " + item.getId());
                 return ResponseEntity.ok(Map.of("message", "Товар удален из корзины"));
             }
 
             CartItem updated = cartItemService.updateQuantity(itemId, item.getQuantity() - 1);
+            log.info("Успешно декремент товара id cartItem: " + updated.getId());
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
+            log.error("Ошибка декремента: " + e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("error", e.getMessage()));
         }
@@ -95,9 +108,11 @@ public class CartController {
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<?> removeItemFromCart(@PathVariable Long itemId) {
         try {
+            log.info("Удаление товара из корзины id cartItem: " + itemId);
             cartItemService.removeItemFromCart(itemId);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
+            log.error("Не удалось удалить товар: " + e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of("error", e.getMessage()));
         }

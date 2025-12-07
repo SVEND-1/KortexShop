@@ -1,6 +1,5 @@
 package org.example.kortex.orders.db;
 
-import org.example.kortex.orderItems.db.OrderItem;
 import org.example.kortex.users.db.User;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 

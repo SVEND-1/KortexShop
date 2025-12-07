@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.RoleRequestService;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users/role-request")
 public class UserRoleRequestController {
@@ -29,11 +31,14 @@ public class UserRoleRequestController {
                                       @RequestParam(required = false) String message
                                     ) {
         User currentUser = userService.getCurrentUser();
+        log.info("Создания запроса на изменение роли у пользователя id:" + currentUser.getId());
         try {
             RoleRequest request = roleRequestService.createRoleRequest(
                     currentUser, requestedRole, typeAction, message);
+            log.info("Заявка создана id: " + request.getId());
             return ResponseEntity.ok(request);
         } catch (IllegalArgumentException | IllegalStateException e) {
+            log.error("Не удалось создать заявку: " + e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

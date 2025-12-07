@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
@@ -15,6 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/couriers")
+@Slf4j
 public class CourierController {
     private OrderService orderService;
     private UserService userService;
@@ -36,6 +38,7 @@ public class CourierController {
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении выполненых заказов: " + e.getMessage());
+            log.error("Ошибка при получении выполненых заказов: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -48,6 +51,7 @@ public class CourierController {
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении доступных заказов: " + e.getMessage());
+            log.error("Ошибка при получении доступных заказов: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -59,16 +63,24 @@ public class CourierController {
 
             for (Order order : orderService.assignedCourierOrders(courier.getId())) {
                 if(order.getStatus() == Order.OrderStatus.DISPATCHED) {
+                    log.error( "Невозможно взять новый заказ: у курьера уже есть активный заказ в доставке. " +
+                            "ID активного заказа: " + order.getId());
                     throw new IllegalStateException(
                             "Невозможно взять новый заказ: у курьера уже есть активный заказ в доставке. " +
                                     "ID активного заказа: " + order.getId()
                     );
                 }
             }
-            return ResponseEntity.ok().body(orderService.setCourier(orderService.getById(id), courier.getId()));
+
+            Order updateOrder = orderService.setCourier( orderService.getById(id), courier.getId());
+
+            log.info("Курьер с id: " + courier.getId() + " взял заказ с id:" + updateOrder.getId());
+
+            return ResponseEntity.ok().body(updateOrder);
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при взятия заказа курьером: " + e.getMessage());
+            log.error("Ошибка при взятия заказа курьером: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -76,12 +88,15 @@ public class CourierController {
     @PostMapping("/orders/{id}/status")
     public ResponseEntity<?> setStatus(@PathVariable Long id, @RequestParam("status") Order.OrderStatus status) {
         try {
-            Order order = orderService.getById(id);
-            return ResponseEntity.ok().body(orderService.setStatus(order, status));
+            Order orderUpdate = orderService.setStatus(orderService.getById(id), status);
+
+            log.info("У заказа с id:" + id + " изменен статус на" + status.name());
+            return ResponseEntity.ok().body(orderUpdate);
         }
         catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при изменения статуса заказа: " + e.getMessage());
+            log.error("Ошибка при изменения статуса заказа: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }

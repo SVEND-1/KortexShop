@@ -1,6 +1,5 @@
 package org.example.kortex.carts.db;
 
-import org.example.kortex.cartItems.db.CartItem;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.users.db.User;
 

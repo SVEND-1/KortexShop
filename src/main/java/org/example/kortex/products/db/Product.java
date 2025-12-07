@@ -1,7 +1,7 @@
 package org.example.kortex.products.db;
 
-import org.example.kortex.cartItems.db.CartItem;
-import org.example.kortex.orderItems.db.OrderItem;
+import org.example.kortex.carts.db.CartItem;
+import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.users.db.User;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 

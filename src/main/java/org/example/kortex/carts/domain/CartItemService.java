@@ -1,10 +1,10 @@
-package org.example.kortex.cartItems.domain;
+package org.example.kortex.carts.domain;
 
 import javax.persistence.EntityNotFoundException;
 import org.example.kortex.carts.db.Cart;
-import org.example.kortex.cartItems.db.CartItem;
+import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.products.db.Product;
-import org.example.kortex.cartItems.db.CartItemRepository;
+import org.example.kortex.carts.db.CartItemRepository;
 import org.example.kortex.carts.db.CartRepository;
 import org.example.kortex.products.db.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;

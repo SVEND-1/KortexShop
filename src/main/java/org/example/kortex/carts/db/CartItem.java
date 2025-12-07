@@ -1,32 +1,43 @@
-package org.example.kortex.orderItems.db;
+package org.example.kortex.carts.db;
 
-import org.example.kortex.orders.db.Order;
+
 import org.example.kortex.products.db.Product;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "order_items")
-public class OrderItem {
+@Table(name = "cart_items")
+public class CartItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @JoinColumn(name = "cart_id", nullable = false)
+    private Cart cart;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
     @Column(name = "quantity", nullable = false)
-    private Integer quantity;
+    private Integer quantity = 1;
 
     @Column(name = "price", nullable = false)
     private BigDecimal price;
+
+    public CartItem(Long id, Cart cart, Product product, Integer quantity, BigDecimal price) {
+        this.id = id;
+        this.cart = cart;
+        this.product = product;
+        this.quantity = quantity;
+        this.price = price;
+    }
+
+    public CartItem() {
+    }
 
     public Long getId() {
         return id;
@@ -36,12 +47,12 @@ public class OrderItem {
         this.id = id;
     }
 
-    public Order getOrder() {
-        return order;
+    public Cart getCart() {
+        return cart;
     }
 
-    public void setOrder(Order order) {
-        this.order = order;
+    public void setCart(Cart cart) {
+        this.cart = cart;
     }
 
     public Product getProduct() {
@@ -66,5 +77,11 @@ public class OrderItem {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public void calculatePrice() {
+        if (product != null && product.getPrice() != null) {
+            this.price = BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(quantity));
+        }
     }
 }

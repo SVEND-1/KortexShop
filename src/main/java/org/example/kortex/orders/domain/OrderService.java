@@ -2,16 +2,15 @@ package org.example.kortex.orders.domain;
 
 import javax.persistence.EntityNotFoundException;
 
-import org.example.kortex.cartItems.db.CartItem;
+import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.Cart;
-import org.example.kortex.orderItems.db.OrderItem;
+import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.carts.domain.CartService;
-import org.example.kortex.orderItems.domain.OrderItemService;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;

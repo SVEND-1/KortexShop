@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
@@ -22,6 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/sellers")
 public class SellerController {
@@ -43,6 +45,7 @@ public class SellerController {
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении товаров: " + e.getMessage());
+            log.error("Ошибка при получении товаров: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -69,6 +72,7 @@ public class SellerController {
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка: " + e.getMessage());
+            log.error("Ошибка: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
@@ -84,6 +88,7 @@ public class SellerController {
             @RequestParam(value = "imageFile") MultipartFile imageFile) {
 
         try {
+            log.info("Создания товара ");
             User seller = userService.getCurrentUser();
             Product product = new Product();
 
@@ -105,11 +110,13 @@ public class SellerController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Товар с изображением успешно создан");
             response.put("product", createdProduct);
+            log.info("Товар создан успешно id:" + createdProduct.getId());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при создании товара: " + e.getMessage());
+            log.error("Ошибка при создании товара: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
@@ -126,16 +133,16 @@ public class SellerController {
             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
 
         try {
+            log.info("Обновление товара с id: " + id);
             User seller = userService.getCurrentUser();
             Product existingProduct = productService.getById(id);
 
-            if (existingProduct == null) {
+            if (existingProduct == null) {//TODO в service мб
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Товар не найден");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
             }
 
-            // Проверяем, принадлежит ли товар текущему продавцу
             if (!existingProduct.getSeller().getId().equals(seller.getId())) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Этот товар не принадлежит вам");
@@ -149,7 +156,6 @@ public class SellerController {
             existingProduct.setCategory(category);
 
             if (imageFile != null && !imageFile.isEmpty()) {
-                // Удаляем старое изображение если есть
                 if (existingProduct.getImage() != null) {
                     deleteImage(existingProduct.getImage());
                 }
@@ -163,11 +169,12 @@ public class SellerController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Товар с изображением успешно обновлен");
             response.put("product", updatedProduct);
-
+            log.info("Товар успешно обновлен");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при обновлении товара: " + e.getMessage());
+            log.error("Ошибка при обновлении товара: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
@@ -176,6 +183,7 @@ public class SellerController {
     @DeleteMapping("/products/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {
+            log.info("Удаление товара с id: " + id);
             User seller = userService.getCurrentUser();
             Product product = productService.getById(id);
 
@@ -201,11 +209,12 @@ public class SellerController {
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "Товар успешно удален");
-
+            log.info("Товар успешно удален");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при удалении товара: " + e.getMessage());
+            log.error("Ошибка при удалении товара: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }

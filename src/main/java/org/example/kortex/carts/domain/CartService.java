@@ -2,9 +2,8 @@ package org.example.kortex.carts.domain;
 
 import javax.persistence.EntityNotFoundException;
 import org.example.kortex.carts.db.Cart;
-import org.example.kortex.cartItems.db.CartItem;
+import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.CartRepository;
-import org.example.kortex.cartItems.domain.CartItemService;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

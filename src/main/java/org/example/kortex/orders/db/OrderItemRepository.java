@@ -1,6 +1,6 @@
-package org.example.kortex.orderItems.db;
+package org.example.kortex.orders.db;
 
-import org.example.kortex.cartItems.db.CartItem;
+import org.example.kortex.carts.db.CartItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.users.db.User;
 import org.example.kortex.carts.domain.CartService;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -50,6 +52,7 @@ public class AuthController {
             String email = request.get("email");
             String name = request.get("name");
             String password = request.get("password");
+            log.info("Отправка пользователю код на email: " + email);
 
             if (email == null || email.isEmpty()) {
                 Map<String, Object> error = new HashMap<>();
@@ -62,6 +65,7 @@ public class AuthController {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Пользователь с таким email уже существует");
+                log.info("Пользователь с таким email уже существует");
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
             }
 
@@ -84,12 +88,13 @@ public class AuthController {
             response.put("success", true);
             response.put("registrationId", registrationId);
             response.put("message", "Код подтверждения отправлен на email");
-
+            log.info("Код подтверждения отправлен на email: " + email);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Ошибка отправки кода: " + e.getMessage());
+            log.error("Ошибка отправки кода: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -100,12 +105,14 @@ public class AuthController {
             @RequestParam String code) {
 
         try {
+            log.info("verify пользователя");
             RegistrationData data = pendingRegistrations.get(registrationId);
 
             if (data == null) {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Недействительный код регистрации");
+                log.error("Недействительный код регистрации");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -114,6 +121,7 @@ public class AuthController {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Время подтверждения истекло");
+                log.error("Время подтверждения истекло");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -121,6 +129,7 @@ public class AuthController {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Неверный код подтверждения");
+                log.error("Неверный код подтверждения");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -143,13 +152,14 @@ public class AuthController {
             response.put("message", "Регистрация успешно завершена");
             response.put("user", savedUser);
             response.put("redirectUrl", "/");
-
+            log.info("Пользователь создан id: " + savedUser.getId());
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Ошибка при подтверждении: " + e.getMessage());
+            log.info("Ошибка при подтверждении: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -157,12 +167,14 @@ public class AuthController {
     @PostMapping("/register/resend-code")
     public ResponseEntity<?> resendVerificationCode(@RequestParam String registrationId) {
         try {
+            log.info("Повторное отправление кода на почту");
             RegistrationData data = pendingRegistrations.get(registrationId);
 
             if (data == null || data.isExpired()) {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Регистрация не найдена или истекла");
+                log.error("Регистрация не найдена или истекла");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -175,12 +187,13 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Новый код отправлен на email");
-
+            log.info("Новый код отправлен на email" + data.user.getEmail());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Ошибка отправки кода: " + e.getMessage());
+            log.info("Ошибка отправки повторного кода: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -188,6 +201,7 @@ public class AuthController {
     @PostMapping("/password/forgot")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         try {
+            log.info("Запрос на забыл пароль email" + email);
             User user = userService.getByEmail(email);
             if (user == null) {
                 Map<String, Object> error = new HashMap<>();
@@ -207,12 +221,14 @@ public class AuthController {
             response.put("success", true);
             response.put("resetId", resetId);
             response.put("message", "Код для сброса пароля отправлен на email");
+            log.info("Код для сброса пароля отправлен на email");
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Ошибка: " + e.getMessage());
+            log.info("Ошибка: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -223,12 +239,14 @@ public class AuthController {
             @RequestParam String code) {
 
         try {
+            log.info("Код по 'забыл пароль'");
             ResetData data = passwordResets.get(resetId);
 
             if (data == null || data.isExpired()) {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Код не найден или истек");
+                log.error("Код не найден или истек");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -236,6 +254,7 @@ public class AuthController {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Неверный код подтверждения");
+                log.error("Неверный код подтверждения");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -243,12 +262,14 @@ public class AuthController {
             response.put("success", true);
             response.put("resetId", resetId);
             response.put("message", "Код подтвержден");
+            log.info("Код подтвержден");
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Ошибка: " + e.getMessage());
+            log.error("Ошибка: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -261,11 +282,13 @@ public class AuthController {
 
         try {
             ResetData data = passwordResets.get(resetId);
+            log.info("Смена пароля у пользователя с email: " + data.email);
 
             if (data == null) {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Недействительный запрос сброса");
+                log.error("Недействительный запрос сброса");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -273,6 +296,7 @@ public class AuthController {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Пароли не совпадают");
+                log.error("Пароли не совпадают");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -281,6 +305,7 @@ public class AuthController {
                 Map<String, Object> error = new HashMap<>();
                 error.put("success", false);
                 error.put("message", "Пользователь не найден");
+                log.error("Пользователь не найден");
                 return ResponseEntity.badRequest().body(error);
             }
 
@@ -295,6 +320,7 @@ public class AuthController {
             response.put("success", true);
             response.put("message", "Пароль успешно изменен");
             response.put("redirectUrl", "/");
+            log.info("Пароль успешно изменен");
 
             return ResponseEntity.ok(response);
 
@@ -302,6 +328,7 @@ public class AuthController {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
             error.put("message", "Ошибка при сбросе пароля: " + e.getMessage());
+            log.error("Ошибка при сбросе пароля: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }

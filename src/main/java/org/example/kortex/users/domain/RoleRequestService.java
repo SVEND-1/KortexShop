@@ -64,6 +64,15 @@ public class RoleRequestService {
         return roleRequestRepositoryRepository.findSearchFilter(filter.role(),filter.status(),filter.typeAction() ,pageable);
     }
 
+    public RoleRequest downgradeRole(Long roleRequestId) {
+        RoleRequest roleRequest = roleRequestRepositoryRepository.findById(roleRequestId)
+                .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
+
+        userService.downgrade(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
+
+        roleRequest.setStatus(RoleRequest.Status.APPROVED);
+        return roleRequestRepositoryRepository.save(roleRequest);
+    }
 
     public RoleRequest approveRole(Long roleRequestId) {
         RoleRequest roleRequest = roleRequestRepositoryRepository.findById(roleRequestId)

@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
@@ -14,21 +15,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    //todo профиль
     private final UserService userService;
-    private final CartService cartService;
     private final OrderService orderService;
-    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserController(UserService userService, CartService cartService,OrderService orderService ,PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService,OrderService orderService) {
         this.userService = userService;
-        this.cartService = cartService;
         this.orderService = orderService;
-        this.passwordEncoder = passwordEncoder;
     }
 
 
@@ -38,6 +35,7 @@ public class UserController {
             return ResponseEntity.ok().body(userService.getCurrentUser());
         }
         catch (Exception e) {
+            log.error("Не удалось загрущить профиль" + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -50,51 +48,8 @@ public class UserController {
             return ResponseEntity.ok().body(userOrders);
         }
         catch (Exception e) {
+            log.error("Не удалось загрузить заказы пользователя " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @PostMapping
-    public ResponseEntity<User> addUser(@RequestParam String email,
-                                        @RequestParam String password,
-                                        @RequestParam String name) {
-        try {
-            if (userService.getByEmail(email) != null) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).build();
-            }
-
-            User user = new User();
-            user.setName(name);
-            user.setEmail(email);
-            user.setPassword(passwordEncoder.encode(password));
-            user.setRole(User.Role.USER);
-
-            User savedUser = userService.create(user);
-
-            Cart cart = new Cart();
-            cart.setUser(savedUser);
-            cartService.create(cart);
-
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(savedUser);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @PostMapping("/password")
-    public ResponseEntity<?> changePassword(
-            @RequestParam String newPassword) {
-
-        try {
-            User user = userService.getCurrentUser();
-            user.setPassword(passwordEncoder.encode(newPassword));
-            userService.update(user.getId(), user);
-
-            return ResponseEntity.ok("Пароль изменен");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Ошибка изменения пароля: " + e.getMessage());
         }
     }
 
@@ -104,14 +59,16 @@ public class UserController {
 
         try {
             User user = userService.getCurrentUser();
+            log.info("Обновление адреса у пользователя с id: " + user.getId());
 
             user.setAddress(newAddress);
             userService.update(user.getId(), user);
-
-            return ResponseEntity.ok("Пароль изменен");
+            log.info("Адрес изменен");
+            return ResponseEntity.ok("адрес изменен");
         } catch (Exception e) {
+            log.error("Ошибка изменения адреса: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Ошибка изменения пароля: " + e.getMessage());
+                    .body("Ошибка изменения адреса: " + e.getMessage());
         }
     }
 }

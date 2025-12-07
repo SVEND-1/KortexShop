@@ -1,9 +1,11 @@
 package org.example.kortex.orders.api;
 
-import org.example.kortex.cartItems.db.CartItem;
-import org.example.kortex.cartItems.domain.CartItemService;
+import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.carts.db.CartItem;
+import org.example.kortex.carts.domain.CartItemService;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.domain.CartService;
+import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
@@ -16,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {//todo
@@ -32,7 +35,7 @@ public class OrderController {//todo
         this.cartItemService = cartItemService;
     }
 
-    @GetMapping("/me-create")
+    @GetMapping("/me")
     public ResponseEntity<?> getMeCreateOrders() {
         try {
             User user = userService.getCurrentUser();
@@ -50,22 +53,30 @@ public class OrderController {//todo
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении данных заказов: " + e.getMessage());
+            log.error("Ошибка при получении данных заказов: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 
-    @PostMapping()
+    @PostMapping("/me-create")
     public ResponseEntity<?> createOrder() {
         try {
+            log.info("Создания заказа");
             User user = userService.getCurrentUser();
+            Order order = orderService.createOrderFromCart(user.getId());
+
             Map<String, Object> response = new HashMap<>();
-            response.put("order", orderService.createOrderFromCart(user.getId()));
+            response.put("order", order);
             response.put("redirect","/");
+
+            log.info("Заказ создан id: " + order.getId());
+
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
         catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении данных корзины: " + e.getMessage());
+            log.error("Ошибка при получении данных корзины: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
