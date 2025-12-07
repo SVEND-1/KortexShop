@@ -5,6 +5,9 @@ import javax.persistence.EntityNotFoundException;
 import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
+import org.example.kortex.users.domain.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,7 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ProductService {
-
+    private final Logger log = LoggerFactory.getLogger(UserService.class);
     private final ProductRepository productRepository;
 
     @Autowired
@@ -27,15 +30,9 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public Page<Product> getAvailableProductsWithPagination(int page, int size) {
-        return productRepository.findByCountGreaterThan(0, PageRequest.of(page, size));
-    }
-
-    public Page<Product> getProductsByCategoryWithPagination(Product.Category category, int page, int size) {
-        return productRepository.findByCategoryAndCountGreaterThan(category, 0, PageRequest.of(page, size));
-    }
 
     public List<Product> findProductsFilter(ProductSearchFilter filter){
+        log.info("Запрос на выдачу всех товаров с фильром: " + filter);
         Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
         int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
@@ -43,27 +40,20 @@ public class ProductService {
 
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        return productRepository.findProductsFilter(category,query,pageable);
-    }
-
-    public List<Product> find48Product(){
-        return productRepository.findTop48ByCountGreaterThan(0);
+        List<Product> products = productRepository.findProductsFilter(category,query,pageable);
+        log.info("Выдача всех товаров с фильтром: " + filter);
+        return products;
     }
 
     public List<Product> getProductsBySeller(Long sellerId) {
-        return productRepository.findBySellerId(sellerId);
+        log.info("Запрос на товары у продавца: " + sellerId);
+        List<Product> products = productRepository.findBySellerId(sellerId);
+        log.info("Запрос на товары у продавца успешно выполнен");
+        return products;
     }
 
     public Product getById(Long id) {
         return productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
-    }
-
-    public List<Product> getAvailableProducts(){
-        return productRepository.findByCountGreaterThan(0);
-    }
-
-    public List<Product> searchProducts(String query){
-        return getAvailableProducts().stream().filter(product -> product.getName().contains(query)).collect(Collectors.toList());
     }
 
     public Product productSubtractQuantity(Long productId, int quantity) {
@@ -80,10 +70,14 @@ public class ProductService {
 
 
     public Product create(Product productToCreate) {
-        return productRepository.save(productToCreate);
+        log.info("Создания продкута");
+        Product product = productRepository.save(productToCreate);
+        log.info("Продукт создан id: " + product.getId());
+        return product;
     }
 
     public Product update(Long id, Product productToUpdate) {
+        log.info("Обновлние продукта с id: " + id);
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
 
@@ -97,7 +91,9 @@ public class ProductService {
             existingProduct.setImage(productToUpdate.getImage());
         }
 
-        return productRepository.save(existingProduct);
+        Product productUpdated = productRepository.save(existingProduct);
+        log.info("Продукт обновлени id: " + productUpdated.getId());
+        return productRepository.save(productUpdated);
     }
 
     public void deleted(Long id) {
@@ -105,5 +101,6 @@ public class ProductService {
             throw new NoSuchElementException("Продукт не найден");
         }
         productRepository.deleteById(id);
+        log.info("Продукт удален id: " + id);
     }
 }

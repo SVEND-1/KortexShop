@@ -4,7 +4,10 @@ import javax.persistence.EntityNotFoundException;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.CartRepository;
+import org.example.kortex.users.domain.UserService;
 import org.hibernate.Hibernate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +20,7 @@ public class CartService {
 
     private final CartRepository cartRepository;
     private final CartItemService cartItemService;
+    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public CartService(CartRepository cartRepository, CartItemService cartItemService) {
@@ -25,7 +29,7 @@ public class CartService {
     }
 
 
-    public Cart getCartByUserId(Long userId) {
+    public Cart getCartByUserId(Long userId) {//TODO Переписать
         Cart cart = cartRepository.findByUserId(userId);
         if (cart != null) {
             Hibernate.initialize(cart.getCartItems());
@@ -41,36 +45,27 @@ public class CartService {
     }
 
     public Cart create(Cart cartToCreate) {
-        return cartRepository.save(cartToCreate);
+        log.info("Создания корзины у пользователя " + cartToCreate.getUser().getId());
+        Cart cart = cartRepository.save(cartToCreate);
+        log.info("Корзина создана id корзины: " + cart.getId());
+        return cart;
     }
-
-    public Cart update(Long id,Cart cartToUpdate) {
-        Cart cart = cartRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Корзина не найдена"));
-        Cart updatedCart = new Cart(
-                cart.getId(),
-                cartToUpdate.getUser(),
-                cartToUpdate.getCartItems(),
-                cartToUpdate.getTotalPrice());
-        return cartRepository.save(updatedCart);
-    }
-
-    public void deleted(Long id) {
-        if(!cartRepository.existsById(id)){
-            throw new NoSuchElementException("Корзина не найдена");
-        }
-        cartRepository.deleteById(id);
-    }
-
 
     public Cart clearCartByUserId(Long userID)  {
+        log.info("Очистка корзины");
         Cart cart = cartRepository.findByUserId(userID);
         cart.clearCart();
-        return cartRepository.save(cart);
+        Cart saveCart = cartRepository.save(cart);
+        log.info("Корзина очищена");
+        return saveCart;
     }
 
     public Cart cartAddProduct(Long cartId, Long productId) {
+        log.info("Добавление продукта " + productId + " в корзину " + cartId);
         Cart cart = getById(cartId);
         cartItemService.addItemToCart(cartId,productId,1);
-        return cartRepository.save(cart);
+        Cart saveCart = cartRepository.save(cart);
+        log.info("Продукт добавлен успешно");
+        return saveCart;
     }
 }

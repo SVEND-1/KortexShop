@@ -41,7 +41,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query(
             """
     SELECT o FROM Order o
-    WHERE o.courier == null 
+    WHERE o.courier IS NULL 
     ORDER BY o.orderDate DESC
 """
     )

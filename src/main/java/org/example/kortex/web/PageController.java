@@ -40,4 +40,14 @@ public class PageController {
     public String admin(Model model) {
         return "forward:/admin.html";
     }
+
+    @GetMapping()
+    public String mainForm(Model model) {
+        return "forward:/mainForm.html";
+    }
+
+    @GetMapping("/profile")
+    public String profile(Model model) {
+        return "forward:/mainForm.html";
+    }
 }

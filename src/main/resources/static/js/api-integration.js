@@ -166,7 +166,7 @@ async function handleCodeConfirmation() {
         }
 
         // Форматируем код в XXX-XXX
-        const formattedCode = code.substring(0, 3) + '-' + code.substring(3, 6);
+        const formattedCode = code.substring(0, 3)  + code.substring(3, 6);
         console.log('Сформированный код:', formattedCode);
 
         // Определяем тип операции (регистрация или сброс пароля)

@@ -13,6 +13,8 @@ import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +34,7 @@ public class OrderService {
     private final CartService cartService;
     private final ProductService productService;
     private final OrderItemService orderItemService;
+    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public OrderService(OrderRepository orderRepository,@Lazy UserService userService,
@@ -47,21 +50,17 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
-    public List<Order> getPageUserOrders(Long userId,int pageSize,int pageNumber){//Поставить в контроллер не обезательное заполнение
-        pageSize = pageSize != 0 ? pageSize : 8;
-        Pageable pageable = Pageable
-                .ofSize(pageSize)
-                .withPage(pageNumber);
-        return orderRepository.findOrderByUser(userId,pageable);
-    }
 
     public List<Order> assignedCourierOrders(Long userId){
         User courier = userService.getById(userId);
         validateCourier(courier);
-        return orderRepository.assignedOrders(userId);
+        List<Order> orders = orderRepository.assignedOrders(userId);
+        log.info("Заказы курьера выданы id курьера: " + userId);
+        return orders;
     }
 
     public List<Order> assignedCourierOrdersPage(OrdersSearchCourierFilter filter){
+        log.info("Заказы курьера с фильром: " + filter);
         User courier = userService.getById(filter.userId());
 
         validateCourier(courier);
@@ -72,17 +71,22 @@ public class OrderService {
                 .ofSize(pageSize)
                 .withPage(pageNumber);
 
-        return orderRepository.assignedOrdersPage(filter.userId(),pageable);
+        List<Order> orders =  orderRepository.assignedOrdersPage(filter.userId(),pageable);
+        log.info("Заказы курьера с фильром выданы");
+        return orders;
     }
 
     public List<Order> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
+        log.info("Запрос доступный заказов для курьеров");
         pageSize = pageSize != null ? pageSize : 36;
         pageNumber = pageNumber != null ? pageNumber : 0;
         Pageable pageable = Pageable
                 .ofSize(pageSize)
                 .withPage(pageNumber);
 
-        return orderRepository.availableOrdersPage(pageable);
+        List<Order> orders = orderRepository.availableOrdersPage(pageable);
+        log.info("Доступные заказы для курьеров выданы ");
+        return orders;
     }
 
 
@@ -91,27 +95,37 @@ public class OrderService {
     }
 
     public Order setCourier(Order order,Long courierId) {
+        log.info("Назначения курьера на заказ");
         User user = userService.getById(courierId);
         validateCourier(user);
 
         order.setCourier(userService.getById(courierId));
-        return orderRepository.save(order);
+        Order saveOrder = orderRepository.save(order);
+        log.info("На заказ " +  saveOrder.getId() + " назначен курьер: " + saveOrder.getCourier().getId());
+        return saveOrder;
     }
 
 
     public Order setStatus(Order order, Order.OrderStatus status) {
-        if(status == Order.OrderStatus.CANCELLED) {
+        log.info("Изменения статуса заказа " + order.getId() + " на статсус " + status.name());
+        if(status == Order.OrderStatus.CANCELLED && order.getStatus() == Order.OrderStatus.DISPATCHED) {
+            log.info("Запрос курьера на отказ от заказа");
             order.setCourier(null);
             status = Order.OrderStatus.PENDING;
+            log.info("Курьер отказался от заказа");
         }
         if(status == Order.OrderStatus.RETURNED) {
+            log.info("Вернуть заказ");
             List<OrderItem> orderItems = order.getOrderItems();
             for(OrderItem orderItem : orderItems) {
                 productService.productAddQuantity(orderItem.getProduct().getId(),orderItem.getQuantity());
             }
+            log.info("Заказ был возвращен");
         }
         order.setStatus(status);
-        return orderRepository.save(order);
+        Order saveOrder = orderRepository.save(order);
+        log.info("Статус заказа изменен");
+        return saveOrder;
     }
 
     public List<Order> getOrdersByUserId(Long userId) {
@@ -119,14 +133,17 @@ public class OrderService {
     }
 
     public Order createOrderFromCart(Long userId) {
+        log.info("Создания заказа из корзины");
         User user = userService.getById(userId);
 
         Cart cart = cartService.getCartByUserId(userId);
         if (cart == null) {
+            log.error("Корзина не найдена для пользователя с ID: " + userId);
             throw new RuntimeException("Корзина не найдена для пользователя с ID: " + userId);
         }
 
         if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
+            log.error("Корзина пуста, невозможно создать заказ");
             throw new RuntimeException("Корзина пуста, невозможно создать заказ");
         }
 
@@ -150,12 +167,13 @@ public class OrderService {
         for(OrderItem orderItem : finalOrder.getOrderItems()) {
             productService.productSubtractQuantity(orderItem.getProduct().getId(),orderItem.getQuantity());
         }
-
+        log.info("Заказ создан с id: " + finalOrder.getId());
         return finalOrder;
     }
 
     private void validateCourier(User user) {
         if (user.getRole() != User.Role.COURIER) {
+            log.error("Пользователь с ID " + user.getId() + " не является курьером");
             throw new IllegalArgumentException(
                     String.format("Пользователь с ID %d не является курьером", user.getId())
             );
@@ -167,18 +185,22 @@ public class OrderService {
         for (CartItem cartItem : cart.getCartItems()) {
             Product product = cartItem.getProduct();
             if (product == null) {
+                log.error("Товар не найден в корзине");
                 throw new RuntimeException("Товар не найден в корзине");
             }
 
             Product actualProduct = productService.getById(product.getId());
             if(actualProduct == null) {
+                log.error("Товар не найден: " + product.getName());
                 new RuntimeException("Товар не найден: " + product.getName());
             }
 
             if (actualProduct.getCount() < cartItem.getQuantity()) {
-                throw new RuntimeException("Недостаточно товара на складе: " + actualProduct.getName() +
+                String message = "Недостаточно товара на складе: " + actualProduct.getName() +
                         ". Доступно: " + actualProduct.getCount() +
-                        ", запрошено: " + cartItem.getQuantity());
+                        ", запрошено: " + cartItem.getQuantity();
+                log.error(message);
+                throw new RuntimeException(message);
             }
         }
     }
@@ -196,6 +218,7 @@ public class OrderService {
     }
 
     private List<OrderItem> createOrderItemsFromCart(Cart cart, Order order) {
+        log.info("Создания OrderItem");
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CartItem cartItem : cart.getCartItems()) {
@@ -212,33 +235,9 @@ public class OrderService {
             orderItems.add(orderItem);
         }
 
-        return orderItemService.saveAll(orderItems);
-    }
-
-
-
-    public Order save(Order order) {
-        return orderRepository.save(order);
-    }
-
-    public Order update(Long id, Order orderToUpdate) {
-        Order order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Заказ не найден"));
-        Order updatedOrder = new Order(
-                order.getId(),
-                orderToUpdate.getUser(),
-                orderToUpdate.getCourier(),
-                orderToUpdate.getStatus(),
-                orderToUpdate.getMessage(),
-                orderToUpdate.getTotalAmount(),
-                order.getOrderItems());
-        return orderRepository.save(updatedOrder);
-    }
-
-    public void deleted(Long id) {
-        if(!orderRepository.existsById(id)){
-            throw new NoSuchElementException("Заказ не найден");
-        }
-        orderRepository.deleteById(id);
+        List<OrderItem> finalOrderItems = orderItemService.saveAll(orderItems);
+        log.info("Созданы все OrderItem");
+        return finalOrderItems;
     }
 
 }

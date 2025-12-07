@@ -1,5 +1,7 @@
 package org.example.kortex.users.domain;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -12,7 +14,7 @@ import java.util.Random;
 @Transactional
 public class EmailSenderService {
     private JavaMailSender javaMailSender;
-
+    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public EmailSenderService(JavaMailSender javaMailSender) {
@@ -20,6 +22,7 @@ public class EmailSenderService {
     }
 
     public void sendMessage(String to, String subject, String content) {
+        log.info("Отпрвавка сообщение на почту: " + to);
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("onlineshopkortex@gmail.com");
         message.setTo(to);
@@ -27,9 +30,11 @@ public class EmailSenderService {
         message.setText(content);
 
         javaMailSender.send(message);
+        log.info("Сообщение отправлено на почту: " + to);
     }
 
     public void sendPasswordResetEmail(String to, String code) {
+        log.info("Отпрвавка сообщение на изменения сброс на почту: " + to + " с кодом " + code);
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("onlineshopkortex@gmail.com");
         message.setTo(to);
@@ -48,9 +53,11 @@ public class EmailSenderService {
             """);
 
         javaMailSender.send(message);
+        log.info("Сообщение отправлено на изменения сброс на почту: " + to + " с кодом " + code);
     }
 
     public String sendVerification(String to,String code) {
+        log.info("Отпрвавка сообщение на регистрацию на почту: " + to + " с кодом " + code);
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("onlineshopkortex@gmail.com");
 
@@ -73,6 +80,7 @@ public class EmailSenderService {
         message.setText(content);
 
         javaMailSender.send(message);
+        log.info("Сообщение отправлено на регистрацию на почту: " + to + " с кодом " + code);
         return code;
     }
 

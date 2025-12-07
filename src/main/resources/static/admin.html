@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/mainFormStyle.css">
+    <link rel="stylesheet" href="css/adminStyle.css">
+    <title>Панель администратора</title>
+</head>
+<body>
+    <!--Шапка страницы-->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="mainForm.html" class="logo">Kortex marketplace</a>
+                
+                <form class="search-form" action="/search" method="GET">
+                    <div class="search-container">
+                        <input id="search-input" type="text" class="search-input" name="query" placeholder="Поиск пользователей...">
+                        <button type="submit" class="search-button">
+                            <img id="findImg" src="images/findImg.png" alt="Поиск">
+                        </button>
+                    </div>
+                </form>
+
+                <nav class="nav">
+                    <a href="profile.html" class="nav-link">
+                        <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
+                        <span class="profile-text">Профиль</span>
+                    </a>
+                    <a href="loginForm.html" class="nav-link">
+                        <img src="images/join-img.png" alt="Выйти" class="nav-icon">
+                        Выйти
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Основной контент администратора -->
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>⚙️ Панель администратора</h1>
+            <p class="admin-subtitle">Управление заявками на изменение ролей</p>
+        </div>
+
+        <!-- Фильтры и управление -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <label for="statusFilter">Статус заявки:</label>
+                <select id="statusFilter" class="filter-select">
+                    <option value="ALL">Все</option>
+                    <option value="PENDING">Ожидает</option>
+                    <option value="APPROVED">Одобрено</option>
+                    <option value="REJECTED">Отклонено</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="requestTypeFilter">Тип запроса:</label>
+                <select id="requestTypeFilter" class="filter-select">
+                    <option value="ALL">Все</option>
+                    <option value="UPGRADE_TO_SELLER">Стать продавцом</option>
+                    <option value="UPGRADE_TO_COURIER">Стать курьером</option>
+                    <option value="DOWNGRADE_TO_CUSTOMER">Стать покупателем</option>
+                </select>
+            </div>
+            
+            <div class="filter-actions">
+                <button class="btn btn-primary" onclick="loadRequests()">
+                    Обновить список
+                </button>
+                <button class="btn btn-secondary" onclick="clearFilters()">
+                    Очистить фильтры
+                </button>
+            </div>
+        </div>
+
+        <!-- Список заявок -->
+        <div class="requests-section">
+            <div class="section-header">
+                <h2>📋 Список заявок</h2>
+                <div class="section-info">
+                    <span class="requests-count" id="requestsCount">Загрузка...</span>
+                </div>
+            </div>
+            
+            <div class="requests-container">
+                <table class="requests-table" id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Пользователь</th>
+                            <th>Email</th>
+                            <th>Тип запроса</th>
+                            <th>Статус</th>
+                            <th>Дата создания</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestsList">
+                        <!-- Список будет заполняться через JavaScript -->
+                        <tr>
+                            <td colspan="7" class="loading">Загрузка заявок...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="pagination">
+                <!-- Пагинация будет добавляться динамически -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно с деталями заявки -->
+    <div class="modal" id="requestModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Детали заявки #<span id="modalRequestId"></span></h3>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Основная информация -->
+                <div class="info-section">
+                    <h4>📌 Основная информация</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">ID пользователя:</span>
+                            <span id="modalUserId" class="info-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Имя пользователя:</span>
+                            <span id="modalUserName" class="info-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Email:</span>
+                            <span id="modalUserEmail" class="info-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Текущая роль:</span>
+                            <span id="modalCurrentRole" class="info-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Запрашиваемая роль:</span>
+                            <span id="modalRequestedRole" class="info-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Статус:</span>
+                            <span id="modalStatus" class="info-value status-badge"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Дата подачи:</span>
+                            <span id="modalCreatedAt" class="info-value"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Описание заявки -->
+                <div class="description-section">
+                    <h4>📝 Описание заявки</h4>
+                    <div class="description-content" id="modalDescription">
+                        Загрузка описания...
+                    </div>
+                </div>
+                
+                <!-- История изменений -->
+                <div class="history-section" id="historySection">
+                    <h4>📋 История изменений</h4>
+                    <div class="history-list" id="modalHistory">
+                        <div class="history-item">
+                            <span class="history-date">15.01.2024 10:30</span>
+                            <span class="history-action">Заявка создана</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Действия (только для ожидающих заявок) -->
+                <div class="modal-actions" id="modalActions">
+                    <div class="actions-info" id="actionsInfo">
+                        <!-- Информация о доступных действиях -->
+                    </div>
+                    <div class="actions-buttons" id="actionsButtons">
+                        <!-- Кнопки действий будут добавлены динамически -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3 id="confirmTitle">Подтверждение действия</h3>
+                <button class="modal-close" onclick="closeConfirmModal()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <p id="confirmMessage">Вы уверены, что хотите выполнить это действие?</p>
+                <div class="confirm-actions">
+                    <button class="btn btn-primary" id="confirmButton">Подтвердить</button>
+                    <button class="btn btn-secondary" onclick="closeConfirmModal()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div class="notification" id="notification" style="display: none;">
+        <span class="notification-text" id="notificationText"></span>
+        <button class="notification-close" onclick="hideNotification()">×</button>
+    </div>
+
+    <script src="js/adminScript.js"></script>
+</body>
+</html>

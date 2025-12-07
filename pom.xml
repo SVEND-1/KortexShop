@@ -78,16 +78,12 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Lombok (опционально, но рекомендую) -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -100,6 +96,7 @@
                     </excludes>
                 </configuration>
             </plugin>
+
 
             <!-- Компилятор для Java 17 -->
             <plugin>
@@ -118,6 +115,8 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
+
         </plugins>
     </build>
 </project>
