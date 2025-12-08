@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="design/mainFormStyle.css">
+    <link rel="stylesheet" href="design/authStyle.css">
+    <link rel="stylesheet" href="design/sellerStyle.css">
+    <title>Панель продавца</title>
+</head>
+<body>
+    <!--Шапка страницы-->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="mainForm.html" class="logo">Kortex marketplace</a>
+                
+                <form class="search-form" action="/search" method="GET">
+                    <div class="search-container">
+                        <input id="search-input" type="text" class="search-input" name="query" placeholder="Поиск товаров...">
+                        <button type="submit" class="search-button">
+                            <img id="findImg" src="images/findImg.png" alt="Поиск">
+                        </button>
+                    </div>
+                </form>
+
+                <nav class="nav">
+                    <a href="cartForm.html" class="nav-link">
+                        <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
+                        Корзина
+                    </a>
+
+                    <a href="profile.html" class="nav-link">
+                        <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
+                        <span class="profile-text">Профиль</span>
+                    </a>
+
+                    <a href="loginForm.html" class="nav-link">
+                        <img src="images/join-img.png" alt="Войти" class="nav-icon">
+                        Войти
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Панель продавца с табами -->
+    <main class="auth-container">
+        <div class="auth-form">
+            <h2 class="registerH2">Панель продавца</h2>
+            
+            <!-- Табы -->
+            <div class="tabs">
+                <button class="tab-button active" data-tab="add">Добавить товар</button>
+                <button class="tab-button" data-tab="edit">Редактировать товары</button>
+            </div>
+
+            <!-- Контент таба "Добавить товар" -->
+            <div id="add-tab" class="tab-content active">
+                <form class="loginForm" id="add-product-form" method="POST" enctype="multipart/form-data">
+                    <label>Название товара</label>
+                    <input type="text" name="name" placeholder="Введите название товара" required>
+
+                    <label>Цена</label>
+                    <input type="number" name="price" placeholder="0" min="0" step="0.01" required>
+
+                    <label>Бренд</label>
+                    <input type="text" name="brand" placeholder="Название бренда">
+
+                    <label>Количество на складе</label>
+                    <input type="number" name="quantity" placeholder="0" min="0" required>
+
+                    <label>Категория</label>
+                    <select name="category" required>
+                        <option value="">Выберите категорию</option>
+                        <option value="ELECTRONICS">Электроника</option>
+                        <option value="CLOTHING">Одежда</option>
+                        <option value="BOOKS">Книги</option>
+                        <option value="FOOD">Еда</option>
+                        <option value="SPORTS">Спорт товары</option>
+                        <option value="HOME">Товары для дома</option>
+                        <option value="BEAUTY">Красота</option>
+                        <option value="OTHER">Другое</option>
+                    </select>
+
+                    <label>Описание</label>
+                    <textarea name="description" placeholder="Описание товара..." rows="4" required></textarea>
+
+                    <label>Изображение товара</label>
+                    <div class="file-input-container">
+                        <input type="file" name="image" accept="image/*" class="file-input" id="fileInput">
+                        <label for="fileInput" class="file-input-label">
+                            Выберите файл
+                        </label>
+                        <span class="file-name" id="fileName">Файл не выбран</span>
+                    </div>
+
+                    <div class="form-buttons">
+                        <button type="submit" class="loginBtn">Добавить товар</button>
+                        <button type="reset" class="loginBtn reset-btn">Очистить</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Контент таба "Редактировать товары" -->
+            <div id="edit-tab" class="tab-content">
+                <div class="products-list">
+                    <div class="search-products">
+                        <input type="text" id="product-search" placeholder="Поиск по названию товара..." class="search-input">
+                    </div>
+                    
+                    <div id="products-container">
+                        <!-- Товары будут загружаться здесь -->
+                        <p class="loading-text">Загрузка товаров...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Форма редактирования (скрыта по умолчанию) -->
+            <div id="edit-form-container" class="tab-content" style="display: none;">
+                <h3>Редактировать товар</h3>
+                <form class="loginForm" id="edit-product-form" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="id" id="edit-id">
+                    
+                    <label>Название товара</label>
+                    <input type="text" name="name" id="edit-name" placeholder="Введите название товара" required>
+
+                    <label>Цена</label>
+                    <input type="number" name="price" id="edit-price" placeholder="0" min="0" step="0.01" required>
+
+                    <label>Бренд</label>
+                    <input type="text" name="brand" id="edit-brand" placeholder="Название бренда">
+
+                    <label>Количество на складе</label>
+                    <input type="number" name="quantity" id="edit-quantity" placeholder="0" min="0" required>
+
+                    <label>Категория</label>
+                    <select name="category" id="edit-category" required>
+                        <option value="">Выберите категорию</option>
+                        <option value="ELECTRONICS">Электроника</option>
+                        <option value="CLOTHING">Одежда</option>
+                        <option value="BOOKS">Книги</option>
+                        <option value="FOOD">Еда</option>
+                        <option value="SPORTS">Спорт товары</option>
+                        <option value="HOME">Товары для дома</option>
+                        <option value="BEAUTY">Красота</option>
+                        <option value="OTHER">Другое</option>
+                    </select>
+
+                    <label>Описание</label>
+                    <textarea name="description" id="edit-description" placeholder="Описание товара..." rows="4" required></textarea>
+
+                    <label>Изображение товара</label>
+                    <div class="file-input-container">
+                        <input type="file" name="image" accept="image/*" class="file-input" id="edit-fileInput">
+                        <label for="edit-fileInput" class="file-input-label">
+                            Выберите новый файл (оставьте пустым, чтобы не менять)
+                        </label>
+                        <span class="file-name" id="edit-fileName">Файл не выбран</span>
+                        <div id="current-image-preview" style="margin-top: 10px;"></div>
+                    </div>
+
+                    <div class="form-buttons">
+                        <button type="submit" class="loginBtn">Сохранить изменения</button>
+                        <button type="button" id="cancel-edit" class="loginBtn reset-btn">Отмена</button>
+                        <button type="button" id="delete-product" class="loginBtn delete-btn">Удалить товар</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="auth-links">
+                <a href="profile.html" class="back-to-main">Вернуться в профиль</a>
+                <a href="mainForm.html" class="back-to-main">Вернуться на главную</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="javascript/productManager.js"></script>
+    <script src="javascript/imageUploader.js"></script>
+    <script src="javascript/sellerScript.js"></script>
+</body>
+</html>

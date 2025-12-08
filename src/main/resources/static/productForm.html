@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="design/mainFormStyle.css">
+    <link rel="stylesheet" href="design/productStyle.css">
+    <title>О товаре - Онлайн магазин</title>
+</head>
+<body>
+    <!--Шапка страницы-->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="mainForm.html" class="logo">Kortex marketplace</a>
+                
+                <form class="search-form" action="/search" method="GET">
+                    <div class="search-container">
+                        <input id="search-input" type="text" class="search-input" name="query" placeholder="Поиск товаров...">
+                        <button type="submit" class="search-button">
+                            <img id="findImg" src="images/findImg.png" alt="Поиск">
+                        </button>
+                    </div>
+                </form>
+
+                <nav class="nav">
+                    <a href="cartForm.html" class="nav-link">
+                        <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
+                        Корзина
+                    </a>
+
+                    <a href="profile.html" class="nav-link">
+                        <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
+                        <span class="profile-text">Профиль</span>
+                    </a>
+
+                    <a href="loginForm.html" class="nav-link">
+                        <img src="images/join-img.png" alt="Войти" class="nav-icon">
+                        Войти
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Информация о товаре -->
+    <main class="product-container">
+        <div class="container">
+            <a href="mainForm.html" class="back-button">← Назад к каталогу</a>
+
+            <div class="product-content">
+                <!-- Изображения товара -->
+                <div class="product-images">
+                    <div class="main-image">
+                        <img src="images/product-img.png" alt="Товар" id="mainImage">
+                    </div>
+                </div>
+
+                <!-- Информация о товаре -->
+                <div class="product-info">
+                    <div class="product-header">
+                        <h1 class="product-title" id="productTitle">Название товара</h1>
+                        <div class="product-category" id="productCategory">Категория</div>
+                    </div>
+
+                    <div class="product-price">
+                        <span class="current-price" id="productPrice">0 ₽</span>
+                        <span class="old-price" id="productOldPrice" style="display: none;"></span>
+                        <span class="discount" id="productDiscount" style="display: none;"></span>
+                    </div>
+
+                    <div class="product-stock in-stock" id="productStock">
+                        ✓ В наличии: 0 шт.
+                    </div>
+
+                    <div class="product-description">
+                        <h3>Описание</h3>
+                        <p id="productDescription">Описание товара...</p>
+                        
+                        <div class="product-features">
+                            <h4>Характеристики:</h4>
+                            <ul id="productFeatures">
+                                <!-- Характеристики загрузятся через JS -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="product-meta">
+                        <div class="meta-item">
+                            <strong>Бренд:</strong>
+                            <span id="productBrand">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <strong>Категория:</strong>
+                            <span id="productCategoryFull">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <strong>Продавец:</strong>
+                            <span id="productSeller">-</span>
+                        </div>
+                        
+                    </div>
+
+                    <!-- Кнопки действий -->
+                    <div class="product-actions">
+                        <div class="quantity-selector">
+                            <label>Количество:</label>
+                            <div class="quantity-controls">
+                                <button type="button" class="quantity-btn minus">-</button>
+                                <span class="quantity">1</span>
+                                <button type="button" class="quantity-btn plus">+</button>
+                            </div>
+                        </div>
+
+                        <form action="/cart/add" method="POST" class="add-to-cart-form">
+                            <input type="hidden" name="productId" id="formProductId" value="">
+                            <input type="hidden" name="quantity" value="1" id="quantityInput">
+                            <button type="submit" class="btn btn-primary btn-large">
+                                🛒 Добавить в корзину
+                            </button>
+                        </form>
+
+                        <div class="success-message" id="successMessage" style="display: none;">
+                            ✅ Товар успешно добавлен в корзину!
+                        </div>
+
+                        <div class="error-message" id="errorMessage" style="display: none;">
+                            ❌ Произошла ошибка при добавлении товара
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="javascript/productManager.js"></script>
+    <script src="javascript/imageUploader.js"></script>
+    <script src="javascript/cartManager.js"></script>
+    <script src="javascript/productScript.js"></script>
+    <script src="javascript/productDetailScript.js"></script>
+<script>
+    // Загружаем данные товара при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        loadProductData();
+        initProductPage();
+    });
+    
+    function loadProductData() {
+        const productData = JSON.parse(localStorage.getItem('currentProduct'));
+        
+        if (productData) {
+            // Заполняем страницу данными из productManager
+            const product = window.productManager.getProductById(productData.id);
+            
+            if (product) {
+                document.getElementById('productTitle').textContent = product.name;
+                document.getElementById('productCategory').textContent = product.categoryName || product.category;
+                document.getElementById('productPrice').textContent = formatPrice(product.price);
+                
+                // Старая цена и скидка
+                if (product.oldPrice && product.oldPrice > product.price) {
+                    document.getElementById('productOldPrice').textContent = formatPrice(product.oldPrice);
+                    document.getElementById('productOldPrice').style.display = 'inline';
+                    const discount = Math.round((1 - product.price / product.oldPrice) * 100);
+                    document.getElementById('productDiscount').textContent = '-' + discount + '%';
+                    document.getElementById('productDiscount').style.display = 'inline';
+                }
+                
+                document.getElementById('productDescription').textContent = product.description;
+                document.getElementById('productStock').textContent = '✓ В наличии: ' + (product.count || 0) + ' шт.';
+                document.getElementById('mainImage').src = window.imageUploader.getImage(product.id);
+                document.getElementById('mainImage').alt = product.name;
+                
+                // Заполняем характеристики
+                const featuresList = document.getElementById('productFeatures');
+                featuresList.innerHTML = '';
+                if (product.features && product.features.length > 0) {
+                    product.features.forEach(feature => {
+                        const li = document.createElement('li');
+                        li.textContent = feature;
+                        featuresList.appendChild(li);
+                    });
+                } else {
+                    featuresList.innerHTML = '<li>Характеристики не указаны</li>';
+                }
+                
+                // Заполняем мета-информацию
+                document.getElementById('productBrand').textContent = product.brand || 'Не указан';
+                document.getElementById('productCategoryFull').textContent = product.categoryName || product.category;
+                document.getElementById('productSeller').textContent = product.seller || 'Не указан';
+                document.getElementById('productId').textContent = '#' + product.id;
+                
+                // Обновляем скрытые поля формы
+                document.getElementById('formProductId').value = product.id;
+            }
+        } else {
+            // Если товар не найден, показываем сообщение
+            document.getElementById('productTitle').textContent = 'Товар не найден';
+            document.getElementById('productDescription').textContent = 'Извините, информация о товаре недоступна.';
+        }
+    }
+
+    function initProductPage() {
+        // Инициализация счетчика количества
+        const minusBtn = document.querySelector('.quantity-btn.minus');
+        const plusBtn = document.querySelector('.quantity-btn.plus');
+        const quantityElement = document.querySelector('.quantity');
+        const quantityInput = document.getElementById('quantityInput');
+        
+        let quantity = 1;
+        
+        if (minusBtn && plusBtn && quantityElement && quantityInput) {
+            minusBtn.addEventListener('click', function() {
+                if (quantity > 1) {
+                    quantity--;
+                    updateQuantity();
+                }
+            });
+            
+            plusBtn.addEventListener('click', function() {
+                quantity++;
+                updateQuantity();
+            });
+            
+            function updateQuantity() {
+                quantityElement.textContent = quantity;
+                quantityInput.value = quantity;
+            }
+        }
+
+        // Обработка добавления в корзину
+        const addToCartForm = document.querySelector('.add-to-cart-form');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        if (addToCartForm) {
+            addToCartForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const productId = document.getElementById('formProductId').value;
+                const quantity = parseInt(document.getElementById('quantityInput').value);
+                
+                if (window.cartManager.addToCart(parseInt(productId), quantity)) {
+                    successMessage.style.display = 'block';
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 3000);
+                } else {
+                    errorMessage.style.display = 'block';
+                    setTimeout(() => {
+                        errorMessage.style.display = 'none';
+                    }, 3000);
+                }
+            });
+        }
+    }
+
+    function formatPrice(price) {
+        return new Intl.NumberFormat('ru-RU', {
+            style: 'currency',
+            currency: 'RUB',
+            minimumFractionDigits: 0
+        }).format(price);
+    }
+</script>
+</body>
+</html>

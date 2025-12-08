@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/mainFormStyle.css">
-    <link rel="stylesheet" href="css/authStyle.css">
+    <link rel="stylesheet" href="design/mainFormStyle.css">
+    <link rel="stylesheet" href="design/authStyle.css">
     <title>Регистрация</title>
 </head>
 <body>
@@ -49,7 +49,7 @@
         <div class="auth-form">
             <h2 class="registerH2">Регистрация</h2>
 
-            <form class="loginForm" id="registerForm">
+            <form class="loginForm" id="registerForm" action="/register" method="POST">
                 <label>Имя</label>
                 <input type="text" name="name" placeholder="Иван" required>
 
@@ -77,7 +77,7 @@
         </div>
     </main>
 
-    <script src="js/authScript.js"></script>
-    <script src="js/api-integration.js"></script>
+    <script src="javascript/authScript.js"></script>
+    <script src="javascript/api-integration.js"></script>
 </body>
 </html>

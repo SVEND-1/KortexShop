@@ -1,4 +1,4 @@
-// Единый менеджер товаров для всего сайта
+// productManager.js - для совместимости с бекендом
 
 class ProductManager {
     constructor() {
@@ -6,42 +6,66 @@ class ProductManager {
         this.loadProducts();
     }
 
-    // Загрузка товаров из localStorage
+    // Загрузка из localStorage (для совместимости)
     loadProducts() {
         const saved = localStorage.getItem(this.storageKey);
         if (saved) {
             this.products = JSON.parse(saved);
         } else {
-            // НАЧАЛЬНЫЕ ТОВАРЫ - ПУСТО!
             this.products = {};
-            this.saveProducts();
         }
     }
 
-    // Сохранение товаров в localStorage
+    // Сохранение в localStorage
     saveProducts() {
         localStorage.setItem(this.storageKey, JSON.stringify(this.products));
     }
 
-    // Получить все товары
-    getAllProducts() {
-        return Object.values(this.products);
-    }
-
-    // Получить товар по ID
-    getProductById(id) {
+    // Получить товар по ID (в первую очередь с сервера)
+    async getProductById(id) {
+        try {
+            // Пробуем получить с сервера
+            const response = await fetch(`/api/products/${id}`);
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.error('Ошибка при запросе к серверу:', error);
+        }
+        
+        // Если сервер не отвечает, используем локальные данные
         return this.products[id];
     }
 
-    // Добавить новый товар
+    // Получить все товары (в первую очередь с сервера)
+    async getAllProducts() {
+        try {
+            const response = await fetch('/api/products');
+            if (response.ok) {
+                const data = await response.json();
+                return data.content || data;
+            }
+        } catch (error) {
+            console.error('Ошибка при запросе к серверу:', error);
+        }
+        
+        // Если сервер не отвечает, используем локальные данные
+        return Object.values(this.products);
+    }
+
+    // Генерация нового ID
+    generateNewId() {
+        const ids = Object.keys(this.products).map(Number);
+        return ids.length > 0 ? Math.max(...ids) + 1 : 1;
+    }
+
+    // Добавить новый товар (только локально для совместимости)
     addProduct(productData) {
         const newId = this.generateNewId();
         const newProduct = {
             id: newId,
             ...productData,
-            categoryName: this.getCategoryName(productData.category),
-            // Добавляем дефолтные характеристики в зависимости от категории
-            features: this.getDefaultFeatures(productData.category, productData.name)
+            categoryName: this.getCategoryName(productData.category)
         };
         
         this.products[newId] = newProduct;
@@ -49,12 +73,6 @@ class ProductManager {
         this.dispatchProductUpdate();
         
         return newId;
-    }
-
-    // Генерация нового ID
-    generateNewId() {
-        const ids = Object.keys(this.products).map(Number);
-        return ids.length > 0 ? Math.max(...ids) + 1 : 1;
     }
 
     // Получить название категории
@@ -121,5 +139,5 @@ class ProductManager {
     }
 }
 
-// Создаем глобальный экземпляр менеджера
+// Создаем глобальный экземпляр
 window.productManager = new ProductManager();
