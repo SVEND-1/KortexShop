@@ -2,8 +2,9 @@
 const API_BASE_URL = 'http://localhost:8080';
 const API_ENDPOINTS = {
     CREATE_REQUEST: '/api/users/role-request',
-    GET_MY_REQUESTS: '/api/users/role-requests',
-    GET_CURRENT_USER: '/api/users/current'
+    GET_CURRENT_USER: '/api/users/me',
+    GET_USER_ORDERS: '/api/users/me-orders',
+    UPDATE_ADDRESS: '/api/users/address'
 };
 
 // Константы для ролей
@@ -15,8 +16,8 @@ const USER_ROLES = {
 };
 
 const TYPE_ACTION = {
-    ENHANCE: 'ENHANCE', // Повышение
-    REMOVE: 'REMOVE'    // Снятие
+    ENHANCE: 'ENHANCE',
+    REMOVE: 'REMOVE'
 };
 
 const REQUEST_STATUS = {
@@ -28,9 +29,11 @@ const REQUEST_STATUS = {
 // Получить заголовки с токеном
 function getHeaders(contentType = 'application/x-www-form-urlencoded') {
     const token = localStorage.getItem('authToken');
-    const headers = {
-        'Content-Type': contentType
-    };
+    const headers = {};
+    
+    if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
     
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -44,8 +47,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Страница профиля загружена');
     initTabs();
     initProfileForms();
-    displayOrdersHistory();
-    updateProfileStats();
     
     try {
         // Загружаем пользователя с сервера
@@ -53,48 +54,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (user) {
             loadProfileData(user);
             updateRoleButtons(user.role);
+            await loadUserOrders();
         } else {
             loadProfileData();
+            displayOrdersHistory();
         }
-        
-        // Загружаем заявки с сервера
-        await loadUserRequests();
     } catch (error) {
         console.error('Ошибка загрузки данных:', error);
         loadProfileData();
-        loadLocalRequests();
+        displayOrdersHistory();
     }
     
-    // Проверяем статус заявок
-    checkUserRequestsStatus();
-});
-
-// Инициализация табов
-function initTabs() {
-    const tabButtons = document.querySelectorAll('.tab-button');
-    
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab');
-            
-            // Убираем активный класс у всех кнопок и вкладок
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-            
-            // Добавляем активный класс текущей кнопке и вкладке
-            this.classList.add('active');
-            document.getElementById(`${tabId}-tab`).classList.add('active');
-        });
-    });
-}
-
-// Инициализация форм профиля
-function initProfileForms() {
-    initPersonalForm();
-    initSettingsForm();
-    initAvatarUpload();
+    loadLocalRequests();
     initModals();
-}
+});
 
 // Получить текущего пользователя с сервера
 async function getCurrentUser() {
@@ -107,8 +80,8 @@ async function getCurrentUser() {
         if (response.ok) {
             return await response.json();
         } else if (response.status === 401) {
-            // Пользователь не авторизован
             console.warn('Пользователь не авторизован');
+            window.location.href = 'loginForm.html';
             return null;
         } else {
             console.error('Ошибка получения пользователя:', response.status);
@@ -120,46 +93,130 @@ async function getCurrentUser() {
     }
 }
 
+// Загрузить заказы пользователя с сервера
+async function loadUserOrders() {
+    try {
+        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.GET_USER_ORDERS}`, {
+            method: 'GET',
+            headers: getHeaders('application/json')
+        });
+        
+        if (response.ok) {
+            const orders = await response.json();
+            displayOrdersFromServer(orders);
+            updateProfileStats(orders.length);
+        } else {
+            console.error('Ошибка загрузки заказов:', response.status);
+            displayOrdersHistory();
+        }
+    } catch (error) {
+        console.error('Ошибка сети при загрузке заказов:', error);
+        displayOrdersHistory();
+    }
+}
+
+// Отобразить заказы с сервера
+function displayOrdersFromServer(orders) {
+    const ordersGrid = document.getElementById('ordersGrid');
+    if (!ordersGrid) return;
+    
+    if (!orders || orders.length === 0) {
+        ordersGrid.innerHTML = `
+            <div class="empty-orders">
+                <div class="empty-orders-icon">
+                    <img src="images/empty-cart.svg" alt="Пустая история заказов" style="width: 80px; height: 80px;">
+                </div>
+                <h2>История заказов пуста</h2>
+                <p>Здесь появятся ваши завершенные заказы после оформления</p>
+                <a href="mainForm.html" class="btn btn-primary" style="display: inline-block; margin-top: 15px;">
+                    Перейти к покупкам
+                </a>
+            </div>
+        `;
+        return;
+    }
+    
+    let ordersHtml = '';
+    
+    orders.forEach(order => {
+        order.items?.forEach(item => {
+            ordersHtml += `
+                <div class="order-item" data-product-id="${item.id || ''}">
+                    <div class="product-image">
+                        <img src="${item.image || 'images/product-img.png'}" 
+                             alt="${item.name || 'Товар'}" 
+                             onerror="this.src='images/product-img.png'">
+                    </div>
+                    <div class="product-price">${formatPrice(item.price || 0)}</div>
+                    <div class="product-name">${item.name || 'Неизвестный товар'}</div>
+                    <div class="order-date">${formatDate(order.createdAt || new Date())}</div>
+                    <div class="order-quantity">Количество: ${item.quantity || 1}</div>
+                    <button class="order-btn" onclick="reorderProduct(${item.id || 0})">
+                        Заказать снова
+                    </button>
+                </div>
+            `;
+        });
+    });
+    
+    ordersGrid.innerHTML = ordersHtml;
+    makeOrderItemsClickable();
+}
+
+// Обновить статистику профиля
+function updateProfileStats(orderCount) {
+    const statValue = document.querySelector('.stat-value');
+    if (statValue) {
+        statValue.textContent = orderCount;
+    }
+}
+
+// Инициализация табов
+function initTabs() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            
+            this.classList.add('active');
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+        });
+    });
+}
+
+// Инициализация форм профиля
+function initProfileForms() {
+    initPersonalForm();
+    initSettingsForm();
+    initAvatarUpload();
+}
+
 // Загрузка данных профиля
 function loadProfileData(userData = null) {
     if (userData) {
-        // Используем данные с сервера
         document.getElementById('profileName').value = userData.name || 'Не указано';
         document.getElementById('profileEmail').value = userData.email || 'Не указан';
         document.getElementById('profileAddress').value = userData.address || 'Адрес не указан';
         
-        // Пытаемся получить аватар, если есть
-        const avatar = userData.avatar || 'images/avatar.jpg';
-        document.getElementById('avatarPreview').src = avatar;
-        
-        // Обновляем сайдбар
-        document.querySelector('.profile-name').textContent = userData.name || 'Не указано';
-        document.querySelector('.profile-email').textContent = userData.email || 'Не указан';
-        document.querySelector('.profile-avatar').src = avatar;
-        
-        // Сохраняем текущую роль
         localStorage.setItem('currentUser', JSON.stringify(userData));
         localStorage.setItem('userRole', userData.role || USER_ROLES.CUSTOMER);
+        
+        document.querySelector('.profile-name').textContent = userData.name || 'Не указано';
+        document.querySelector('.profile-email').textContent = userData.email || 'Не указан';
+        
     } else {
-        // Локальные данные для демо
-        const profileData = JSON.parse(localStorage.getItem('userProfile')) || {
-            name: 'Иван Иванов',
-            email: 'ivan@example.com',
-            address: 'Адрес не указан',
-            avatar: 'images/avatar.jpg',
-            role: USER_ROLES.CUSTOMER
-        };
+        const profileData = JSON.parse(localStorage.getItem('userProfile') || '{}');
         
-        document.getElementById('profileName').value = profileData.name;
-        document.getElementById('profileEmail').value = profileData.email;
-        document.getElementById('profileAddress').value = profileData.address;
-        document.getElementById('avatarPreview').src = profileData.avatar;
+        document.getElementById('profileName').value = profileData.name || 'Иван Иванов';
+        document.getElementById('profileEmail').value = profileData.email || 'ivan@example.com';
+        document.getElementById('profileAddress').value = profileData.address || 'Адрес не указан';
         
-        document.querySelector('.profile-name').textContent = profileData.name;
-        document.querySelector('.profile-email').textContent = profileData.email;
-        document.querySelector('.profile-avatar').src = profileData.avatar;
-        
-        localStorage.setItem('userRole', profileData.role);
+        document.querySelector('.profile-name').textContent = profileData.name || 'Иван Иванов';
+        document.querySelector('.profile-email').textContent = profileData.email || 'ivan@example.com';
     }
 }
 
@@ -168,28 +225,45 @@ function initPersonalForm() {
     const personalForm = document.getElementById('personalForm');
     
     if (personalForm) {
-        personalForm.addEventListener('submit', function(e) {
+        personalForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const name = document.getElementById('profileName').value;
             const email = document.getElementById('profileEmail').value;
             const address = document.getElementById('profileAddress').value;
             
-            // Сохраняем в localStorage
-            const profileData = {
-                name: name,
-                email: email,
-                address: address,
-                avatar: localStorage.getItem('userAvatar') || 'images/avatar.jpg'
-            };
-            
-            localStorage.setItem('userProfile', JSON.stringify(profileData));
-            
-            // Обновляем сайдбар
-            document.querySelector('.profile-name').textContent = name;
-            document.querySelector('.profile-email').textContent = email;
-            
-            showProfileNotification('Профиль успешно обновлен!', 'success');
+            try {
+                const params = new URLSearchParams();
+                params.append('newAddress', address);
+                
+                const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.UPDATE_ADDRESS}`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: params
+                });
+                
+                if (response.ok) {
+                    const profileData = {
+                        name: name,
+                        email: email,
+                        address: address,
+                        avatar: localStorage.getItem('userAvatar') || 'images/avatar.jpg'
+                    };
+                    
+                    localStorage.setItem('userProfile', JSON.stringify(profileData));
+                    
+                    document.querySelector('.profile-name').textContent = name;
+                    document.querySelector('.profile-email').textContent = email;
+                    
+                    showProfileNotification('✅ Профиль успешно обновлен!', 'success');
+                } else {
+                    const errorText = await response.text();
+                    showProfileNotification(`❌ Ошибка: ${errorText || 'Не удалось обновить профиль'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка обновления профиля:', error);
+                showProfileNotification('❌ Ошибка сети при обновлении профиля', 'error');
+            }
         });
     }
 }
@@ -214,7 +288,6 @@ function initAvatarUpload() {
     
     if (!avatarInput || !avatarPreview || !removeAvatarBtn) return;
     
-    // Обработчик выбора файла
     avatarInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -223,14 +296,11 @@ function initAvatarUpload() {
                 reader.onload = function(e) {
                     const imageUrl = e.target.result;
                     
-                    // Обновляем превью
                     avatarPreview.src = imageUrl;
                     document.querySelector('.profile-avatar').src = imageUrl;
                     
-                    // Сохраняем в localStorage
                     localStorage.setItem('userAvatar', imageUrl);
                     
-                    // Обновляем профиль в localStorage
                     const profileData = JSON.parse(localStorage.getItem('userProfile') || '{}');
                     profileData.avatar = imageUrl;
                     localStorage.setItem('userProfile', JSON.stringify(profileData));
@@ -244,17 +314,14 @@ function initAvatarUpload() {
         }
     });
     
-    // Удаление аватарки
     removeAvatarBtn.addEventListener('click', function() {
         const defaultAvatar = 'images/avatar.jpg';
         
         avatarPreview.src = defaultAvatar;
         document.querySelector('.profile-avatar').src = defaultAvatar;
         
-        // Удаляем из localStorage
         localStorage.removeItem('userAvatar');
         
-        // Обновляем профиль в localStorage
         const profileData = JSON.parse(localStorage.getItem('userProfile') || '{}');
         profileData.avatar = defaultAvatar;
         localStorage.setItem('userProfile', JSON.stringify(profileData));
@@ -265,7 +332,6 @@ function initAvatarUpload() {
 
 // Инициализация модальных окон
 function initModals() {
-    // Инициализация счетчиков символов
     const requestMessage = document.getElementById('requestMessage');
     const downgradeMessage = document.getElementById('downgradeMessage');
     
@@ -281,7 +347,6 @@ function initModals() {
         });
     }
     
-    // Изменение выбора роли
     const requestRole = document.getElementById('requestRole');
     if (requestRole) {
         requestRole.addEventListener('change', function() {
@@ -290,7 +355,6 @@ function initModals() {
         });
     }
     
-    // Обработка формы подачи заявки
     const requestForm = document.getElementById('requestForm');
     if (requestForm) {
         requestForm.addEventListener('submit', function(e) {
@@ -299,7 +363,6 @@ function initModals() {
         });
     }
     
-    // Обработка формы снятия роли
     const downgradeForm = document.getElementById('downgradeForm');
     if (downgradeForm) {
         downgradeForm.addEventListener('submit', function(e) {
@@ -308,7 +371,6 @@ function initModals() {
         });
     }
     
-    // Закрытие модальных окон по клику вне их
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
         modal.addEventListener('click', function(e) {
@@ -322,7 +384,6 @@ function initModals() {
         });
     });
     
-    // ESC для закрытия модальных окон
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeRequestModal();
@@ -339,11 +400,9 @@ function openRequestModal(type = null) {
     
     if (!modal || !form || !requestRole) return;
     
-    // Сбросить форму
     form.reset();
     document.getElementById('charCount').textContent = '0';
     
-    // Установить роль, если указана
     if (type === 'seller') {
         requestRole.value = 'SELLER';
         document.getElementById('roleName').textContent = 'продавцом';
@@ -377,11 +436,9 @@ function openDowngradeModal() {
     
     if (!modal || !form) return;
     
-    // Сбросить форму
     form.reset();
     document.getElementById('downgradeCharCount').textContent = '0';
     
-    // Установить текущую роль пользователя
     const currentRoleSelect = document.getElementById('currentRole');
     
     if (currentRoleSelect) {
@@ -427,15 +484,14 @@ async function submitRequest() {
     }
     
     try {
-        // Формируем параметры запроса
         const params = new URLSearchParams();
         params.append('requestedRole', role);
         params.append('typeAction', TYPE_ACTION.ENHANCE);
         params.append('message', message);
         
-        console.log('Отправка заявки с параметрами:', params.toString());
+        console.log('Отправка заявки на:', `${API_BASE_URL}${API_ENDPOINTS.CREATE_REQUEST}`);
+        console.log('Параметры:', params.toString());
         
-        // Отправляем запрос на бэкенд
         const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_REQUEST}`, {
             method: 'POST',
             headers: getHeaders(),
@@ -451,15 +507,30 @@ async function submitRequest() {
                 showProfileNotification('✅ Заявка успешно отправлена! Ожидайте рассмотрения администратором.', 'success');
                 closeRequestModal();
                 
-                // Обновляем список заявок
-                await loadUserRequests();
+                addRequestToLocalHistory({
+                    id: requestData.id || Date.now(),
+                    typeAction: TYPE_ACTION.ENHANCE,
+                    requestedRole: role,
+                    message: message,
+                    status: REQUEST_STATUS.PENDING,
+                    createdAt: new Date().toISOString()
+                });
+                
             } catch (e) {
                 showProfileNotification('✅ Заявка успешно отправлена!', 'success');
                 closeRequestModal();
-                await loadUserRequests();
+                
+                addRequestToLocalHistory({
+                    id: Date.now(),
+                    typeAction: TYPE_ACTION.ENHANCE,
+                    requestedRole: role,
+                    message: message,
+                    status: REQUEST_STATUS.PENDING,
+                    createdAt: new Date().toISOString()
+                });
             }
         } else {
-            showProfileNotification(`❌ Ошибка: ${responseText || response.status}`, 'error');
+            showProfileNotification(`❌ Ошибка: ${responseText || 'Сервер вернул ошибку'}`, 'error');
         }
     } catch (error) {
         console.error('Ошибка отправки заявки:', error);
@@ -488,13 +559,13 @@ async function submitDowngradeRequest() {
     }
     
     try {
-        // Для REMOVE запрашиваем роль CUSTOMER (возврат к покупателю)
         const params = new URLSearchParams();
         params.append('requestedRole', USER_ROLES.CUSTOMER);
         params.append('typeAction', TYPE_ACTION.REMOVE);
         params.append('message', message);
         
-        console.log('Отправка заявки на снятие:', params.toString());
+        console.log('Отправка заявки на снятие на:', `${API_BASE_URL}${API_ENDPOINTS.CREATE_REQUEST}`);
+        console.log('Параметры:', params.toString());
         
         const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_REQUEST}`, {
             method: 'POST',
@@ -509,10 +580,18 @@ async function submitDowngradeRequest() {
             showProfileNotification('✅ Заявка на снятие роли успешно отправлена!', 'success');
             closeDowngradeModal();
             
-            // Обновляем список заявок
-            await loadUserRequests();
+            addRequestToLocalHistory({
+                id: Date.now(),
+                typeAction: TYPE_ACTION.REMOVE,
+                requestedRole: USER_ROLES.CUSTOMER,
+                message: message,
+                status: REQUEST_STATUS.PENDING,
+                createdAt: new Date().toISOString(),
+                currentRole: currentRole
+            });
+            
         } else {
-            showProfileNotification(`❌ Ошибка: ${responseText || response.status}`, 'error');
+            showProfileNotification(`❌ Ошибка: ${responseText || 'Сервер вернул ошибку'}`, 'error');
         }
     } catch (error) {
         console.error('Ошибка отправки заявки:', error);
@@ -520,78 +599,20 @@ async function submitDowngradeRequest() {
     }
 }
 
-// Загрузить заявки с сервера
-async function loadUserRequests() {
+// Добавить заявку в локальную историю
+function addRequestToLocalHistory(request) {
+    const requests = JSON.parse(localStorage.getItem('userRoleRequests') || '[]');
+    requests.unshift(request);
+    localStorage.setItem('userRoleRequests', JSON.stringify(requests));
+    
+    loadLocalRequests();
+}
+
+// Загрузить локальные заявки
+function loadLocalRequests() {
     const requestsList = document.getElementById('requestsList');
     if (!requestsList) return;
     
-    try {
-        // Показываем загрузку
-        requestsList.innerHTML = '<div class="loading">⌛ Загрузка заявок...</div>';
-        
-        // Загружаем заявки с сервера
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.GET_MY_REQUESTS}`, {
-            method: 'GET',
-            headers: getHeaders('application/json')
-        });
-        
-        if (response.ok) {
-            const requests = await response.json();
-            
-            if (!requests || requests.length === 0) {
-                requestsList.innerHTML = `
-                    <div class="no-requests">
-                        <p>📭 У вас еще нет отправленных заявок</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Сортируем по дате (новые сверху)
-            requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            
-            const requestsHtml = requests.map(request => {
-                const requestTypeText = getRequestTypeText(request.typeAction, request.requestedRole);
-                const statusText = getStatusText(request.status);
-                const date = formatDate(request.createdAt);
-                const message = request.message || 'Без описания';
-                
-                return `
-                    <div class="request-item">
-                        <div class="request-info">
-                            <h4>${requestTypeText}</h4>
-                            <p><strong>Дата:</strong> ${date}</p>
-                            <p><strong>Сообщение:</strong> ${message.substring(0, 60)}${message.length > 60 ? '...' : ''}</p>
-                            <p><strong>Статус:</strong> <span class="status-text status-${request.status.toLowerCase()}">${statusText}</span></p>
-                        </div>
-                        <div class="request-id">
-                            #${request.id}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            requestsList.innerHTML = requestsHtml;
-            
-        } else if (response.status === 404) {
-            // Эндпоинт не найден или нет заявок
-            requestsList.innerHTML = `
-                <div class="no-requests">
-                    <p>📭 У вас еще нет отправленных заявок</p>
-                </div>
-            `;
-        } else {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки заявок:', error);
-        loadLocalRequests();
-    }
-}
-
-// Загрузить локальные заявки (запасной вариант)
-function loadLocalRequests() {
-    const requestsList = document.getElementById('requestsList');
     const requests = JSON.parse(localStorage.getItem('userRoleRequests') || '[]');
     
     if (requests.length === 0) {
@@ -607,16 +628,19 @@ function loadLocalRequests() {
         const requestTypeText = getRequestTypeText(request.typeAction, request.requestedRole);
         const statusText = getStatusText(request.status);
         const date = formatDate(request.createdAt);
+        const message = request.message || 'Без описания';
         
         return `
             <div class="request-item">
                 <div class="request-info">
                     <h4>${requestTypeText}</h4>
-                    <p>${date} | ${request.message ? request.message.substring(0, 50) : 'Без описания'}${request.message && request.message.length > 50 ? '...' : ''}</p>
+                    <p><strong>Дата:</strong> ${date}</p>
+                    <p><strong>Сообщение:</strong> ${message.substring(0, 60)}${message.length > 60 ? '...' : ''}</p>
+                    <p><strong>Статус:</strong> <span class="status-text status-${request.status.toLowerCase()}">${statusText}</span></p>
                 </div>
-                <span class="request-status status-${request.status.toLowerCase()}">
-                    ${statusText}
-                </span>
+                <div class="request-id">
+                    #${request.id}
+                </div>
             </div>
         `;
     }).join('');
@@ -631,9 +655,8 @@ function updateRoleButtons(userRole) {
     if (!requestCards) return;
     
     if (userRole === USER_ROLES.SELLER || userRole === USER_ROLES.COURIER) {
-        // Пользователь уже продавец или курьер
         requestCards.forEach((card, index) => {
-            if (index < 2) { // Первые две карточки - для повышения
+            if (index < 2) {
                 card.style.opacity = '0.6';
                 card.style.pointerEvents = 'none';
                 
@@ -644,8 +667,7 @@ function updateRoleButtons(userRole) {
                     button.classList.remove('btn-primary');
                     button.classList.add('btn-secondary');
                 }
-            } else if (index === 2) { // Третья карточка - для снятия
-                // Обновляем текст кнопки
+            } else if (index === 2) {
                 const button = card.querySelector('button');
                 if (button) {
                     button.textContent = `Сняться с роли ${getRoleText(userRole).toLowerCase()}`;
@@ -655,7 +677,6 @@ function updateRoleButtons(userRole) {
             }
         });
     } else if (userRole === USER_ROLES.CUSTOMER) {
-        // Покупатель - доступны только кнопки повышения
         const downgradeCard = requestCards[2];
         if (downgradeCard) {
             downgradeCard.style.opacity = '0.6';
@@ -670,7 +691,6 @@ function updateRoleButtons(userRole) {
             }
         }
     } else if (userRole === USER_ROLES.ADMIN) {
-        // Админ - все кнопки недоступны
         requestCards.forEach(card => {
             card.style.opacity = '0.6';
             card.style.pointerEvents = 'none';
@@ -694,17 +714,15 @@ function showProfileNotification(message, type = 'success') {
     
     document.body.appendChild(notification);
     
-    // Анимация появления
     setTimeout(() => notification.classList.add('show'), 100);
     
-    // Автоматическое скрытие
     setTimeout(() => {
         notification.classList.remove('show');
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
 
-// Отображение истории заказов
+// Отображение истории заказов (локальной)
 function displayOrdersHistory() {
     const ordersGrid = document.getElementById('ordersGrid');
     if (!ordersGrid) return;
@@ -727,7 +745,6 @@ function displayOrdersHistory() {
         return;
     }
     
-    // Собираем все товары из всех заказов
     const allOrderItems = [];
     orders.forEach(order => {
         order.items.forEach(item => {
@@ -756,19 +773,7 @@ function displayOrdersHistory() {
         </div>
     `).join('');
     
-    // Делаем карточки кликабельными
     makeOrderItemsClickable();
-}
-
-// Обновление статистики профиля
-function updateProfileStats() {
-    const statValue = document.querySelector('.stat-value');
-    if (!statValue) return;
-    
-    const orders = window.cartManager ? window.cartManager.getOrdersHistory() : [];
-    const totalOrders = orders.reduce((total, order) => total + order.items.length, 0);
-    
-    statValue.textContent = totalOrders;
 }
 
 // Перезаказ товара
@@ -813,23 +818,12 @@ function formatPrice(price) {
 }
 
 // Проверить статус заявок
-async function checkUserRequestsStatus() {
-    try {
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.GET_MY_REQUESTS}`, {
-            method: 'GET',
-            headers: getHeaders('application/json')
-        });
-        
-        if (response.ok) {
-            const requests = await response.json();
-            const pendingRequests = requests.filter(r => r.status === REQUEST_STATUS.PENDING);
-            
-            if (pendingRequests.length > 0) {
-                console.log(`У вас ${pendingRequests.length} активных заявок`);
-            }
-        }
-    } catch (error) {
-        console.error('Ошибка проверки заявок:', error);
+function checkUserRequestsStatus() {
+    const requests = JSON.parse(localStorage.getItem('userRoleRequests') || '[]');
+    const pendingRequests = requests.filter(r => r.status === REQUEST_STATUS.PENDING);
+    
+    if (pendingRequests.length > 0) {
+        console.log(`У вас ${pendingRequests.length} активных заявок`);
     }
 }
 
