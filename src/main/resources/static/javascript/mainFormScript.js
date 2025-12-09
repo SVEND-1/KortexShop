@@ -23,30 +23,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Обработчик корзины
-    const cartLink = document.querySelector('a[href="cartForm.html"]');
+    const cartLink = document.querySelector('a[href="/cart"]');
     if (cartLink) {
         cartLink.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('Переход в корзину');
-            window.location.href = 'cartForm.html';
+            window.location.href = '/cart';
         });
     }
     
     // Обработчик профиля
-    const profileLink = document.querySelector('a[href="profile.html"]');
+    const profileLink = document.querySelector('a[href="/cart"]');
     if (profileLink) {
         profileLink.addEventListener('click', function(e) {
             e.preventDefault();
-            window.location.href = 'profile.html';
+            window.location.href = '/cart';
         });
     }
     
     // Обработчик входа
-    const loginLink = document.querySelector('a[href="loginForm.html"]');
+    const loginLink = document.querySelector('a[href="/login"]');
     if (loginLink) {
         loginLink.addEventListener('click', function(e) {
             e.preventDefault();
-            window.location.href = 'loginForm.html';
+            window.location.href = '/login';
         });
     }
     
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Обновление счетчика товаров в корзине
 function updateCartCount() {
-    const cartLink = document.querySelector('a[href="cartForm.html"]');
+    const cartLink = document.querySelector('a[href="/cart"]');
     if (cartLink) {
         let totalItems = 0;
         
@@ -110,13 +110,13 @@ function checkAuth() {
     
     if (token && userData) {
         // Пользователь авторизован
-        const loginLink = document.querySelector('a[href="loginForm.html"]');
+        const loginLink = document.querySelector('a[href="/login"]');
         if (loginLink) {
             loginLink.innerHTML = `
-                <img src="images/logout-img.png" alt="Выйти" class="nav-icon">
+                <img src="images/join-img.png" alt="Выйти" class="nav-icon">
                 Выйти
             `;
-            loginLink.href = '#';
+            loginLink.href = '/';
             loginLink.onclick = function(e) {
                 e.preventDefault();
                 localStorage.removeItem('authToken');

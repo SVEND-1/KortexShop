@@ -1,4 +1,7 @@
+//imageUploader.js
 // Обработчик загрузки изображений
+
+
 class ImageUploader {
     constructor() {
         this.storageKey = 'productImages';

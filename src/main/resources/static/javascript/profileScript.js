@@ -81,7 +81,7 @@ async function getCurrentUser() {
             return await response.json();
         } else if (response.status === 401) {
             console.warn('Пользователь не авторизован');
-            window.location.href = 'loginForm.html';
+            window.location.href = '/login';
             return null;
         } else {
             console.error('Ошибка получения пользователя:', response.status);
@@ -128,7 +128,7 @@ function displayOrdersFromServer(orders) {
                 </div>
                 <h2>История заказов пуста</h2>
                 <p>Здесь появятся ваши завершенные заказы после оформления</p>
-                <a href="mainForm.html" class="btn btn-primary" style="display: inline-block; margin-top: 15px;">
+                <a href="/" class="btn btn-primary" style="display: inline-block; margin-top: 15px;">
                     Перейти к покупкам
                 </a>
             </div>
@@ -737,7 +737,7 @@ function displayOrdersHistory() {
                 </div>
                 <h2>История заказов пуста</h2>
                 <p>Здесь появятся ваши завершенные заказы после оформления</p>
-                <a href="mainForm.html" class="btn btn-primary" style="display: inline-block; margin-top: 15px;">
+                <a href="/" class="btn btn-primary" style="display: inline-block; margin-top: 15px;">
                     Перейти к покупкам
                 </a>
             </div>

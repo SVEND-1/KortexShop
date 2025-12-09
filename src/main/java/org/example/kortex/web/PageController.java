@@ -48,6 +48,13 @@ public class PageController {
 
     @GetMapping("/profile")
     public String profile(Model model) {
-        return "forward:/mainForm.html";
+        return "forward:/profile.html";
     }
+
+    @GetMapping("/cart")
+    public String cart(){return "forward:/cartForm.html";}
+
+    @GetMapping("/productForm")
+    public String productForm() {return "forward:/productForm.html";}
+
 }

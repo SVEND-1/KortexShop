@@ -227,7 +227,7 @@ async function addToCart(productId) {
 
 // Просмотр деталей товара
 function viewProductDetails(productId) {
-    window.location.href = `productForm.html?id=${productId}`;
+    window.location.href = `/api/products/?id=${productId}`;
 }
 
 // Делаем карточки товаров кликабельными

@@ -98,7 +98,7 @@ function checkout() {
     const order = window.cartManager.checkout();
     if (order) {
         alert(`Заказ оформлен! Номер заказа: ${order.id}\nСумма: ${formatPrice(order.total)}`);
-        window.location.href = 'profile.html'; // Переходим в профиль чтобы увидеть историю
+        window.location.href = '/profile'; // Переходим в профиль чтобы увидеть историю
     } else {
         alert('Корзина пуста!');
     }
@@ -120,7 +120,7 @@ function viewProductDetails(productId) {
     const product = window.productManager.getProductById(productId);
     if (product) {
         localStorage.setItem('currentProduct', JSON.stringify(product));
-        window.location.href = 'productForm.html';
+        window.location.href = '/productForm';
     }
 }
 
