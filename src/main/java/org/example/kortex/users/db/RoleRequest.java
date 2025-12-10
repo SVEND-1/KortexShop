@@ -1,8 +1,11 @@
 package org.example.kortex.users.db;
 
+import lombok.Data;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@Data
 @Entity
 @Table(name = "role_requests")
 public class RoleRequest {//Добавить снять или повысить
@@ -44,61 +47,7 @@ public class RoleRequest {//Добавить снять или повысить
         ENHANCE
     }
 
-    public Long getId() {
-        return id;
-    }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public TypeAction getTypeAction() {
-        return typeAction;
-    }
-
-    public void setTypeAction(TypeAction typeAction) {
-        this.typeAction = typeAction;
-    }
-
-    public User.Role getRequestedRole() {
-        return requestedRole;
-    }
-
-    public void setRequestedRole(User.Role requestedRole) {
-        this.requestedRole = requestedRole;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public Status getStatus() {
-        return status;
-    }
-
-    public void setStatus(Status status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 
     public RoleRequest() {}
 

@@ -1,6 +1,8 @@
 package org.example.kortex.carts.domain;
 
 import javax.persistence.EntityNotFoundException;
+
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.products.db.Product;
@@ -17,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
-
+@Slf4j
 @Service
 @Transactional
 public class CartItemService {
@@ -25,7 +27,6 @@ public class CartItemService {
     private final CartItemRepository cartItemRepository;
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public CartItemService(CartItemRepository cartItemRepository,

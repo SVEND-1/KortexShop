@@ -1,5 +1,6 @@
 package org.example.kortex.orders.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.domain.CartItemService;
 import org.example.kortex.carts.db.Cart;
@@ -19,27 +20,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/orders")
-public class OrderController {//todo
+public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
-    private final CartService cartService;
-    private final CartItemService cartItemService;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
+
 
     @Autowired
-    public OrderController(OrderService orderService, UserService userService, CartService cartService, CartItemService cartItemService) {
+    public OrderController(OrderService orderService, UserService userService) {
         this.orderService = orderService;
         this.userService = userService;
-        this.cartService = cartService;
-        this.cartItemService = cartItemService;
     }
 
     @GetMapping("/me-create")//Отображение страницы заказа
     public ResponseEntity<?> getMeCreateOrders() {
         try {
-            User user = userService.getCurrentUser();
+            User user = userService.getCurrentUserCart();
             Cart cart = user.getCart();
             List<CartItem> cartItems = cart.getCartItems();
 
@@ -48,7 +46,6 @@ public class OrderController {//todo
             response.put("totalPrice", cart.totalPrice());
             response.put("totalItems", cart.getQuantity());
             response.put("user", user);
-            response.put("redirect","/orders");
 
             return ResponseEntity.ok().body(response);
         }catch (Exception e) {
@@ -63,7 +60,7 @@ public class OrderController {//todo
     public ResponseEntity<?> createOrder() {
         try {
             log.info("Создания заказа");
-            User user = userService.getCurrentUser();
+            User user = userService.getCurrentUserFull();
             Order order = orderService.createOrderFromCart(user.getId());
 
             Map<String, Object> response = new HashMap<>();

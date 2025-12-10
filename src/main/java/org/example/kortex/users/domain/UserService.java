@@ -1,5 +1,6 @@
 package org.example.kortex.users.domain;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
 import org.slf4j.Logger;
@@ -14,12 +15,11 @@ import javax.persistence.EntityNotFoundException;
 import java.util.List;
 
 
+@Slf4j
 @Service
 @Transactional
 public class UserService {
-
     private final UserRepository userRepository;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public UserService(UserRepository userRepository) {
@@ -29,6 +29,36 @@ public class UserService {
     public User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user =  userRepository.findByEmailEqualsIgnoreCase(email);
+        if(user == null) {
+            log.error("Авторизованный пользователь не найдет");
+            throw new IllegalArgumentException("Не найден пользователь");
+        }
+        return user;
+    }
+
+    public User getCurrentUserCart() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user =  userRepository.findByIdWithCart(email);
+        if(user == null) {
+            log.error("Авторизованный пользователь не найдет");
+            throw new IllegalArgumentException("Не найден пользователь");
+        }
+        return user;
+    }
+
+    public User getCurrentUserOrders() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user =  userRepository.findByIdWithOrders(email);
+        if(user == null) {
+            log.error("Авторизованный пользователь не найдет");
+            throw new IllegalArgumentException("Не найден пользователь");
+        }
+        return user;
+    }
+
+    public User getCurrentUserFull() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user =  userRepository.findByIdWithEverything(email);
         if(user == null) {
             log.error("Авторизованный пользователь не найдет");
             throw new IllegalArgumentException("Не найден пользователь");

@@ -1,6 +1,8 @@
 package org.example.kortex.carts.domain;
 
 import javax.persistence.EntityNotFoundException;
+
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.CartRepository;
@@ -14,13 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
 
+@Slf4j
 @Service
 @Transactional
 public class CartService {
 
     private final CartRepository cartRepository;
     private final CartItemService cartItemService;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public CartService(CartRepository cartRepository, CartItemService cartItemService) {
@@ -29,14 +31,8 @@ public class CartService {
     }
 
 
-    public Cart getCartByUserId(Long userId) {//TODO Переписать
-        Cart cart = cartRepository.findByUserId(userId);
-        if (cart != null) {
-            Hibernate.initialize(cart.getCartItems());
-            for (CartItem item : cart.getCartItems()) {
-                Hibernate.initialize(item.getProduct());
-            }
-        }
+    public Cart getCartByUserId(Long userId) {
+        Cart cart = cartRepository.findByUserIdWithItems(userId);
         return cart;
     }
 
@@ -53,7 +49,7 @@ public class CartService {
 
     public Cart clearCartByUserId(Long userID)  {
         log.info("Очистка корзины");
-        Cart cart = cartRepository.findByUserId(userID);
+        Cart cart = getCartByUserId(userID);
         cart.clearCart();
         Cart saveCart = cartRepository.save(cart);
         log.info("Корзина очищена");

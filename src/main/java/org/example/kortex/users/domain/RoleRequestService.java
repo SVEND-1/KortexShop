@@ -1,5 +1,6 @@
 package org.example.kortex.users.domain;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.api.RoleRequestFilter;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.RoleRequestRepository;
@@ -9,23 +10,28 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
 
+@Slf4j
 @Service
+@Transactional
 public class RoleRequestService {
     private final UserService userService;
     private final RoleRequestRepository roleRequestRepository;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public RoleRequestService(UserService userService, RoleRequestRepository roleRequestRepository) {
         this.userService = userService;
         this.roleRequestRepository = roleRequestRepository;
     }
-    //User
-    //подать заявку на курьера и продавца и на снятия роли
+
+    public List<RoleRequest> getAllRoleRequestsByUserId(Long userId) {
+        return roleRequestRepository.getAllByUserId(userId);
+    }
+
     public RoleRequest createRoleRequest(User currentUser, User.Role requestedRole,
                                          RoleRequest.TypeAction typeAction, String message) {
         log.info("Создания подачи заявки на роль");
@@ -47,10 +53,7 @@ public class RoleRequestService {
         return savedRoleRequest;
     }
 
-    //Admin
-    //все запросы по роли курьер и продавец
-    //все запросы по статусу
-    //все на снятия с роли
+
 
     public RoleRequest getRoleRequest(Long roleRequestId) {
         return roleRequestRepository.findById(roleRequestId).orElseThrow(() -> new EntityNotFoundException("Заявка не найдена"));
@@ -93,7 +96,7 @@ public class RoleRequestService {
     }
 
 
-    private boolean hasPendingRequestForSameAction(User currentUser){
+    private boolean hasPendingRequestForSameAction(User currentUser){//Tут мб будет n+1 ,но таких заказов всего то будет пару
          return currentUser.getRoleRequests()
                 .stream()
                 .anyMatch(roleRequest -> roleRequest.getStatus() == RoleRequest.Status.PENDING);

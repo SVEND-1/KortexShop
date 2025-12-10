@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.users.db.User;
 import org.example.kortex.carts.domain.CartService;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -29,7 +31,6 @@ public class AuthController {
     private final CartService cartService;
     private final EmailSenderService emailSenderService;
     private final PasswordEncoder passwordEncoder;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     // Хранилища в памяти чтобы передавать между страницами
     private static final Map<String, RegistrationData> pendingRegistrations = new ConcurrentHashMap<>();

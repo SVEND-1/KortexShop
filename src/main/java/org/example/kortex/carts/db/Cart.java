@@ -1,5 +1,6 @@
 package org.example.kortex.carts.db;
 
+import lombok.Data;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.users.db.User;
 
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@Data
 @Entity
 @Table(name = "cards")
 public class Cart {
@@ -37,37 +39,6 @@ public class Cart {
         this.totalPrice = totalPrice;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public List<CartItem> getCartItems() {
-        return cartItems;
-    }
-
-    public void setCartItems(List<CartItem> cartItems) {
-        this.cartItems = cartItems;
-    }
-
-    public BigDecimal getTotalPrice() {
-        return totalPrice;
-    }
-
-    public void setTotalPrice(BigDecimal totalPrice) {
-        this.totalPrice = totalPrice;
-    }
 
     public void calculateTotalPrice() {
         this.totalPrice = cartItems.stream()
@@ -91,23 +62,6 @@ public class Cart {
         return result.stream().reduce(0, Integer::sum);
     }
 
-    public void addCartItem(Product product, int quantity) {
-        CartItem cartItem = new CartItem();
-        cartItem.setCart(this);
-        cartItem.setProduct(product);
-        cartItem.setQuantity(quantity);
-        cartItem.calculatePrice();
-        this.cartItems.add(cartItem);
-        calculateTotalPrice();
-    }
-
-    public void removeCartItemByProduct(Long productId) {
-        boolean removed = cartItems.removeIf(item ->
-                item.getProduct() != null && item.getProduct().getId().equals(productId));
-        if (removed) {
-            calculateTotalPrice();
-        }
-    }
 
     public void clearCart() {
         this.cartItems.clear();

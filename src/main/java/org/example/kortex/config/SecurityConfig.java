@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .hasAnyRole(User.Role.ADMIN.name(),User.Role.SELLER.name())
                 .antMatchers("/admin","/api/admin/role-request/**")
                         .hasRole(User.Role.ADMIN.name())
+                .anyRequest().permitAll()
 
                 .and().formLogin().loginPage("/login").permitAll().usernameParameter("email").defaultSuccessUrl("/")
                 .and().logout().logoutUrl("/logout").permitAll().logoutSuccessUrl("/")

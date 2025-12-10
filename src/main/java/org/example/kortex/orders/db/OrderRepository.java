@@ -10,41 +10,42 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findAllByUserId(Long userId);
 
     List<Order> findOrderByUserId(Long userId);
 
-    @Query("""
-    SELECT o FROM Order o
-        WHERE  o.user.id = :userId
-    """)//если пользователь не указан то выдаст список полностью всех orders
-    List<Order> findOrderByUser(@Param("userId") Long userId,
-                               Pageable pageable);
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product"})
+    @Query("SELECT DISTINCT o FROM Order o WHERE o.id = :id")
+    Order findByIdWithItems(@Param("id") Long id);
 
-    @Query("""
-    SELECT o FROM Order o
-    WHERE o.courier.id = :courierId
-    ORDER BY o.orderDate DESC
-""")
+    // Оптимизированный: заказ с пользователем, курьером, товарами и продуктами
+    @EntityGraph(attributePaths = {
+            "user",
+            "courier",
+            "orderItems",
+            "orderItems.product"
+    })
+    @Query("SELECT DISTINCT o FROM Order o WHERE o.id = :id")
+    Order findByIdWithAll(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "courier"})
+    @Query("SELECT DISTINCT o FROM Order o WHERE o.user.id = :userId ORDER BY o.orderDate DESC")
+    List<Order> findOrdersByUserId(@Param("userId") Long userId);
+
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "user"})
+    @Query("SELECT DISTINCT o FROM Order o WHERE o.courier.id = :courierId ORDER BY o.orderDate DESC")
     List<Order> assignedOrdersPage(@Param("courierId") Long courierId,
                                Pageable pageable);
 
-    @Query("""
-    SELECT o FROM Order o
-    WHERE o.courier.id = :courierId
-""")
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "user"})
+    @Query("SELECT DISTINCT o FROM Order o WHERE o.courier.id = :courierId ORDER BY o.orderDate DESC")
     List<Order> assignedOrders(@Param("courierId") Long courierId);
 
-    @Query(
-            """
-    SELECT o FROM Order o
-    WHERE o.courier IS NULL 
-    ORDER BY o.orderDate DESC
-"""
-    )
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "user"})
+    @Query("SELECT DISTINCT o FROM Order o WHERE o.courier IS NULL AND o.status = 'PENDING' ORDER BY o.orderDate DESC")
     List<Order> availableOrdersPage(Pageable pageable);
 
 }

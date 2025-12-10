@@ -2,6 +2,7 @@ package org.example.kortex.users.db;
 
 import org.example.kortex.users.api.RoleRequestFilter;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +13,7 @@ import java.util.List;
 @Service
 public interface RoleRequestRepository  extends JpaRepository<RoleRequest, Long> {
 
+    @EntityGraph(attributePaths = {"user"})
     @Query("""
     SELECT r FROM RoleRequest r
     WHERE (:role IS NULL OR r.requestedRole = :role)
@@ -23,4 +25,6 @@ public interface RoleRequestRepository  extends JpaRepository<RoleRequest, Long>
                                        @Param("status")RoleRequest.Status status,
                                        @Param("type") RoleRequest.TypeAction type,
                                        Pageable pageable);
+
+    List<RoleRequest> getAllByUserId(Long userId);
 }

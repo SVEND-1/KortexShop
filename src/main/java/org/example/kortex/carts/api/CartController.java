@@ -1,5 +1,6 @@
 package org.example.kortex.carts.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.domain.CartItemService;
 import org.example.kortex.carts.db.Cart;
@@ -17,13 +18,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/carts")
 public class CartController {
     private final CartService cartService;
     private final UserService userService;
     private final CartItemService cartItemService;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public CartController(CartService cartService, UserService userService, CartItemService cartItemService) {
@@ -54,8 +55,8 @@ public class CartController {
     public ResponseEntity<?> addItemToCart(@RequestParam Long productId) {//TODO переделать может не надо получать текущего пользователя
         try {
             log.info("Добавление товара в корзину");
-            User user = userService.getCurrentUser();
-            Cart cart = cartService.cartAddProduct(cartService.getCartByUserId(user.getId()).getId(), productId);
+            User user = userService.getCurrentUserCart();
+            Cart cart = cartService.cartAddProduct(user.getCart().getId(), productId);
             log.info("Продукт с id: " + productId + " добавлен в корзину с id: " + cart.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(cart);
         }

@@ -2,6 +2,7 @@ package org.example.kortex.products.domain;
 
 import javax.persistence.EntityNotFoundException;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
@@ -19,10 +20,10 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class ProductService {
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
     private final ProductRepository productRepository;
 
     @Autowired

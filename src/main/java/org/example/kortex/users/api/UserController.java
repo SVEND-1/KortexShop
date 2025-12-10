@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
@@ -16,17 +17,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
-    private final OrderService orderService;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
-    public UserController(UserService userService,OrderService orderService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.orderService = orderService;
     }
 
 
@@ -44,7 +43,7 @@ public class UserController {
     @GetMapping("/me-orders")
     public ResponseEntity<?> orders(){
         try {
-            User user = userService.getCurrentUser();
+            User user = userService.getCurrentUserOrders();
             List<Order> userOrders = user.getOrders();
             return ResponseEntity.ok().body(userOrders);
         }

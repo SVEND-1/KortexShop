@@ -7,47 +7,47 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class PageController {
     @GetMapping("/login")
-    public String login(Model model) {
+    public String login() {
         return "forward:/loginForm.html";
     }
 
     @GetMapping("/codeEmail")
-    public String code(Model model) {
+    public String code() {
         return "forward:/codeFromEmailForm.html";
     }
 
     @GetMapping("/forgotPassword")
-    public String forgot(Model model) {
+    public String forgot() {
         return "forward:/forgotPasswordForm.html";
     }
 
     @GetMapping("/recoveryPassword")
-    public String recovery(Model model) {
+    public String recovery() {
         return "forward:/recoveryPasswordForm.html";
     }
 
     @GetMapping("/register")
-    public String register(Model model) {
+    public String register() {
         return "forward:/registerForm.html";
     }
 
     @GetMapping("/seller")
-    public String seller(Model model) {
+    public String seller() {
         return "forward:/seller.html";
     }
 
     @GetMapping("/admin")
-    public String admin(Model model) {
+    public String admin() {
         return "forward:/admin.html";
     }
 
     @GetMapping()
-    public String mainForm(Model model) {
+    public String mainForm() {
         return "forward:/mainForm.html";
     }
 
     @GetMapping("/profile")
-    public String profile(Model model) {
+    public String profile() {
         return "forward:/mainForm.html";
     }
 }

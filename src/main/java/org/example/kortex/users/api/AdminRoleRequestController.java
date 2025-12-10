@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.RoleRequestRepository;
 import org.example.kortex.users.db.User;
@@ -14,11 +15,11 @@ import org.springframework.web.bind.annotation.*;
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/admin/role-request")
 public class AdminRoleRequestController {
     private final RoleRequestService roleRequestService;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public AdminRoleRequestController(RoleRequestService roleRequestService) {

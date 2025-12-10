@@ -2,6 +2,7 @@ package org.example.kortex.orders.domain;
 
 import javax.persistence.EntityNotFoundException;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.db.OrderItem;
@@ -13,8 +14,6 @@ import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
@@ -24,8 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 
+@Slf4j
 @Service
 @Transactional
 public class OrderService {
@@ -34,7 +33,6 @@ public class OrderService {
     private final CartService cartService;
     private final ProductService productService;
     private final OrderItemService orderItemService;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     public OrderService(OrderRepository orderRepository,@Lazy UserService userService,
@@ -49,7 +47,9 @@ public class OrderService {
     public List<Order> getAll(){
         return orderRepository.findAll();
     }
-
+    public Order getByIdWithItems(Long id) {
+        return orderRepository.findByIdWithItems(id);
+    }
 
     public List<Order> assignedCourierOrders(Long userId){
         User courier = userService.getById(userId);
@@ -117,8 +117,9 @@ public class OrderService {
         if(status == Order.OrderStatus.RETURNED) {
             log.info("Вернуть заказ");
             List<OrderItem> orderItems = order.getOrderItems();
-            for(OrderItem orderItem : orderItems) {
-                productService.productAddQuantity(orderItem.getProduct().getId(),orderItem.getQuantity());
+            Order orderWithItems = getByIdWithItems(order.getId());
+            for (OrderItem orderItem : orderWithItems.getOrderItems()) {
+                productService.productAddQuantity(orderItem.getProduct().getId(), orderItem.getQuantity());
             }
             log.info("Заказ был возвращен");
         }

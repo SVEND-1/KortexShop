@@ -1,5 +1,6 @@
 package org.example.kortex.users.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
@@ -15,12 +16,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/couriers")
 public class CourierController {
-    private OrderService orderService;
-    private UserService userService;
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
+    private final OrderService orderService;
+    private final UserService userService;
+
     @Autowired
     public CourierController(OrderService orderService, UserService userService) {
         this.orderService = orderService;
