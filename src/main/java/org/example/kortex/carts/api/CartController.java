@@ -52,7 +52,7 @@ public class CartController {
     }
 
     @PostMapping("/items")
-    public ResponseEntity<?> addItemToCart(@RequestParam Long productId) {//TODO переделать может не надо получать текущего пользователя
+    public ResponseEntity<?> addItemToCart(@RequestParam Long productId) {
         try {
             log.info("Добавление товара в корзину");
             User user = userService.getCurrentUserCart();

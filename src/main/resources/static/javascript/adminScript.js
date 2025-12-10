@@ -1,17 +1,19 @@
 // Конфигурация API для админ-панели
 const API_BASE_URL = 'http://localhost:8080';
 const API_ENDPOINTS = {
-    GET_ALL_REQUESTS: '/api/admin/role-requests',
-    GET_REQUEST_DETAILS: '/api/admin/role-requests',
-    APPROVE_REQUEST: '/api/admin/role-requests',
-    REJECT_REQUEST: '/api/admin/role-requests'
+    GET_ALL_REQUESTS: '/api/admin/role-request',
+    GET_REQUEST_DETAILS: '/api/admin/role-request',
+    APPROVE_REQUEST: '/api/admin/role-request',
+    REJECT_REQUEST: '/api/admin/role-request',
+    DOWNGRADE_REQUEST: '/api/admin/role-request'
 };
 
 // Константы
-const REQUEST_STATUS = {
-    PENDING: 'PENDING',
-    APPROVED: 'APPROVED',
-    REJECTED: 'REJECTED'
+const USER_ROLES = {
+    CUSTOMER: 'CUSTOMER',
+    SELLER: 'SELLER',
+    COURIER: 'COURIER',
+    ADMIN: 'ADMIN'
 };
 
 const TYPE_ACTION = {
@@ -19,17 +21,20 @@ const TYPE_ACTION = {
     REMOVE: 'REMOVE'
 };
 
-// Глобальные переменные
-let currentPage = 1;
-let totalPages = 1;
-let currentRequestId = null;
+const REQUEST_STATUS = {
+    PENDING: 'PENDING',
+    APPROVED: 'APPROVED',
+    REJECTED: 'REJECTED'
+};
 
 // Получить заголовки с токеном
-function getHeaders() {
+function getHeaders(contentType = 'application/json') {
     const token = localStorage.getItem('authToken');
-    const headers = {
-        'Content-Type': 'application/json'
-    };
+    const headers = {};
+    
+    if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
     
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -42,53 +47,55 @@ function getHeaders() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Панель администратора загружена');
     
-    // Загрузка заявок при загрузке страницы
     loadRequests();
     
-    // Настройка обработчиков фильтров
     const statusFilter = document.getElementById('statusFilter');
     const typeFilter = document.getElementById('requestTypeFilter');
     
     if (statusFilter) {
         statusFilter.addEventListener('change', function() {
-            currentPage = 1;
             loadRequests();
         });
     }
     
     if (typeFilter) {
         typeFilter.addEventListener('change', function() {
-            currentPage = 1;
             loadRequests();
         });
     }
     
-    // Закрытие модальных окон по клику вне их
-    const requestModal = document.getElementById('requestModal');
-    const confirmModal = document.getElementById('confirmModal');
-    
-    if (requestModal) {
-        requestModal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            loadRequests();
         });
     }
     
-    if (confirmModal) {
-        confirmModal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeConfirmModal();
-            }
+    const clearBtn = document.getElementById('clearBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            clearFilters();
         });
     }
     
-    // ESC для закрытия модальных окон
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeModal();
             closeConfirmModal();
         }
+    });
+    
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                if (this.id === 'requestModal') {
+                    closeModal();
+                } else if (this.id === 'confirmModal') {
+                    closeConfirmModal();
+                }
+            }
+        });
     });
 });
 
@@ -98,24 +105,30 @@ async function loadRequests() {
     const typeFilter = document.getElementById('requestTypeFilter');
     
     const statusValue = statusFilter ? statusFilter.value : 'ALL';
-    const typeValue = typeFilter ? typeFilter.value : 'ALL';
+    const actionTypeValue = typeFilter ? typeFilter.value : 'ALL';
     
-    // Показать индикатор загрузки
     showLoading(true);
     
     try {
-        // Строим URL с параметрами
         let url = `${API_BASE_URL}${API_ENDPOINTS.GET_ALL_REQUESTS}`;
         const params = [];
         
-        if (statusValue !== 'ALL') params.push(`status=${statusValue}`);
-        if (typeValue !== 'ALL') params.push(`typeAction=${typeValue}`);
+        if (statusValue !== 'ALL') {
+            params.push(`status=${statusValue}`);
+        }
+        
+        if (actionTypeValue !== 'ALL') {
+            params.push(`actionType=${actionTypeValue}`);
+        }
+        
+        params.push(`pageSize=50`);
+        params.push(`pageNumber=0`);
         
         if (params.length > 0) {
             url += `?${params.join('&')}`;
         }
         
-        console.log('Запрос на:', url);
+        console.log('Запрос заявок на:', url);
         
         const response = await fetch(url, {
             method: 'GET',
@@ -126,26 +139,34 @@ async function loadRequests() {
             const data = await response.json();
             console.log('Получены заявки:', data);
             
-            renderRequestsTable(data);
-            updateRequestsCount(data.length);
-            updatePagination(1); // В вашем API нет пагинации, используем одну страницу
+            if (Array.isArray(data)) {
+                renderRequestsTable(data);
+                updateRequestsCount(data.length);
+            } else {
+                console.warn('Данные пришли не в виде массива:', data);
+                renderRequestsTable([]);
+                updateRequestsCount(0);
+            }
             
         } else if (response.status === 403) {
             showNotification('❌ У вас нет доступа к админ панели', 'error');
             setTimeout(() => {
                 window.location.href = 'profile.html';
             }, 2000);
+        } else if (response.status === 404) {
+            showNotification('⚠️ Заявок пока нет', 'info');
+            renderRequestsTable([]);
+            updateRequestsCount(0);
         } else {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
     } catch (error) {
         console.error('Ошибка загрузки заявок:', error);
         
-        // Тестовые данные для демонстрации
         const testData = getTestData();
         renderRequestsTable(testData);
         updateRequestsCount(testData.length);
-        updatePagination(1);
         
         showNotification('⚠️ Бэкенд недоступен, отображаются тестовые данные', 'warning');
     } finally {
@@ -170,10 +191,12 @@ function renderRequestsTable(requests) {
         return;
     }
     
-    // Сортируем по дате (новые сверху)
     requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
-    tbody.innerHTML = requests.map(request => `
+    tbody.innerHTML = requests.map(request => {
+        const needsDowngrade = request.typeAction === 'REMOVE';
+        
+        return `
         <tr>
             <td>${request.id}</td>
             <td>
@@ -203,11 +226,19 @@ function renderRequestsTable(requests) {
                     </button>
                     
                     ${request.status === 'PENDING' ? `
-                        <button class="btn-table btn-table-success" 
-                                onclick="approveRequest(${request.id})"
-                                title="Одобрить заявку">
-                            ✅ Одобрить
-                        </button>
+                        ${needsDowngrade ? `
+                            <button class="btn-table btn-table-warning" 
+                                    onclick="downgradeRequest(${request.id})"
+                                    title="Одобрить понижение">
+                                ⬇️ Понизить
+                            </button>
+                        ` : `
+                            <button class="btn-table btn-table-success" 
+                                    onclick="approveRequest(${request.id})"
+                                    title="Одобрить повышение">
+                                ⬆️ Повысить
+                            </button>
+                        `}
                         <button class="btn-table btn-table-danger" 
                                 onclick="rejectRequest(${request.id})"
                                 title="Отклонить заявку">
@@ -217,7 +248,7 @@ function renderRequestsTable(requests) {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 // Показать детали заявки
@@ -247,7 +278,6 @@ async function showRequestDetails(requestId) {
 
 // Заполнение модального окна данными
 function fillRequestModal(request) {
-    // Основная информация
     document.getElementById('modalRequestId').textContent = request.id;
     document.getElementById('modalUserId').textContent = request.user?.id || 'N/A';
     document.getElementById('modalUserName').textContent = request.user?.name || 'Не указано';
@@ -259,11 +289,9 @@ function fillRequestModal(request) {
     document.getElementById('modalCreatedAt').textContent = formatDate(request.createdAt);
     document.getElementById('modalDescription').textContent = request.message || 'Описание отсутствует';
     
-    // Тип действия
     const typeActionText = request.typeAction === 'ENHANCE' ? 'Повышение роли' : 'Снятие с роли';
     document.getElementById('modalRequestType').textContent = typeActionText;
     
-    // Настройка действий
     const actionsInfo = document.getElementById('actionsInfo');
     const actionsButtons = document.getElementById('actionsButtons');
     
@@ -276,12 +304,15 @@ function fillRequestModal(request) {
             <p><strong>ID пользователя:</strong> ${request.user?.id || 'N/A'}</p>
         `;
         
+        const buttonType = request.typeAction === 'ENHANCE' ? 'approveRequest' : 'downgradeRequest';
+        const buttonText = request.typeAction === 'ENHANCE' ? '✅ Одобрить повышение' : '✅ Одобрить понижение';
+        
         actionsButtons.innerHTML = `
-            <button class="btn btn-success" onclick="approveRequest(${request.id})">
-                <span>✅</span> Одобрить заявку
+            <button class="btn btn-success" onclick="${buttonType}(${request.id})">
+                ${buttonText}
             </button>
             <button class="btn btn-danger" onclick="rejectRequest(${request.id})">
-                <span>❌</span> Отклонить заявку
+                ❌ Отклонить заявку
             </button>
             <button class="btn btn-secondary" onclick="closeModal()">
                 Закрыть
@@ -314,16 +345,13 @@ function fillRequestModal(request) {
     }
 }
 
-// Одобрить заявку
+// Одобрить заявку (для повышения)
 async function approveRequest(requestId) {
     showConfirmModal(
         'Подтверждение одобрения',
         '<div style="padding: 15px 0;">' +
         '<p style="font-size: 1.2rem; margin-bottom: 10px; color: #333; font-weight: 500;">' +
-        'Вы уверены, что хотите одобрить эту заявку?' +
-        '</p>' +
-        '<p style="color: #666; font-size: 0.95rem; margin: 0;">' +
-        'Пользователь получит расширенные права и возможности.' +
+        'Вы уверены, что хотите одобрить повышение роли?' +
         '</p>' +
         '</div>',
         async () => {
@@ -339,7 +367,7 @@ async function approveRequest(requestId) {
                 const responseText = await response.text();
                 
                 if (response.ok) {
-                    showNotification('✅ Заявка успешно одобрена', 'success');
+                    showNotification('✅ Заявка на повышение успешно одобрена', 'success');
                     closeModal();
                     loadRequests();
                 } else {
@@ -350,7 +378,44 @@ async function approveRequest(requestId) {
                 showNotification(`❌ Ошибка: ${error.message}`, 'error');
             }
         },
-        '✅ Одобрить'
+        '✅ Одобрить повышение'
+    );
+}
+
+// Одобрить понижение
+async function downgradeRequest(requestId) {
+    showConfirmModal(
+        'Подтверждение понижения',
+        '<div style="padding: 15px 0;">' +
+        '<p style="font-size: 1.2rem; margin-bottom: 10px; color: #333; font-weight: 500;">' +
+        'Вы уверены, что хотите одобрить понижение роли?' +
+        '</p>' +
+        '</div>',
+        async () => {
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}${API_ENDPOINTS.DOWNGRADE_REQUEST}/${requestId}/downgrade`, 
+                    {
+                        method: 'POST',
+                        headers: getHeaders()
+                    }
+                );
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    showNotification('✅ Заявка на понижение успешно одобрена', 'success');
+                    closeModal();
+                    loadRequests();
+                } else {
+                    throw new Error(responseText || `HTTP error! status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Ошибка понижения:', error);
+                showNotification(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        },
+        '✅ Одобрить понижение'
     );
 }
 
@@ -361,9 +426,6 @@ async function rejectRequest(requestId) {
         '<div style="padding: 15px 0;">' +
         '<p style="font-size: 1.2rem; margin-bottom: 10px; color: #333; font-weight: 500;">' +
         'Вы уверены, что хотите отклонить эту заявку?' +
-        '</p>' +
-        '<p style="color: #666; font-size: 0.95rem; margin: 0;">' +
-        'Это действие нельзя будет отменить.' +
         '</p>' +
         '</div>',
         async () => {
@@ -419,84 +481,12 @@ function closeModal() {
     currentRequestId = null;
 }
 
-// Обновление пагинации
-function updatePagination(total) {
-    totalPages = total;
-    const pagination = document.getElementById('pagination');
-    
-    if (!pagination) return;
-    
-    if (totalPages <= 1) {
-        pagination.innerHTML = '';
-        return;
-    }
-    
-    let html = '';
-    
-    // Кнопка "Назад"
-    html += `
-        <button class="pagination-btn" 
-                ${currentPage === 1 ? 'disabled' : ''}
-                onclick="changePage(${currentPage - 1})">
-            ◀
-        </button>
-    `;
-    
-    // Номера страниц
-    const start = Math.max(1, currentPage - 2);
-    const end = Math.min(totalPages, start + 4);
-    
-    for (let i = start; i <= end; i++) {
-        html += `
-            <button class="pagination-btn ${i === currentPage ? 'active' : ''}"
-                    onclick="changePage(${i})">
-                ${i}
-            </button>
-        `;
-    }
-    
-    // Кнопка "Вперед"
-    html += `
-        <button class="pagination-btn" 
-                ${currentPage === totalPages ? 'disabled' : ''}
-                onclick="changePage(${currentPage + 1})">
-            ▶
-        </button>
-    `;
-    
-    // Информация
-    html += `
-        <span class="pagination-info">
-            Страница ${currentPage} из ${totalPages}
-        </span>
-    `;
-    
-    pagination.innerHTML = html;
-}
-
-// Смена страницы
-function changePage(page) {
-    if (page < 1 || page > totalPages || page === currentPage) return;
-    
-    currentPage = page;
-    loadRequests();
-    
-    // Прокрутка к верху таблицы
-    const requestsSection = document.querySelector('.requests-section');
-    if (requestsSection) {
-        requestsSection.scrollIntoView({ 
-            behavior: 'smooth' 
-        });
-    }
-}
-
 // Обновление счетчика заявок
 function updateRequestsCount(count) {
     const countElement = document.getElementById('requestsCount');
     if (countElement) {
         countElement.textContent = `Всего заявок: ${count}`;
         
-        // Анимация обновления
         countElement.style.transform = 'scale(1.1)';
         setTimeout(() => {
             countElement.style.transform = 'scale(1)';
@@ -512,7 +502,6 @@ function clearFilters() {
     if (statusFilter) statusFilter.value = 'ALL';
     if (typeFilter) typeFilter.value = 'ALL';
     
-    currentPage = 1;
     loadRequests();
 }
 
@@ -543,7 +532,6 @@ function showNotification(message, type = 'success') {
     notification.className = `notification ${type}`;
     notification.style.display = 'flex';
     
-    // Автоматическое скрытие через 5 секунд
     setTimeout(() => {
         hideNotification();
     }, 5000);
@@ -643,27 +631,4 @@ function getTestData() {
             createdAt: "2024-01-12T16:45:00"
         }
     ];
-}
-
-// Переключение меню действий
-function toggleActionMenu(requestId) {
-    const menus = document.querySelectorAll('.dropdown-menu');
-    menus.forEach(menu => {
-        if (menu.id !== `menu-${requestId}`) {
-            menu.style.display = 'none';
-        }
-    });
-    
-    const menu = document.getElementById(`menu-${requestId}`);
-    if (menu) {
-        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-        
-        // Закрытие меню при клике вне его
-        document.addEventListener('click', function closeMenu(e) {
-            if (!e.target.closest('.action-dropdown')) {
-                menu.style.display = 'none';
-                document.removeEventListener('click', closeMenu);
-            }
-        });
-    }
 }

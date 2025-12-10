@@ -1,5 +1,6 @@
 package org.example.kortex.products.domain;
 
+import org.example.kortex.products.api.dto.ProductResponseDTO;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
 import org.junit.jupiter.api.Test;
@@ -8,7 +9,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,7 +30,7 @@ class ProductServiceTest {
         when(productRepository.findProductsFilter(any(), anyString(), any()))
                 .thenReturn(List.of(new Product()));
 
-        List<Product> result = productService.findProductsFilter(
+        List<ProductResponseDTO> result = productService.findProductsFilter(
                 new org.example.kortex.products.api.ProductSearchFilter("ELECTRONICS", "test", 10, 0)
         );
 

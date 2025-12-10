@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/mainFormStyle.css">
-    <link rel="stylesheet" href="css/adminStyle.css">
+    <link rel="stylesheet" href="design/mainFormStyle.css">
+    <link rel="stylesheet" href="design/adminStyle.css">
     <title>Панель администратора</title>
 </head>
 <body>
@@ -14,7 +14,7 @@
             <div class="header-content">
                 <a href="mainForm.html" class="logo">Kortex marketplace</a>
                 
-                <form class="search-form" action="/search" method="GET">
+                <form class="search-form" action="/api/products" method="GET">
                     <div class="search-container">
                         <input id="search-input" type="text" class="search-input" name="query" placeholder="Поиск пользователей...">
                         <button type="submit" class="search-button">
@@ -213,6 +213,6 @@
         <button class="notification-close" onclick="hideNotification()">×</button>
     </div>
 
-    <script src="js/adminScript.js"></script>
+    <script src="javascript/adminScript.js"></script>
 </body>
 </html>

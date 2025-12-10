@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/mainFormStyle.css">
-    <link rel="stylesheet" href="css/catalogStyle.css">
+    <link rel="stylesheet" href="design/mainFormStyle.css">
+    <link rel="stylesheet" href="design/catalogStyle.css">
     <title>Kortex</title>
 </head>
 <body>
@@ -12,8 +12,8 @@
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <a href="mainForm.html" class="logo">Kortex marketplace</a>
-                
+                <a href="/" class="logo">Kortex marketplace</a>
+
                 <form class="search-form" action="/search" method="GET">
                     <div class="search-container">
                         <input id="search-input" type="text" class="search-input" placeholder="Поиск товаров...">
@@ -24,17 +24,17 @@
                 </form>
 
                 <nav class="nav">
-                    <a href="cartForm.html" class="nav-link">
+                    <a href="/cart" class="nav-link">
                         <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
                         Корзина
                     </a>
 
-                    <a href="profile.html" class="nav-link">
+                    <a href="/profile" class="nav-link">
                         <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
                         <span class="profile-text">Профиль</span>
                     </a>
 
-                    <a href="loginForm.html" class="nav-link">
+                    <a href="/login" class="nav-link">
                         <img src="images/join-img.png" alt="Войти" class="nav-icon">
                         Войти
                     </a>
@@ -46,8 +46,8 @@
     <!-- Основной контент главной страницы -->
     <main class="main-content">
         <div class="container">
-            
-            
+
+
             <!-- Каталог товаров -->
             <section class="catalog">
                 <div class="catalog-header">
@@ -64,7 +64,7 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div id="productsGrid" class="products-grid">
                     <!-- Товары будут загружены через JavaScript -->
                 </div>
@@ -72,11 +72,18 @@
         </div>
     </main>
 
-    <script src="js/productManager.js"></script>
-    <script src="js/imageUploader.js"></script>
-    <script src="js/cartManager.js"></script>
-    <script src="js/mainFormScript.js"></script>
-    <script src="js/productNavigation.js"></script>
-    <script src="js/catalogScript.js"></script>
+    <script src="javascript/productManager.js"></script>
+    <script src="javascript/imageUploader.js"></script>
+    <script src="javascript/cartManager.js"></script>
+    <script src="javascript/mainFormScript.js"></script>
+    <script src="javascript/productNavigation.js"></script>
+    <script src="javascript/catalogScript.js"></script>
 </body>
 </html>
+
+<script src="javascript/productManager.js"></script>
+<script src="javascript/imageUploader.js"></script>
+<script src="javascript/cartManager.js"></script>
+<script src="javascript/mainFormScript.js"></script>
+<script src="javascript/productNavigation.js"></script>
+<script src="javascript/catalogScript.js"></script>

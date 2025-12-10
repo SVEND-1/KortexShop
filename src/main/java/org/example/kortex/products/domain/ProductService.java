@@ -3,15 +3,11 @@ package org.example.kortex.products.domain;
 import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.products.api.dto.ProductResponseDTO;
 import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
-import org.example.kortex.users.domain.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,8 +27,7 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-
-    public List<Product> findProductsFilter(ProductSearchFilter filter){
+    public List<ProductResponseDTO> findProductsFilter(ProductSearchFilter filter){
         log.info("Запрос на выдачу всех товаров с фильром: " + filter);
         Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
@@ -42,8 +37,31 @@ public class ProductService {
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
         List<Product> products = productRepository.findProductsFilter(category,query,pageable);
-        log.info("Выдача всех товаров с фильтром: " + filter);
-        return products;
+
+        log.info("Выдача всех товаров с фильтром: " + filter );
+        return products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+    }
+
+    private ProductResponseDTO convertToDTO(Product product) {
+        ProductResponseDTO dto = new ProductResponseDTO();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setDescription(product.getDescription());
+        dto.setPrice(product.getPrice());
+        dto.setCount(product.getCount());
+        dto.setCategory(product.getCategory() != null ? product.getCategory().name() : null);
+        dto.setImage(product.getImage());
+
+        if (product.getSeller() != null) {
+            dto.setSellerId(product.getSeller().getId());
+            dto.setSellerName(product.getSeller().getName());
+            dto.setSellerEmail(product.getSeller().getEmail());
+        }
+
+        return dto;
     }
 
     public List<Product> getProductsBySeller(Long sellerId) {

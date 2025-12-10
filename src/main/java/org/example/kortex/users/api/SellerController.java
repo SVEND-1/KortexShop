@@ -43,6 +43,7 @@ public class SellerController {
         try {
             User seller = userService.getCurrentUser();
             List<Product> products = productService.getProductsBySeller(seller.getId());
+            log.info("Выданы продукты продовца");
             return ResponseEntity.ok(products);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();

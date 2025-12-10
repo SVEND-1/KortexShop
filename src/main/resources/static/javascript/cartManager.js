@@ -1,4 +1,5 @@
-// Менеджер корзины
+// cartManager.js - менеджер корзины
+
 class CartManager {
     constructor() {
         this.storageKey = 'cart';
@@ -16,9 +17,28 @@ class CartManager {
     }
 
     // Добавить в корзину
-    addToCart(productId, quantity = 1) {
-        const product = window.productManager.getProductById(productId);
-        if (!product) return false;
+    async addToCart(productId, quantity = 1) {
+        // Сначала получаем данные о товаре
+        let product;
+        
+        if (window.productManager) {
+            product = await window.productManager.getProductById(productId);
+        } else {
+            // Пробуем получить с сервера
+            try {
+                const response = await fetch(`/api/products/${productId}`);
+                if (response.ok) {
+                    product = await response.json();
+                }
+            } catch (error) {
+                console.error('Ошибка при получении товара:', error);
+            }
+        }
+        
+        if (!product) {
+            console.error('Товар не найден');
+            return false;
+        }
 
         const existingItem = this.cart.find(item => item.id === productId);
         
@@ -29,7 +49,7 @@ class CartManager {
                 id: product.id,
                 name: product.name,
                 price: product.price,
-                image: window.imageUploader.getImage(product.id),
+                image: product.image || 'images/product-img.png',
                 quantity: quantity
             });
         }
@@ -106,7 +126,7 @@ class CartManager {
     // Сохранить заказ в историю
     saveOrder(order) {
         let orders = JSON.parse(localStorage.getItem(this.ordersKey)) || [];
-        orders.unshift(order); // Добавляем в начало
+        orders.unshift(order);
         localStorage.setItem(this.ordersKey, JSON.stringify(orders));
     }
 
@@ -121,4 +141,5 @@ class CartManager {
     }
 }
 
+// Создаем глобальный экземпляр
 window.cartManager = new CartManager();

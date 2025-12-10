@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/mainFormStyle.css">
-    <link rel="stylesheet" href="css/authStyle.css">
+    <link rel="stylesheet" href="design/mainFormStyle.css">
+    <link rel="stylesheet" href="design/authStyle.css">
     <title>Регистрация</title>
 </head>
 <body>
@@ -12,9 +12,9 @@
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <a href="mainForm.html" class="logo">Kortex marketplace</a>
-                
-                <form class="search-form">
+                <a href="/" class="logo">Kortex marketplace</a>
+
+                <form class="search-form" action="/search" method="GET">
                     <div class="search-container">
                         <input id="search-input" type="text" class="search-input" placeholder="Поиск товаров...">
                         <button type="submit" class="search-button">
@@ -24,17 +24,17 @@
                 </form>
 
                 <nav class="nav">
-                    <a href="#" class="nav-link">
+                    <a href="/cart" class="nav-link">
                         <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
                         Корзина
                     </a>
 
-                    <a href="profile.html" class="nav-link">
+                    <a href="/profile" class="nav-link">
                         <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
                         <span class="profile-text">Профиль</span>
                     </a>
 
-                    <a href="loginForm.html" class="nav-link">
+                    <a href="/login" class="nav-link">
                         <img src="images/join-img.png" alt="Войти" class="nav-icon">
                         Войти
                     </a>
@@ -49,7 +49,7 @@
         <div class="auth-form">
             <h2 class="registerH2">Регистрация</h2>
 
-            <form class="loginForm" id="registerForm">
+            <form class="loginForm" id="registerForm" action="/register" method="POST">
                 <label>Имя</label>
                 <input type="text" name="name" placeholder="Иван" required>
 
@@ -77,7 +77,7 @@
         </div>
     </main>
 
-    <script src="js/authScript.js"></script>
-    <script src="js/api-integration.js"></script>
+    <script src="javascript/authScript.js"></script>
+    <script src="javascript/api-integration.js"></script>
 </body>
 </html>

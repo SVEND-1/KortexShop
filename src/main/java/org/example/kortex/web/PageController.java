@@ -33,7 +33,7 @@ public class PageController {
 
     @GetMapping("/seller")
     public String seller() {
-        return "forward:/seller.html";
+        return "forward:/sellerForm.html";
     }
 
     @GetMapping("/admin")
@@ -48,6 +48,21 @@ public class PageController {
 
     @GetMapping("/profile")
     public String profile() {
-        return "forward:/mainForm.html";
+        return "forward:/profile.html";
+    }
+
+    @GetMapping("/cart")
+    public String cart() {
+        return "forward:/cartForm.html";
+    }
+
+    @GetMapping("/productForm")
+    public String productForm() {
+        return "forward:/productForm.html";
+    }
+
+    @GetMapping("/test")
+    public String test() {
+        return "forward:/test.html";
     }
 }

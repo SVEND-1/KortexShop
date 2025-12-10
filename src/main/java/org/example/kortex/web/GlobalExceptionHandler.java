@@ -6,17 +6,17 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@Controller
-@ControllerAdvice
-public class GlobalExceptionHandler implements ErrorController {
+//@Controller
+//@ControllerAdvice
+public class GlobalExceptionHandler {//implements ErrorController {
 
-    @RequestMapping("/error")
-    public String getErrorPage() {
-        return "error";
-    }
-
-    @ExceptionHandler(Throwable.class)
-    public String handleThrowable(Throwable throwable) {
-        return "redirect:/error?throwable=" + throwable.getMessage();
-    }
+//    @RequestMapping("/error")
+//    public String getErrorPage() {
+//        return "forward:/error.html";
+//    }
+//
+//    @ExceptionHandler(Throwable.class)
+//    public String handleThrowable(Throwable throwable) {
+//        return "redirect:/error?throwable=" + throwable.getMessage();
+//    }
 }

@@ -61,18 +61,18 @@ async function handleRegistration(e) {
         if (!validateRegistrationForm()) {
             return;
         }
-
+        
         const form = e.target;
         const formData = new FormData(form);
-
+        
         const userData = {
             email: formData.get('email'),
             password: formData.get('password'),
             name: formData.get('name')
         };
-
+        
         console.log('Отправка данных для регистрации:', userData);
-
+        
         // Шаг 1: Отправка email и получение кода
         const response = await fetch('/api/auth/register/send-code', {
             method: 'POST',
@@ -81,24 +81,24 @@ async function handleRegistration(e) {
             },
             body: JSON.stringify(userData)
         });
-
+        
         const result = await response.json();
-
+        
         if (response.ok) {
             // Сохраняем registrationId и данные пользователя в localStorage
             localStorage.setItem('registrationId', result.registrationId);
             localStorage.setItem('pendingEmail', userData.email);
             localStorage.setItem('pendingName', userData.name);
             localStorage.setItem('pendingPassword', userData.password);
-
+            
             alert('Код подтверждения отправлен на email. Переходим к вводу кода.');
-
+            
             // Переходим на страницу ввода кода
             window.location.href = 'codeFromEmailForm.html?type=registration';
         } else {
             alert('Ошибка: ' + (result.message || 'Не удалось отправить код'));
         }
-
+        
     } catch (error) {
         console.error('Ошибка при регистрации:', error);
         alert('Произошла ошибка при отправке данных');
@@ -146,36 +146,31 @@ async function handleForgotPassword() {
 }
 
 // 3. Обработка подтверждения кода
-// 3. Обработка подтверждения кода
 async function handleCodeConfirmation() {
     try {
-        console.log('=== НАЧАЛО ПОДТВЕРЖДЕНИЯ КОДА ===');
-
         // Получаем код из полей ввода
         const codeInputs = document.querySelectorAll('.code-input');
         let code = '';
-
+        
         codeInputs.forEach(input => {
             code += input.value;
         });
-
+        
         // Проверяем, что все 6 цифр введены
         if (code.length !== 6) {
             alert('Введите все 6 цифр кода');
             return;
         }
-
+        
         // Форматируем код в XXX-XXX
-        const formattedCode = code.substring(0, 3)  + code.substring(3, 6);
-        console.log('Сформированный код:', formattedCode);
-
+        const formattedCode = code.substring(0, 3) + code.substring(3, 6);
+        
         // Определяем тип операции (регистрация или сброс пароля)
         const urlParams = new URLSearchParams(window.location.search);
         const type = urlParams.get('type');
-        console.log('Тип операции:', type);
-
+        
         let endpoint, idKey;
-
+        
         if (type === 'registration') {
             endpoint = '/api/auth/register/verify';
             idKey = 'registrationId';
@@ -183,46 +178,35 @@ async function handleCodeConfirmation() {
             endpoint = '/api/auth/password/verify';
             idKey = 'resetId';
         }
-
+        
         const operationId = localStorage.getItem(idKey);
-        console.log('Operation ID:', operationId);
-
+        
         if (!operationId) {
             alert('Сессия истекла. Пожалуйста, начните заново.');
             window.location.href = type === 'registration' ? 'registerForm.html' : 'forgotPasswordForm.html';
             return;
         }
-
-        console.log(`Отправка запроса на ${endpoint}`, {
-            operationId,
-            code: formattedCode
-        });
-
+        
+        console.log(`Подтверждение кода для ${type}:`, { operationId, code: formattedCode });
+        
         const response = await fetch(`${endpoint}?${idKey}=${operationId}&code=${formattedCode}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            method: 'POST'
         });
-
-        console.log('Статус ответа:', response.status);
-
+        
         const result = await response.json();
-        console.log('Результат:', result);
-
-        if (response.ok && result.success) {
-            alert(result.message || 'Код подтвержден успешно!');
-
+        
+        if (response.ok) {
+            alert('Код подтвержден успешно!');
+            
             if (type === 'registration') {
                 // Регистрация завершена
                 localStorage.removeItem('registrationId');
                 localStorage.removeItem('pendingEmail');
                 localStorage.removeItem('pendingName');
                 localStorage.removeItem('pendingPassword');
-
-                // Переходим на главную
-                window.location.href = result.redirectUrl || '/';
-
+                
+                alert('Регистрация успешно завершена! Теперь вы можете войти в систему.');
+                window.location.href = 'loginForm.html';
             } else {
                 // Сброс пароля - переходим к установке нового пароля
                 window.location.href = 'recoveryPasswordForm.html';
@@ -230,10 +214,10 @@ async function handleCodeConfirmation() {
         } else {
             alert('Ошибка: ' + (result.message || 'Неверный код'));
         }
-
+        
     } catch (error) {
         console.error('Ошибка при подтверждении кода:', error);
-        alert('Произошла ошибка при проверке кода: ' + error.message);
+        alert('Произошла ошибка при проверке кода');
     }
 }
 
