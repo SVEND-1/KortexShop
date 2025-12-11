@@ -1,6 +1,7 @@
 package org.example.kortex.orders.api;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.carts.api.dto.CartMapper;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.domain.CartItemService;
 import org.example.kortex.carts.db.Cart;
@@ -26,12 +27,13 @@ import java.util.Map;
 public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
-
+    private final CartMapper cartMapper;
 
     @Autowired
-    public OrderController(OrderService orderService, UserService userService) {
+    public OrderController(OrderService orderService, UserService userService,CartMapper cartMapper) {
         this.orderService = orderService;
         this.userService = userService;
+        this.cartMapper = cartMapper;
     }
 
     @GetMapping("/me-create")//Отображение страницы заказа
@@ -42,10 +44,10 @@ public class OrderController {
             List<CartItem> cartItems = cart.getCartItems();
 
             Map<String, Object> response = new HashMap<>();
-            response.put("cartItems", cartItems);
+            response.put("cartItems", cartMapper.toListCartItemDto(cartItems));
             response.put("totalPrice", cart.totalPrice());
             response.put("totalItems", cart.getQuantity());
-            response.put("user", user);
+            response.put("user", cartMapper.toUserCartDto(user));
 
             return ResponseEntity.ok().body(response);
         }catch (Exception e) {
@@ -60,7 +62,7 @@ public class OrderController {
     public ResponseEntity<?> createOrder() {
         try {
             log.info("Создания заказа");
-            User user = userService.getCurrentUserFull();
+            User user = userService.getCurrentUser();
             Order order = orderService.createOrderFromCart(user.getId());
 
             Map<String, Object> response = new HashMap<>();

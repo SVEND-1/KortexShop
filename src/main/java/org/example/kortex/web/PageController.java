@@ -61,8 +61,11 @@ public class PageController {
         return "forward:/productForm.html";
     }
 
-    @GetMapping("/test")
-    public String test() {
-        return "forward:/test.html";
+    @GetMapping("/courier")
+    public String courier() {
+        return "forward:/courier.html";
     }
+
+    @GetMapping("/checkout")
+    public String checkout(){return "forward:/checkout.html";}
 }

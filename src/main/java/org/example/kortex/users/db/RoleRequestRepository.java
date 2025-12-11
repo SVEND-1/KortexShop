@@ -13,6 +13,14 @@ import java.util.List;
 @Service
 public interface RoleRequestRepository  extends JpaRepository<RoleRequest, Long> {
 
+    @Query("""
+        SELECT COUNT(r) > 0 FROM RoleRequest r 
+        WHERE r.user.id = :userId 
+        AND r.status = :status
+    """)
+    boolean existsByUserIdAndStatus(@Param("userId") Long userId,
+                                    @Param("status") RoleRequest.Status status);
+
     @EntityGraph(attributePaths = {"user"})
     @Query("""
     SELECT r FROM RoleRequest r

@@ -1,4 +1,5 @@
-// Скрипт для корзины - исправленная версия с правильными путями к изображениям
+// cartScript.js - исправленная версия с перенаправлением на checkout
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Страница корзины загружена');
     initializeCart();
@@ -32,9 +33,8 @@ function displayCartItems() {
     // Отображаем товары
     cartItemsContainer.innerHTML = cartItems.map(item => {
         // Формируем правильный путь к изображению
-        // Если в item есть поле image, используем его
         const imagePath = item.image
-            ? `/uploads/images/${item.image}`  // Основной путь из DTO
+            ? `/uploads/images/${item.image}`
             : (window.imageUploader ? window.imageUploader.getImage(item.id) : '/images/product-img.png');
 
         // Получаем описание товара
@@ -169,52 +169,16 @@ function checkout() {
         const cart = JSON.parse(localStorage.getItem('cart')) || [];
 
         if (cart.length === 0) {
-            alert('Корзина пуста!');
+            alert('Корзина пуста! Добавьте товары для оформления заказа.');
             return;
         }
 
-        // Подготавливаем данные для заказа
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const orderData = {
-            items: cart.map(item => ({
-                productId: item.id,
-                quantity: item.quantity,
-                price: item.price
-            })),
-            total: total
-        };
-
-        // Отправляем заказ на сервер
-        fetch('/api/orders', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(orderData)
-        })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Ошибка при оформлении заказа');
-            })
-            .then(order => {
-                alert(`Заказ оформлен! Номер заказа: ${order.id}\nСумма: ${formatPrice(order.total)}`);
-
-                // Очищаем корзину после успешного оформления
-                localStorage.removeItem('cart');
-
-                // Переходим в профиль или на страницу заказа
-                window.location.href = `/order/${order.id}`;
-            })
-            .catch(error => {
-                console.error('Ошибка оформления заказа:', error);
-                alert('Ошибка при оформлении заказа. Попробуйте позже.');
-            });
+        // Просто перенаправляем на страницу оформления заказа
+        window.location.href = '/checkout';
 
     } catch (error) {
-        console.error('Ошибка:', error);
-        alert('Произошла ошибка при оформлении заказа');
+        console.error('Ошибка при переходе к оформлению:', error);
+        alert('Произошла ошибка при переходе к оформлению заказа. Попробуйте позже.');
     }
 }
 

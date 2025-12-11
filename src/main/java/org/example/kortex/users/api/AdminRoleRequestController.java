@@ -1,6 +1,7 @@
 package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.users.api.dto.RoleRequestMapper;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.RoleRequestRepository;
 import org.example.kortex.users.db.User;
@@ -20,10 +21,12 @@ import java.util.List;
 @RequestMapping("/api/admin/role-request")
 public class AdminRoleRequestController {
     private final RoleRequestService roleRequestService;
+    private final RoleRequestMapper roleRequestMapper;
 
     @Autowired
-    public AdminRoleRequestController(RoleRequestService roleRequestService) {
+    public AdminRoleRequestController(RoleRequestService roleRequestService,RoleRequestMapper roleRequestMapper) {
         this.roleRequestService = roleRequestService;
+        this.roleRequestMapper = roleRequestMapper;
     }
 
     @GetMapping
@@ -34,7 +37,7 @@ public class AdminRoleRequestController {
                                                  @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
         try {
             RoleRequestFilter filter = new RoleRequestFilter(role, status, actionType, pageSize, pageNumber);
-            return ResponseEntity.ok().body(roleRequestService.getRoleRequests(filter));
+            return ResponseEntity.ok().body(roleRequestMapper.toDtoList(roleRequestService.getRoleRequests(filter)));
         }
         catch (EntityNotFoundException e) {
             log.error("Не удалось загрузить товары с фильтром,Ошибка: " + e.getMessage());
@@ -45,7 +48,7 @@ public class AdminRoleRequestController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getAdminRoleRequest(@PathVariable("id") long id){
         try{
-            return ResponseEntity.ok().body(roleRequestService.getRoleRequest(id));
+            return ResponseEntity.ok().body(roleRequestMapper.toDto(roleRequestService.getRoleRequest(id)));
         }
         catch(EntityNotFoundException e){
             log.error("Заявка на смену роли не найдена с id: " + id + ", Ошибка: " + e.getMessage());

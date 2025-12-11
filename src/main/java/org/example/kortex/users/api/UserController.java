@@ -2,6 +2,7 @@ package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
+import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.db.User;
@@ -22,10 +23,12 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
+    private final OrderMapper orderMapper;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, OrderMapper orderMapper) {
         this.userService = userService;
+        this.orderMapper = orderMapper;
     }
 
 
@@ -45,7 +48,7 @@ public class UserController {
         try {
             User user = userService.getCurrentUserOrders();
             List<Order> userOrders = user.getOrders();
-            return ResponseEntity.ok().body(userOrders);
+            return ResponseEntity.ok().body(orderMapper.toDtoList(userOrders));
         }
         catch (Exception e) {
             log.error("Не удалось загрузить заказы пользователя " + e.getMessage());

@@ -40,7 +40,7 @@ public class Order {
     private String message;
 
     @Column(name = "total_amount", nullable = false)
-    private BigDecimal totalAmount;//todo убрать мб
+    private BigDecimal totalAmount;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();

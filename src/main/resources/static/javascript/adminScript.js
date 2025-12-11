@@ -27,64 +27,66 @@ const REQUEST_STATUS = {
     REJECTED: 'REJECTED'
 };
 
+
+
 // Получить заголовки с токеном
 function getHeaders(contentType = 'application/json') {
     const token = localStorage.getItem('authToken');
     const headers = {};
-    
+
     if (contentType) {
         headers['Content-Type'] = contentType;
     }
-    
+
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     return headers;
 }
 
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Панель администратора загружена');
-    
+
     loadRequests();
-    
+
     const statusFilter = document.getElementById('statusFilter');
     const typeFilter = document.getElementById('requestTypeFilter');
-    
+
     if (statusFilter) {
         statusFilter.addEventListener('change', function() {
             loadRequests();
         });
     }
-    
+
     if (typeFilter) {
         typeFilter.addEventListener('change', function() {
             loadRequests();
         });
     }
-    
+
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', function() {
             loadRequests();
         });
     }
-    
+
     const clearBtn = document.getElementById('clearBtn');
     if (clearBtn) {
         clearBtn.addEventListener('click', function() {
             clearFilters();
         });
     }
-    
+
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeModal();
             closeConfirmModal();
         }
     });
-    
+
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
         modal.addEventListener('click', function(e) {
@@ -103,42 +105,42 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadRequests() {
     const statusFilter = document.getElementById('statusFilter');
     const typeFilter = document.getElementById('requestTypeFilter');
-    
+
     const statusValue = statusFilter ? statusFilter.value : 'ALL';
     const actionTypeValue = typeFilter ? typeFilter.value : 'ALL';
-    
+
     showLoading(true);
-    
+
     try {
         let url = `${API_BASE_URL}${API_ENDPOINTS.GET_ALL_REQUESTS}`;
         const params = [];
-        
+
         if (statusValue !== 'ALL') {
             params.push(`status=${statusValue}`);
         }
-        
+
         if (actionTypeValue !== 'ALL') {
-            params.push(`actionType=${actionTypeValue}`);
+            params.push(`typeAction=${actionTypeValue}`);
         }
-        
+
         params.push(`pageSize=50`);
         params.push(`pageNumber=0`);
-        
+
         if (params.length > 0) {
             url += `?${params.join('&')}`;
         }
-        
+
         console.log('Запрос заявок на:', url);
-        
+
         const response = await fetch(url, {
             method: 'GET',
             headers: getHeaders()
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             console.log('Получены заявки:', data);
-            
+
             if (Array.isArray(data)) {
                 renderRequestsTable(data);
                 updateRequestsCount(data.length);
@@ -147,7 +149,7 @@ async function loadRequests() {
                 renderRequestsTable([]);
                 updateRequestsCount(0);
             }
-            
+
         } else if (response.status === 403) {
             showNotification('❌ У вас нет доступа к админ панели', 'error');
             setTimeout(() => {
@@ -163,11 +165,10 @@ async function loadRequests() {
         }
     } catch (error) {
         console.error('Ошибка загрузки заявок:', error);
-        
-        const testData = getTestData();
+
         renderRequestsTable(testData);
         updateRequestsCount(testData.length);
-        
+
         showNotification('⚠️ Бэкенд недоступен, отображаются тестовые данные', 'warning');
     } finally {
         showLoading(false);
@@ -177,9 +178,9 @@ async function loadRequests() {
 // Отрисовка таблицы заявок
 function renderRequestsTable(requests) {
     const tbody = document.getElementById('requestsList');
-    
+
     if (!tbody) return;
-    
+
     if (!requests || requests.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -190,12 +191,12 @@ function renderRequestsTable(requests) {
         `;
         return;
     }
-    
+
     requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
+
     tbody.innerHTML = requests.map(request => {
         const needsDowngrade = request.typeAction === 'REMOVE';
-        
+
         return `
         <tr>
             <td>${request.id}</td>
@@ -255,13 +256,13 @@ function renderRequestsTable(requests) {
 async function showRequestDetails(requestId) {
     try {
         const response = await fetch(
-            `${API_BASE_URL}${API_ENDPOINTS.GET_REQUEST_DETAILS}/${requestId}`, 
+            `${API_BASE_URL}${API_ENDPOINTS.GET_REQUEST_DETAILS}/${requestId}`,
             {
                 method: 'GET',
                 headers: getHeaders()
             }
         );
-        
+
         if (response.ok) {
             const request = await response.json();
             currentRequestId = requestId;
@@ -288,13 +289,13 @@ function fillRequestModal(request) {
     document.getElementById('modalStatus').className = `info-value status-badge status-${request.status.toLowerCase()}`;
     document.getElementById('modalCreatedAt').textContent = formatDate(request.createdAt);
     document.getElementById('modalDescription').textContent = request.message || 'Описание отсутствует';
-    
+
     const typeActionText = request.typeAction === 'ENHANCE' ? 'Повышение роли' : 'Снятие с роли';
     document.getElementById('modalRequestType').textContent = typeActionText;
-    
+
     const actionsInfo = document.getElementById('actionsInfo');
     const actionsButtons = document.getElementById('actionsButtons');
-    
+
     if (request.status === 'PENDING') {
         actionsInfo.innerHTML = `
             <p><strong>⚠️ Эта заявка ожидает рассмотрения</strong></p>
@@ -303,10 +304,10 @@ function fillRequestModal(request) {
             <p><strong>Запрашиваемая роль:</strong> ${getRoleText(request.requestedRole)}</p>
             <p><strong>ID пользователя:</strong> ${request.user?.id || 'N/A'}</p>
         `;
-        
+
         const buttonType = request.typeAction === 'ENHANCE' ? 'approveRequest' : 'downgradeRequest';
         const buttonText = request.typeAction === 'ENHANCE' ? '✅ Одобрить повышение' : '✅ Одобрить понижение';
-        
+
         actionsButtons.innerHTML = `
             <button class="btn btn-success" onclick="${buttonType}(${request.id})">
                 ${buttonText}
@@ -357,15 +358,15 @@ async function approveRequest(requestId) {
         async () => {
             try {
                 const response = await fetch(
-                    `${API_BASE_URL}${API_ENDPOINTS.APPROVE_REQUEST}/${requestId}/approve`, 
+                    `${API_BASE_URL}${API_ENDPOINTS.APPROVE_REQUEST}/${requestId}/approve`,
                     {
                         method: 'POST',
                         headers: getHeaders()
                     }
                 );
-                
+
                 const responseText = await response.text();
-                
+
                 if (response.ok) {
                     showNotification('✅ Заявка на повышение успешно одобрена', 'success');
                     closeModal();
@@ -394,15 +395,15 @@ async function downgradeRequest(requestId) {
         async () => {
             try {
                 const response = await fetch(
-                    `${API_BASE_URL}${API_ENDPOINTS.DOWNGRADE_REQUEST}/${requestId}/downgrade`, 
+                    `${API_BASE_URL}${API_ENDPOINTS.DOWNGRADE_REQUEST}/${requestId}/downgrade`,
                     {
                         method: 'POST',
                         headers: getHeaders()
                     }
                 );
-                
+
                 const responseText = await response.text();
-                
+
                 if (response.ok) {
                     showNotification('✅ Заявка на понижение успешно одобрена', 'success');
                     closeModal();
@@ -431,15 +432,15 @@ async function rejectRequest(requestId) {
         async () => {
             try {
                 const response = await fetch(
-                    `${API_BASE_URL}${API_ENDPOINTS.REJECT_REQUEST}/${requestId}/reject`, 
+                    `${API_BASE_URL}${API_ENDPOINTS.REJECT_REQUEST}/${requestId}/reject`,
                     {
                         method: 'POST',
                         headers: getHeaders()
                     }
                 );
-                
+
                 const responseText = await response.text();
-                
+
                 if (response.ok) {
                     showNotification('❌ Заявка отклонена', 'warning');
                     closeModal();
@@ -460,14 +461,14 @@ async function rejectRequest(requestId) {
 function showConfirmModal(title, message, callback, confirmText = "Подтвердить") {
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmMessage').innerHTML = message;
-    
+
     const confirmButton = document.getElementById('confirmButton');
     confirmButton.textContent = confirmText;
     confirmButton.onclick = function() {
         callback();
         closeConfirmModal();
     };
-    
+
     document.getElementById('confirmModal').style.display = 'flex';
 }
 
@@ -486,7 +487,7 @@ function updateRequestsCount(count) {
     const countElement = document.getElementById('requestsCount');
     if (countElement) {
         countElement.textContent = `Всего заявок: ${count}`;
-        
+
         countElement.style.transform = 'scale(1.1)';
         setTimeout(() => {
             countElement.style.transform = 'scale(1)';
@@ -498,10 +499,10 @@ function updateRequestsCount(count) {
 function clearFilters() {
     const statusFilter = document.getElementById('statusFilter');
     const typeFilter = document.getElementById('requestTypeFilter');
-    
+
     if (statusFilter) statusFilter.value = 'ALL';
     if (typeFilter) typeFilter.value = 'ALL';
-    
+
     loadRequests();
 }
 
@@ -509,7 +510,7 @@ function clearFilters() {
 function showLoading(show) {
     const tbody = document.getElementById('requestsList');
     if (!tbody) return;
-    
+
     if (show) {
         tbody.innerHTML = `
             <tr>
@@ -525,13 +526,13 @@ function showLoading(show) {
 function showNotification(message, type = 'success') {
     const notification = document.getElementById('notification');
     const notificationText = document.getElementById('notificationText');
-    
+
     if (!notification || !notificationText) return;
-    
+
     notificationText.textContent = message;
     notification.className = `notification ${type}`;
     notification.style.display = 'flex';
-    
+
     setTimeout(() => {
         hideNotification();
     }, 5000);
@@ -578,10 +579,10 @@ function getRoleText(role) {
 
 function formatDate(dateString) {
     if (!dateString) return 'Не указана';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
+
     return date.toLocaleDateString('ru-RU', {
         day: '2-digit',
         month: '2-digit',
@@ -591,44 +592,3 @@ function formatDate(dateString) {
     });
 }
 
-// Тестовые данные (если бэкенд недоступен)
-function getTestData() {
-    return [
-        {
-            id: 1,
-            user: { id: 1001, name: "Иван Петров", email: "ivan@example.com", role: "CUSTOMER" },
-            requestedRole: "SELLER",
-            typeAction: "ENHANCE",
-            message: "Хочу продавать электронику, есть опыт в этой сфере более 3 лет. Имею свой небольшой склад и готов предоставить качественный сервис.",
-            status: "PENDING",
-            createdAt: "2024-01-15T10:30:00"
-        },
-        {
-            id: 2,
-            user: { id: 1002, name: "Мария Сидорова", email: "maria@example.com", role: "COURIER" },
-            requestedRole: "CUSTOMER",
-            typeAction: "REMOVE",
-            message: "Хочу вернуться к роли покупателя, так как больше не могу заниматься доставкой из-за личных обстоятельств.",
-            status: "PENDING",
-            createdAt: "2024-01-14T14:20:00"
-        },
-        {
-            id: 3,
-            user: { id: 1003, name: "Алексей Иванов", email: "alex@example.com", role: "CUSTOMER" },
-            requestedRole: "COURIER",
-            typeAction: "ENHANCE",
-            message: "Имею свой автомобиль и свободное время. Готов работать в любое время суток. Опыт работы курьером 2 года.",
-            status: "APPROVED",
-            createdAt: "2024-01-13T09:15:00"
-        },
-        {
-            id: 4,
-            user: { id: 1004, name: "Дмитрий Смирнов", email: "dmitry@example.com", role: "SELLER" },
-            requestedRole: "CUSTOMER",
-            typeAction: "REMOVE",
-            message: "Не могу больше заниматься продажами из-за занятости на основной работе.",
-            status: "REJECTED",
-            createdAt: "2024-01-12T16:45:00"
-        }
-    ];
-}

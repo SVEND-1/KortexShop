@@ -1,6 +1,7 @@
 package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.users.api.dto.RoleRequestMapper;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.RoleRequestService;
@@ -15,17 +16,19 @@ import org.springframework.web.bind.annotation.*;
 public class UserRoleRequestController {
     private final UserService userService;
     private final RoleRequestService roleRequestService;
+    private final RoleRequestMapper roleRequestMapper;
 
     @Autowired
-    public UserRoleRequestController(UserService userService, RoleRequestService roleRequestService) {
+    public UserRoleRequestController(UserService userService, RoleRequestService roleRequestService, RoleRequestMapper roleRequestMapper) {
         this.userService = userService;
         this.roleRequestService = roleRequestService;
+        this.roleRequestMapper = roleRequestMapper;
     }
 
     @GetMapping
     public ResponseEntity<?> getUserRoleRequests(){
         try {
-            return ResponseEntity.ok().body(roleRequestService.getAllRoleRequestsByUserId(userService.getCurrentUser().getId()));
+            return ResponseEntity.ok().body(roleRequestMapper.toDtoList(roleRequestService.getAllRoleRequestsByUserId(userService.getCurrentUser().getId())));
         }
         catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -43,7 +46,7 @@ public class UserRoleRequestController {
             RoleRequest request = roleRequestService.createRoleRequest(
                     currentUser, requestedRole, typeAction, message);
             log.info("Заявка создана id: " + request.getId());
-            return ResponseEntity.ok(request);
+            return ResponseEntity.ok(roleRequestMapper.toDto(request));
         } catch (IllegalArgumentException | IllegalStateException e) {
             log.error("Не удалось создать заявку: " + e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());

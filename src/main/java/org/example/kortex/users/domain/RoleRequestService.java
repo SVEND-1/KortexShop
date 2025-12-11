@@ -36,7 +36,7 @@ public class RoleRequestService {
                                          RoleRequest.TypeAction typeAction, String message) {
         log.info("Создания подачи заявки на роль");
 
-        if (hasPendingRequestForSameAction(currentUser)) {
+        if (hasPendingRequestForSameAction(currentUser.getId())) {
             log.warn("У вас уже есть активная заявка на это действие");
             throw new IllegalStateException("У вас уже есть активная заявка на это действие");
         }
@@ -96,9 +96,8 @@ public class RoleRequestService {
     }
 
 
-    private boolean hasPendingRequestForSameAction(User currentUser){//Tут мб будет n+1 ,но таких заказов всего то будет пару
-         return currentUser.getRoleRequests()
-                .stream()
-                .anyMatch(roleRequest -> roleRequest.getStatus() == RoleRequest.Status.PENDING);
+    private boolean hasPendingRequestForSameAction(Long userId) {
+        // Используем репозиторий вместо обращения к коллекции пользователя
+        return roleRequestRepository.existsByUserIdAndStatus(userId, RoleRequest.Status.PENDING);
     }
 }
