@@ -1,9 +1,11 @@
-// courier-panel.js - Полная версия с исправлениями
-
 // Конфигурация API
 const API_BASE = '/api';
 let currentUser = null;
 let currentFilter = 'assigned';
+let currentPage = 0;
+const pageSize = 3; // Количество заказов на странице
+let totalPages = 0;
+let totalElements = 0;
 
 // Основная функция инициализации
 document.addEventListener('DOMContentLoaded', async function() {
@@ -83,10 +85,11 @@ async function loadStats() {
         if (currentUser.role === 'COURIER') {
             // Для курьера: получаем его заказы
             try {
-                const assignedResponse = await fetch(`${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}`);
+                const assignedResponse = await fetch(`${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}&pageSize=${pageSize}&pageNumber=0`);
                 if (assignedResponse.ok) {
                     const assignedData = await assignedResponse.json();
                     myOrders = getOrdersFromResponse(assignedData);
+                    updatePaginationInfo(assignedData);
                 }
             } catch (error) {
                 console.warn('Ошибка загрузки назначенных заказов:', error);
@@ -95,7 +98,7 @@ async function loadStats() {
 
         // Получаем доступные заказы для всех
         try {
-            const availableResponse = await fetch(`${API_BASE}/couriers/availableOrders`);
+            const availableResponse = await fetch(`${API_BASE}/couriers/availableOrders?pageSize=${pageSize}&pageNumber=0`);
             if (availableResponse.ok) {
                 const availableData = await availableResponse.json();
                 availableOrders = getOrdersFromResponse(availableData);
@@ -121,6 +124,28 @@ async function loadStats() {
     }
 }
 
+// Обновление информации о пагинации
+function updatePaginationInfo(response) {
+    if (response && typeof response === 'object') {
+        // Проверяем разные возможные форматы ответа
+        totalPages = response.totalPages || response.totalPages || 0;
+        totalElements = response.totalElements || response.totalElements || 0;
+        currentPage = response.number !== undefined ? response.number :
+            (response.pageNumber !== undefined ? response.pageNumber : 0);
+
+        console.log('Пагинация:', {
+            totalPages,
+            totalElements,
+            currentPage,
+            responseFormat: Object.keys(response)
+        });
+    } else {
+        totalPages = 0;
+        totalElements = 0;
+        currentPage = 0;
+    }
+}
+
 // Обновление UI статистики
 function updateStatsUI(active, available, total) {
     const activeEl = document.getElementById('activeOrders');
@@ -133,11 +158,13 @@ function updateStatsUI(active, available, total) {
 }
 
 // Загрузка заказов
-async function loadOrdersData(filter = 'assigned') {
+async function loadOrdersData(filter = 'assigned', page = 0) {
     currentFilter = filter;
+    currentPage = page;
 
     const ordersContainer = document.getElementById('ordersContainer');
     const ordersTitle = document.getElementById('ordersTitle');
+    const paginationContainer = document.getElementById('paginationContainer');
 
     if (!ordersContainer) {
         console.error('Элемент ordersContainer не найден');
@@ -147,34 +174,51 @@ async function loadOrdersData(filter = 'assigned') {
     // Показываем индикатор загрузки
     ordersContainer.innerHTML = '<div class="loading">Загрузка заказов...</div>';
 
+    // Скрываем пагинацию во время загрузки
+    if (paginationContainer) {
+        paginationContainer.style.display = 'none';
+    }
+
     try {
         let orders = [];
         let title = '';
+        let apiUrl = '';
 
         if (filter === 'assigned') {
             if (currentUser.role === 'COURIER') {
                 // Мои заказы для курьера
-                const response = await fetch(`${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                const data = await response.json();
-                orders = getOrdersFromResponse(data);
+                apiUrl = `${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}&pageSize=${pageSize}&pageNumber=${page}`;
                 title = 'Мои заказы';
             } else if (currentUser.role === 'ADMIN') {
-                // Для админа пока пустой список (или можно сделать запрос всех заказов)
+                // Для админа пока пустой список
                 orders = [];
                 title = 'Все заказы';
+                displayOrders(orders, filter);
+                return;
             }
 
         } else if (filter === 'available') {
             // Доступные заказы для всех
-            const response = await fetch(`${API_BASE}/couriers/availableOrders`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-            const data = await response.json();
-            orders = getOrdersFromResponse(data);
+            apiUrl = `${API_BASE}/couriers/availableOrders?pageSize=${pageSize}&pageNumber=${page}`;
             title = currentUser.role === 'ADMIN' ? 'Заказы без курьера' : 'Доступные заказы';
         }
+
+        console.log('Запрос к API:', apiUrl);
+
+        const response = await fetch(apiUrl);
+        console.log('Статус ответа:', response.status);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Данные от сервера:', data);
+
+        orders = getOrdersFromResponse(data);
+        console.log('Распарсенные заказы:', orders);
+
+        updatePaginationInfo(data);
 
         if (ordersTitle) ordersTitle.textContent = title;
         displayOrders(orders, filter);
@@ -185,11 +229,16 @@ async function loadOrdersData(filter = 'assigned') {
             <div class="error-message">
                 Ошибка загрузки заказов: ${getErrorMessage(error)}
                 <br><br>
-                <button onclick="loadOrdersData('${filter}')" class="btn btn-outline btn-small">
+                <button onclick="loadOrdersData('${filter}', ${currentPage})" class="btn btn-outline btn-small">
                     Повторить
                 </button>
             </div>
         `;
+
+        // Скрываем пагинацию при ошибке
+        if (paginationContainer) {
+            paginationContainer.style.display = 'none';
+        }
     }
 }
 
@@ -228,6 +277,68 @@ function displayOrders(orders, filter) {
             console.error('Ошибка создания элемента заказа:', error, order);
         }
     });
+
+    // Добавляем пагинацию
+    if (totalPages > 1) {
+        addPaginationControls(ordersContainer, filter);
+    }
+}
+
+// Добавление элементов пагинации
+function addPaginationControls(container, filter) {
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) return;
+
+    // Очищаем контейнер
+    paginationContainer.innerHTML = '';
+
+    // Если только одна страница или нет страниц - скрываем пагинацию
+    if (totalPages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
+    }
+
+    // Показываем контейнер
+    paginationContainer.style.display = 'block';
+
+    // Создаем контейнер для кнопок
+    const paginationDiv = document.createElement('div');
+    paginationDiv.className = 'pagination';
+
+    // Информация о странице
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'page-info';
+    pageInfo.textContent = `Страница ${currentPage + 1} из ${totalPages}`;
+
+    // Кнопка "Назад"
+    const prevButton = document.createElement('button');
+    prevButton.className = 'btn btn-outline pagination-btn';
+    prevButton.innerHTML = '&larr; Назад';
+    prevButton.disabled = currentPage === 0;
+    prevButton.onclick = function() {
+        if (currentPage > 0) {
+            loadOrdersData(filter, currentPage - 1);
+        }
+    };
+
+    // Кнопка "Вперед"
+    const nextButton = document.createElement('button');
+    nextButton.className = 'btn btn-outline pagination-btn';
+    nextButton.innerHTML = 'Вперед &rarr;';
+    nextButton.disabled = currentPage >= totalPages - 1;
+    nextButton.onclick = function() {
+        if (currentPage < totalPages - 1) {
+            loadOrdersData(filter, currentPage + 1);
+        }
+    };
+
+    // Добавляем элементы
+    paginationDiv.appendChild(prevButton);
+    paginationDiv.appendChild(pageInfo);
+    paginationDiv.appendChild(nextButton);
+
+    // Добавляем в контейнер
+    paginationContainer.appendChild(paginationDiv);
 }
 
 // Создание элемента заказа
@@ -291,7 +402,7 @@ function createOrderElement(order, filter) {
     const status = order.status || 'PENDING';
     if (statusElement) {
         statusElement.textContent = getStatusText(status);
-        statusElement.className = `order-status ${status.toLowerCase()}`;
+        statusElement.className = `order-status ${status}`;
     }
 
     // Настраиваем кнопки
@@ -300,106 +411,118 @@ function createOrderElement(order, filter) {
     return orderCard;
 }
 
-// Настройка кнопок заказа
+// Настройка кнопок заказа - обновленная версия
 function setupOrderButtons(orderCard, status, orderId, filter) {
     const acceptBtn = orderCard.querySelector('.accept-btn');
     const startBtn = orderCard.querySelector('.start-btn');
     const completeBtn = orderCard.querySelector('.complete-btn');
-    const detailsBtn = orderCard.querySelector('.btn-outline');
+    const detailsBtn = orderCard.querySelector('.details-btn');
     const cancelBtn = orderCard.querySelector('.cancel-btn');
+    const returnBtn = orderCard.querySelector('.return-btn');
 
     // Сначала скрываем все кнопки
     if (acceptBtn) acceptBtn.style.display = 'none';
     if (startBtn) startBtn.style.display = 'none';
     if (completeBtn) completeBtn.style.display = 'none';
     if (cancelBtn) cancelBtn.style.display = 'none';
+    if (returnBtn) returnBtn.style.display = 'none';
+    if (detailsBtn) detailsBtn.style.display = 'none';
 
-    if (currentUser.role === 'COURIER') {
-        if (filter === 'available') {
-            if (acceptBtn) {
-                acceptBtn.style.display = 'block';
-                acceptBtn.onclick = () => assignOrder(orderId);
-            }
-        } else {
-            switch(status) {
-                case 'PENDING':
-                    if (startBtn) {
-                        startBtn.style.display = 'block';
-                        startBtn.onclick = () => updateOrderStatus(orderId, 'DISPATCHED');
-                    }
-                    if (cancelBtn) {
-                        cancelBtn.style.display = 'block';
-                        cancelBtn.textContent = 'Отменить';
-                        cancelBtn.onclick = () => cancelOrder(orderId); // CANCELLED
-                    }
-                    break;
-                case 'DISPATCHED':
-                    if (completeBtn) {
-                        completeBtn.style.display = 'block';
-                        completeBtn.onclick = () => updateOrderStatus(orderId, 'DELIVERED_TO_DESTINATION');
-                    }
-                    if (cancelBtn) {
-                        cancelBtn.style.display = 'block';
-                        cancelBtn.textContent = 'Вернуть';
-                        cancelBtn.onclick = () => returnOrder(orderId); // RETURNED
-                    }
-                    break;
-                case 'DELIVERED_TO_DESTINATION':
-                    // После доставки можно только вернуть
-                    if (cancelBtn) {
-                        cancelBtn.style.display = 'block';
-                        cancelBtn.textContent = 'Вернуть заказ';
-                        cancelBtn.onclick = () => returnOrder(orderId); // RETURNED
-                    }
-                    break;
-            }
+    // Логика для разных фильтров и ролей
+    if (filter === 'available') {
+        // Фильтр "Доступные заказы"
+        if (acceptBtn) {
+            acceptBtn.style.display = 'block';
+            acceptBtn.textContent = currentUser.role === 'ADMIN' ? 'Назначить курьера' : 'Принять заказ';
+            acceptBtn.onclick = () => {
+                if (currentUser.role === 'ADMIN') {
+                    assignOrderAsAdmin(orderId);
+                } else {
+                    assignOrder(orderId);
+                }
+            };
         }
-    } else if (currentUser.role === 'ADMIN') {
-        if (filter === 'available') {
-            if (acceptBtn) {
-                acceptBtn.style.display = 'block';
-                acceptBtn.textContent = 'Назначить курьера';
-                acceptBtn.onclick = () => assignOrderAsAdmin(orderId);
-            }
-        } else {
-            switch(status) {
-                case 'PENDING':
-                    if (startBtn) {
-                        startBtn.style.display = 'block';
-                        startBtn.textContent = 'Отправить в доставку';
-                        startBtn.onclick = () => updateOrderStatus(orderId, 'DISPATCHED');
-                    }
-                    if (cancelBtn) {
-                        cancelBtn.style.display = 'block';
-                        cancelBtn.textContent = 'Отменить';
-                        cancelBtn.onclick = () => cancelOrder(orderId);
-                    }
-                    break;
-                case 'DISPATCHED':
-                    if (completeBtn) {
-                        completeBtn.style.display = 'block';
-                        completeBtn.textContent = 'Завершить доставку';
-                        completeBtn.onclick = () => updateOrderStatus(orderId, 'DELIVERED_TO_DESTINATION');
-                    }
-                    if (cancelBtn) {
-                        cancelBtn.style.display = 'block';
-                        cancelBtn.textContent = 'Вернуть заказ';
-                        cancelBtn.onclick = () => returnOrder(orderId);
-                    }
-                    break;
-                case 'DELIVERED_TO_DESTINATION':
-                    if (cancelBtn) {
-                        cancelBtn.style.display = 'block';
-                        cancelBtn.textContent = 'Вернуть заказ';
-                        cancelBtn.onclick = () => returnOrder(orderId);
-                    }
-                    break;
-            }
+        if (detailsBtn) {
+            detailsBtn.style.display = 'block';
+            detailsBtn.textContent = 'Подробнее';
+            detailsBtn.onclick = () => showOrderDetails(orderCard);
         }
-    }
+    } else {
+        // Фильтр "Мои заказы" (или аналогичный)
+        switch(status) {
+            case 'PENDING':
+                // Статус 1: PENDING
+                if (startBtn) {
+                    startBtn.style.display = 'block';
+                    startBtn.textContent = 'Начать доставку';
+                    startBtn.onclick = () => updateOrderStatus(orderId, 'DISPATCHED');
+                }
+                if (cancelBtn) {
+                    cancelBtn.style.display = 'block';
+                    cancelBtn.textContent = 'Отмена';
+                    cancelBtn.onclick = () => updateOrderStatus(orderId, 'CANCELLED');
+                }
+                if (detailsBtn) {
+                    detailsBtn.style.display = 'block';
+                    detailsBtn.textContent = 'Подробнее';
+                    detailsBtn.onclick = () => showOrderDetails(orderCard);
+                }
+                break;
 
-    if (detailsBtn) {
-        detailsBtn.onclick = () => showOrderDetails(orderCard);
+            case 'DISPATCHED':
+                // Статус 2: DISPATCHED (после нажатия "Начать доставку")
+                if (completeBtn) {
+                    completeBtn.style.display = 'block';
+                    completeBtn.textContent = 'Доставил';
+                    completeBtn.onclick = () => updateOrderStatus(orderId, 'DELIVERED_TO_DESTINATION');
+                }
+                if (detailsBtn) {
+                    detailsBtn.style.display = 'block';
+                    detailsBtn.textContent = 'Подробнее';
+                    detailsBtn.onclick = () => showOrderDetails(orderCard);
+                }
+                break;
+
+            case 'DELIVERED_TO_DESTINATION':
+                // Статус 3: DELIVERED_TO_DESTINATION (после "Доставил")
+                // Кнопка "Завершить заказ" (переход в COMPLETED)
+                if (completeBtn) {
+                    completeBtn.style.display = 'block';
+                    completeBtn.textContent = 'Завершить заказ';
+                    completeBtn.className = 'btn btn-success btn-small complete-btn';
+                    completeBtn.onclick = () => updateOrderStatus(orderId, 'COMPLETED');
+                }
+                // Кнопка "Вернуть"
+                if (returnBtn) {
+                    returnBtn.style.display = 'block';
+                    returnBtn.onclick = () => updateOrderStatus(orderId, 'RETURNED');
+                }
+                if (detailsBtn) {
+                    detailsBtn.style.display = 'block';
+                    detailsBtn.textContent = 'Подробнее';
+                    detailsBtn.onclick = () => showOrderDetails(orderCard);
+                }
+                break;
+
+            case 'COMPLETED':
+            case 'CANCELLED':
+            case 'RETURNED':
+                // Финальные статусы - только детали
+                if (detailsBtn) {
+                    detailsBtn.style.display = 'block';
+                    detailsBtn.textContent = 'Подробнее';
+                    detailsBtn.onclick = () => showOrderDetails(orderCard);
+                }
+                break;
+
+            default:
+                // Для остальных статусов показываем только детали
+                if (detailsBtn) {
+                    detailsBtn.style.display = 'block';
+                    detailsBtn.textContent = 'Подробнее';
+                    detailsBtn.onclick = () => showOrderDetails(orderCard);
+                }
+        }
     }
 }
 
@@ -420,7 +543,7 @@ async function assignOrder(orderId) {
 
         const data = await response.json();
         alert(`Заказ #${orderId} успешно принят!`);
-        await loadOrdersData(currentFilter);
+        await loadOrdersData(currentFilter, currentPage);
         await loadStats();
 
     } catch (error) {
@@ -446,7 +569,7 @@ async function assignOrderAsAdmin(orderId) {
 
         const data = await response.json();
         alert(`Вы назначены курьером для заказа #${orderId}!`);
-        await loadOrdersData(currentFilter);
+        await loadOrdersData(currentFilter, currentPage);
         await loadStats();
 
     } catch (error) {
@@ -475,7 +598,7 @@ async function updateOrderStatus(orderId, status) {
 
         const data = await response.json();
         alert(`Статус заказа #${orderId} обновлен на "${statusText}"!`);
-        await loadOrdersData(currentFilter);
+        await loadOrdersData(currentFilter, currentPage);
         await loadStats();
 
     } catch (error) {
@@ -484,9 +607,9 @@ async function updateOrderStatus(orderId, status) {
     }
 }
 
-// Отменить заказ (CANCELLED - отмена ДО начала доставки)
+// Отменить заказ
 async function cancelOrder(orderId) {
-    if (!confirm(`Отменить заказ #${orderId}? Заказ еще не начат.`)) return;
+    if (!confirm(`Отменить заказ #${orderId}?`)) return;
 
     try {
         const response = await fetch(`${API_BASE}/couriers/orders/${orderId}/status?status=CANCELLED`, {
@@ -501,37 +624,11 @@ async function cancelOrder(orderId) {
 
         const data = await response.json();
         alert(`Заказ #${orderId} отменен!`);
-        await loadOrdersData(currentFilter);
+        await loadOrdersData(currentFilter, currentPage);
         await loadStats();
 
     } catch (error) {
         console.error('Ошибка при отмене заказа:', error);
-        alert(`Ошибка: ${error.message}`);
-    }
-}
-
-// Вернуть заказ (RETURNED - отмена ПОСЛЕ начала доставки)
-async function returnOrder(orderId) {
-    if (!confirm(`Вернуть заказ #${orderId}? Заказ уже в процессе доставки.`)) return;
-
-    try {
-        const response = await fetch(`${API_BASE}/couriers/orders/${orderId}/status?status=RETURNED`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Ошибка при возврате заказа');
-        }
-
-        const data = await response.json();
-        alert(`Заказ #${orderId} возвращен!`);
-        await loadOrdersData(currentFilter);
-        await loadStats();
-
-    } catch (error) {
-        console.error('Ошибка при возврате заказа:', error);
         alert(`Ошибка: ${error.message}`);
     }
 }
@@ -565,12 +662,23 @@ function showOrderDetails(orderCard) {
 // Вспомогательные функции
 function getOrdersFromResponse(response) {
     if (!response) return [];
+
+    console.log('Ответ от сервера:', response);
+
+    // 1. Если response уже массив
     if (Array.isArray(response)) return response;
-    if (response.content && Array.isArray(response.content)) return response.content;
-    if (typeof response === 'object' && !Array.isArray(response)) {
-        // Если это один объект, оборачиваем в массив
-        if (response.id) return [response];
+
+    // 2. Если это объект с полем content (Page format)
+    if (response.content && Array.isArray(response.content)) {
+        return response.content;
     }
+
+    // 3. Если это объект с данными заказа (один заказ)
+    if (typeof response === 'object' && response.id) {
+        return [response];
+    }
+
+    // 4. Если это пустой объект или неожиданный формат
     return [];
 }
 
@@ -578,8 +686,8 @@ function getStatusText(status) {
     const statusMap = {
         'PENDING': 'Ожидает',
         'DISPATCHED': 'В доставке',
-        'DELIVERED_TO_DESTINATION': 'Доставлен',
-        'DELIVERED': 'Доставлен',
+        'DELIVERED_TO_DESTINATION': 'Доставлен в пункт назначения',
+        'COMPLETED': 'Завершен',
         'CANCELLED': 'Отменен',
         'RETURNED': 'Возвращен'
     };
@@ -589,8 +697,8 @@ function getStatusText(status) {
 function getActionText(status, role) {
     const actionMap = {
         'DISPATCHED': role === 'ADMIN' ? 'отправить в доставку' : 'начать доставку',
-        'DELIVERED_TO_DESTINATION': 'завершить доставку',
-        'DELIVERED': 'завершить доставку',
+        'DELIVERED_TO_DESTINATION': 'отметить как доставленный',
+        'COMPLETED': 'завершить заказ',
         'CANCELLED': 'отменить заказ',
         'RETURNED': 'вернуть заказ'
     };
@@ -672,11 +780,15 @@ function showError(message) {
 // Глобальные функции для HTML
 window.setFilter = function(filter) {
     setActiveFilter(filter);
-    loadOrdersData(filter).catch(console.error);
+    currentPage = 0;
+    loadOrdersData(filter, 0).catch(error => {
+        console.error('Ошибка при смене фильтра:', error);
+        showError('Ошибка загрузки заказов');
+    });
 };
 
 window.refreshOrders = function() {
-    loadOrdersData(currentFilter).catch(console.error);
+    loadOrdersData(currentFilter, currentPage).catch(console.error);
     loadStats().catch(console.error);
 };
 
@@ -687,13 +799,3 @@ delete window.acceptOrder;
 delete window.startDelivery;
 delete window.completeOrder;
 delete window.showOrderDetails;
-
-// Экспортируем функции для использования в консоли (отладка)
-if (typeof window !== 'undefined') {
-    window.loadOrdersData = loadOrdersData;
-    window.loadStats = loadStats;
-    window.assignOrder = assignOrder;
-    window.returnOrder = returnOrder;
-    window.cancelOrder = cancelOrder;
-    window.updateOrderStatus = updateOrderStatus;
-}
