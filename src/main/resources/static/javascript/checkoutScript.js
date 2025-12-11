@@ -1,20 +1,12 @@
-// checkoutScript.js
+// checkoutScript.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 document.addEventListener('DOMContentLoaded', function() {
     initCheckout();
 });
 
 function initCheckout() {
-    // Загружаем данные корзины с сервера
     loadCartData();
-
-    // Настраиваем обработчики событий
     setupEventHandlers();
-
-    // Инициализируем маску телефона
-    initPhoneMask();
-
-    // Настраиваем автозаполнение формы
     setupAutoFill();
 }
 
@@ -44,6 +36,7 @@ async function loadCartData() {
         }
 
         const data = await response.json();
+        console.log('Данные с сервера:', data);
 
         // Отображаем данные
         renderOrderItems(data.cartItems || []);
@@ -56,6 +49,8 @@ async function loadCartData() {
     } catch (error) {
         console.error('Ошибка при загрузке данных:', error);
         showError(`Ошибка загрузки данных: ${error.message}`);
+    } finally {
+        hideLoading();
     }
 }
 
@@ -111,6 +106,7 @@ function updateOrderSummary(totalPrice, totalItems) {
 // Отображение информации о пользователе
 function renderUserInfo(user) {
     const container = document.getElementById('user-info-section');
+    console.log('Рендерим user:', user);
 
     if (!user || !user.email) {
         container.innerHTML = `
@@ -124,16 +120,20 @@ function renderUserInfo(user) {
         return;
     }
 
-    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Не указано';
-    const address = user.address || 'Не указан';
-    const phone = user.phone || 'Не указан';
+    // Пробуем разные варианты названий полей
+    const fullName = user.fullName ||
+        `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+        user.name ||
+        'Не указано';
+
+    const address = user.address ||
+        user.deliveryAddress ||
+        user.shippingAddress ||
+        'Не указан';
 
     container.innerHTML = `
         <div class="user-info-header">
             <h3>Информация о покупателе</h3>
-            <button type="button" class="edit-user-btn" onclick="editUserProfile()">
-                Изменить
-            </button>
         </div>
         <div class="user-details">
             <div class="user-detail">
@@ -148,134 +148,91 @@ function renderUserInfo(user) {
                 <span>Адрес:</span>
                 <span>${address}</span>
             </div>
-            <div class="user-detail">
-                <span>Телефон:</span>
-                <span>${phone}</span>
-            </div>
         </div>
     `;
 }
 
 // Настройка обработчиков событий
 function setupEventHandlers() {
-    const checkoutForm = document.getElementById('checkout-form');
     const submitOrderBtn = document.getElementById('submit-order-btn');
 
-    if (checkoutForm) {
-        checkoutForm.addEventListener('submit', handleSubmitOrder);
-    }
-
     if (submitOrderBtn) {
-        submitOrderBtn.addEventListener('click', function(e) {
-            if (!checkoutForm.checkValidity()) {
-                e.preventDefault();
-                highlightInvalidFields();
-            }
-        });
+        submitOrderBtn.addEventListener('click', handleSubmitOrder);
     }
 
     // Валидация полей при вводе
-    const requiredFields = checkoutForm.querySelectorAll('input[required], textarea[required]');
+    const requiredFields = document.querySelectorAll('#checkout-form input[required]');
     requiredFields.forEach(field => {
         field.addEventListener('blur', validateField);
     });
 }
 
-// Настройка автозаполнения формы
+// Настройка автозаполнения формы из данных пользователя
 function setupAutoFill() {
-    // Через некоторое время после загрузки данных попробуем заполнить форму
     setTimeout(() => {
         const userEmail = document.querySelector('#user-info-section .user-detail:nth-child(2) span:last-child')?.textContent;
         const userName = document.querySelector('#user-info-section .user-detail:nth-child(1) span:last-child')?.textContent;
-        const userPhone = document.querySelector('#user-info-section .user-detail:nth-child(4) span:last-child')?.textContent;
         const userAddress = document.querySelector('#user-info-section .user-detail:nth-child(3) span:last-child')?.textContent;
 
+        // Автозаполняем только если данные есть и не "Не указано"
         if (userEmail && userEmail !== 'Не указан') {
-            document.getElementById('email').value = userEmail;
+            const emailInput = document.getElementById('email');
+            if (emailInput) emailInput.value = userEmail;
         }
 
         if (userName && userName !== 'Не указано') {
-            document.getElementById('recipient-name').value = userName;
-        }
-
-        if (userPhone && userPhone !== 'Не указан') {
-            document.getElementById('phone').value = userPhone;
+            const nameInput = document.getElementById('recipient-name');
+            if (nameInput) nameInput.value = userName;
         }
 
         if (userAddress && userAddress !== 'Не указан') {
-            document.getElementById('address').value = userAddress;
+            const addressInput = document.getElementById('address');
+            if (addressInput) addressInput.value = userAddress;
         }
     }, 500);
 }
 
-// Маска для телефона
-function initPhoneMask() {
-    const phoneInput = document.getElementById('phone');
-    if (!phoneInput) return;
-
-    phoneInput.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
-
-        if (value.length > 0) {
-            if (value.length === 1 && value[0] === '8') {
-                value = '7' + value.substring(1);
-            }
-
-            if (value[0] === '7' || value[0] === '8') {
-                let formatted = '+7';
-
-                if (value.length > 1) {
-                    formatted += ' (' + value.substring(1, 4);
-                }
-                if (value.length > 4) {
-                    formatted += ') ' + value.substring(4, 7);
-                }
-                if (value.length > 7) {
-                    formatted += '-' + value.substring(7, 9);
-                }
-                if (value.length > 9) {
-                    formatted += '-' + value.substring(9, 11);
-                }
-
-                e.target.value = formatted;
-            }
-        }
-    });
-}
-
-// Обработка отправки формы
+// Обработка нажатия на кнопку "Оформить заказ" - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function handleSubmitOrder(e) {
     e.preventDefault();
 
+    console.log('Начинаем оформление заказа...');
+
     if (!validateForm()) {
+        console.log('Форма не валидна');
         return;
     }
 
+    const submitBtn = document.getElementById('submit-order-btn');
+    if (!submitBtn) return;
+
+    // Сохраняем оригинальный текст ДО try-catch
+    const originalText = submitBtn.innerHTML;
+
+    // Блокируем кнопку
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Оформление...</span>';
+
     try {
-        const submitBtn = document.getElementById('submit-order-btn');
-        const originalText = submitBtn.innerHTML;
+        // Отправляем POST запрос на создание заказа
+        console.log('Отправляем запрос на /api/orders...');
 
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>Оформление...</span>';
+        // Добавляем таймаут для запроса
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
 
-        // Получаем данные формы
-        const formData = {
-            recipientName: document.getElementById('recipient-name').value,
-            email: document.getElementById('email').value,
-            address: document.getElementById('address').value,
-            phone: document.getElementById('phone').value,
-            comment: document.getElementById('comment').value,
-            paymentMethod: document.querySelector('input[name="payment"]:checked').value
-        };
-
-        // Отправляем заказ на сервер
         const response = await fetch('/api/orders', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            credentials: 'include'
+            credentials: 'include',
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
+
+        console.log('Ответ сервера:', response.status);
 
         if (response.status === 401) {
             showError('Сессия истекла. Пожалуйста, войдите снова.');
@@ -285,23 +242,58 @@ async function handleSubmitOrder(e) {
             return;
         }
 
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Ошибка при создании заказа');
+        // Пробуем прочитать ответ, даже если он неполный
+        let result;
+        try {
+            result = await response.json();
+            console.log('Результат создания заказа:', result);
+        } catch (jsonError) {
+            console.warn('Не удалось распарсить JSON ответ:', jsonError);
+            // Если не удалось распарсить JSON, но статус 201 - считаем успехом
+            if (response.status === 201) {
+                result = { success: true };
+            } else {
+                throw new Error('Сервер вернул невалидный ответ');
+            }
         }
 
-        // Показываем успешное сообщение
-        showSuccess(result.order);
+        if (!response.ok && result && result.error) {
+            throw new Error(result.error || `Ошибка ${response.status}`);
+        }
+
+        // Показываем сообщение об успехе и переходим на главную
+        alert('✅ Заказ успешно оформлен!' +
+            (result.order && result.order.id ? ' Номер заказа: #' + result.order.id : ''));
+
+        // Немедленный редирект на главную
+        window.location.href = '/';
 
     } catch (error) {
         console.error('Ошибка при оформлении заказа:', error);
-        showError(`Ошибка: ${error.message}`);
+
+        // Показываем понятное сообщение об ошибке
+        let errorMessage = 'Не удалось оформить заказ. ';
+
+        if (error.name === 'AbortError') {
+            errorMessage += 'Время ожидания истекло. Попробуйте позже.';
+        } else if (error.message.includes('Failed to fetch')) {
+            errorMessage += 'Проблема с подключением к серверу.';
+        } else {
+            errorMessage += error.message;
+        }
+
+        showError(errorMessage);
 
         // Восстанавливаем кнопку
-        const submitBtn = document.getElementById('submit-order-btn');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
+
+    } finally {
+        // Убедимся, что кнопка разблокирована в любом случае
+        if (submitBtn.disabled) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     }
 }
 
@@ -309,24 +301,20 @@ async function handleSubmitOrder(e) {
 function validateForm() {
     let isValid = true;
 
-    // Проверяем обязательные поля
+    // Проверяем только обязательные поля
     const requiredFields = [
         'recipient-name',
         'email',
-        'address',
-        'phone'
+        'address'
     ];
 
     requiredFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
-        if (!field.value.trim()) {
+        if (!field || !field.value.trim()) {
             highlightFieldError(field, 'Это поле обязательно для заполнения');
             isValid = false;
         } else if (fieldId === 'email' && !isValidEmail(field.value)) {
             highlightFieldError(field, 'Введите корректный email');
-            isValid = false;
-        } else if (fieldId === 'phone' && !isValidPhone(field.value)) {
-            highlightFieldError(field, 'Введите корректный номер телефона');
             isValid = false;
         } else {
             clearFieldError(field);
@@ -335,7 +323,7 @@ function validateForm() {
 
     // Проверяем согласие с условиями
     const agreeTerms = document.getElementById('agree-terms');
-    if (!agreeTerms.checked) {
+    if (!agreeTerms || !agreeTerms.checked) {
         showError('Необходимо согласиться с условиями использования');
         isValid = false;
     }
@@ -351,25 +339,14 @@ function validateField(e) {
         highlightFieldError(field, 'Это поле обязательно для заполнения');
     } else if (field.type === 'email' && !isValidEmail(field.value)) {
         highlightFieldError(field, 'Введите корректный email');
-    } else if (field.id === 'phone' && !isValidPhone(field.value)) {
-        highlightFieldError(field, 'Введите корректный номер телефона');
     } else {
         clearFieldError(field);
     }
 }
 
-// Подсветка ошибок полей
-function highlightInvalidFields() {
-    const requiredFields = document.querySelectorAll('input[required], textarea[required]');
-
-    requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-            highlightFieldError(field, 'Это поле обязательно для заполнения');
-        }
-    });
-}
-
 function highlightFieldError(field, message) {
+    if (!field) return;
+
     field.style.borderColor = '#dc3545';
     field.style.boxShadow = '0 0 0 3px rgba(220, 53, 69, 0.1)';
 
@@ -389,6 +366,8 @@ function highlightFieldError(field, message) {
 }
 
 function clearFieldError(field) {
+    if (!field) return;
+
     field.style.borderColor = '#e9ecef';
     field.style.boxShadow = 'none';
 
@@ -402,42 +381,22 @@ function isValidEmail(email) {
     return emailRegex.test(email);
 }
 
-function isValidPhone(phone) {
-    // Простая валидация для российских номеров
-    const phoneRegex = /^\+7\s?\(?\d{3}\)?\s?\d{3}-?\d{2}-?\d{2}$/;
-    return phoneRegex.test(phone);
-}
-
 // Показ состояния загрузки
 function showLoading() {
     const itemsContainer = document.getElementById('order-items-container');
     const userContainer = document.getElementById('user-info-section');
 
     if (itemsContainer) {
-        itemsContainer.innerHTML = '<div class="loading-spinner"></div>';
+        itemsContainer.innerHTML = '<div class="loading-spinner">Загрузка...</div>';
     }
 
     if (userContainer) {
-        userContainer.innerHTML = '<div class="loading-spinner"></div>';
+        userContainer.innerHTML = '<div class="loading-spinner">Загрузка...</div>';
     }
 }
 
-// Показ успешного сообщения
-function showSuccess(order) {
-    const modal = document.getElementById('success-modal');
-    const orderIdElement = document.getElementById('order-id');
-
-    if (order && order.id) {
-        orderIdElement.textContent = `#${order.id}`;
-    }
-
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-
-    // Автоматическое перенаправление через 5 секунд
-    setTimeout(() => {
-        window.location.href = '/';
-    }, 5000);
+function hideLoading() {
+    // Можно добавить, если нужно явно скрывать загрузку
 }
 
 // Показ ошибки
@@ -445,9 +404,14 @@ function showError(message) {
     const modal = document.getElementById('error-modal');
     const messageElement = document.getElementById('error-message');
 
-    messageElement.textContent = message;
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    if (messageElement) {
+        messageElement.textContent = message;
+    }
+
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
 }
 
 // Закрытие модального окна
@@ -478,16 +442,12 @@ function updateCheckoutButton(total) {
 function formatPrice(price) {
     return new Intl.NumberFormat('ru-RU', {
         style: 'decimal',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
     }).format(price) + ' ₽';
 }
 
 // Глобальные функции
-window.editUserProfile = function() {
-    window.location.href = '/profile/edit';
-};
-
 window.closeModal = closeModal;
 
 // Обработка клика вне модального окна

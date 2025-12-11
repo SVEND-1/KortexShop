@@ -4,10 +4,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Элементы DOM
     const addTabContent = document.getElementById('add-tab');
     const editTabContent = document.getElementById('edit-tab');
-    const editFormContainer = document.getElementById('edit-form-container');
     const productsContainer = document.getElementById('products-container');
     const tabButtons = document.querySelectorAll('.tab-button');
     const authLinks = document.querySelector('.auth-links');
+    const editModal = document.getElementById('edit-modal');
 
     // Форма добавления товара
     const addProductForm = document.getElementById('add-product-form');
@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const editImageFile = document.getElementById('edit-imageFile');
     const editFileName = document.getElementById('edit-fileName');
     const currentImage = document.getElementById('current-image');
-    const currentImagePreview = document.getElementById('current-image-preview');
 
     // Текущий редактируемый товар
     let currentEditingProductId = null;
@@ -58,13 +57,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (tabId === 'add') {
                     addTabContent.classList.add('active');
                     editTabContent.classList.remove('active');
-                    editFormContainer.style.display = 'none';
                     authLinks.style.display = 'flex';
+                    closeEditModal();
                 } else if (tabId === 'edit') {
                     addTabContent.classList.remove('active');
                     editTabContent.classList.add('active');
-                    editFormContainer.style.display = 'none';
                     authLinks.style.display = 'flex';
+                    closeEditModal();
                     loadSellerProducts();
                 }
             });
@@ -97,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSubmitBtn.addEventListener('click', updateProduct);
 
         // Отмена редактирования
-        cancelEditBtn.addEventListener('click', cancelEdit);
+        cancelEditBtn.addEventListener('click', closeEditModal);
 
         // Удаление товара
         deleteProductBtn.addEventListener('click', deleteProduct);
@@ -106,6 +105,39 @@ document.addEventListener('DOMContentLoaded', function() {
         addProductForm.querySelector('.reset-btn').addEventListener('click', function() {
             addFileName.textContent = 'Файл не выбран';
         });
+
+        // Обработчики для модального окна
+        document.querySelector('.modal-close').addEventListener('click', closeEditModal);
+
+        // Закрытие модального окна при клике на фон
+        editModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+
+        // Закрытие по Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeEditModal();
+            }
+        });
+    }
+
+    // Открытие модального окна редактирования
+    function openEditModal() {
+        editModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Закрытие модального окна редактирования
+    function closeEditModal() {
+        editModal.classList.remove('active');
+        document.body.style.overflow = '';
+        currentEditingProductId = null;
+        editProductForm.reset();
+        editFileName.textContent = 'Файл не выбран';
+        editImageFile.value = '';
     }
 
     // Загрузка товаров продавца
@@ -118,12 +150,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include' // Важно для сессий Spring Security
+                credentials: 'include'
             });
 
             // Проверяем статус ответа
             if (response.status === 401) {
-                // Неавторизован - перенаправляем на логин
                 showNotification('Требуется авторизация', 'error');
                 setTimeout(() => {
                     window.location.href = '/login?redirect=/seller';
@@ -132,7 +163,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (response.status === 403) {
-                // Доступ запрещен (нет прав продавца)
                 showNotification('У вас нет прав для доступа к панели продавца', 'error');
                 setTimeout(() => {
                     window.location.href = '/profile';
@@ -167,9 +197,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Отображение товаров
+    // Отображение товаров в виде сетки
     function renderProducts(products) {
         productsContainer.innerHTML = '';
+
+        // Добавляем класс для сетки
+        productsContainer.classList.add('products-grid');
 
         // Проверяем, является ли ответ массивом
         if (!Array.isArray(products)) {
@@ -188,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Создание карточки товара
+    // Создание карточки товара для сетки
     function createProductCard(product) {
         const card = document.createElement('div');
         card.className = 'product-card';
@@ -211,6 +244,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Изображение товара (если есть)
         const imageUrl = product.image ? `/uploads/images/${product.image}` : '/images/no-image.png';
 
+        // Класс для низкого количества
+        const stockClass = product.count < 10 ? 'low' : '';
+
         card.innerHTML = `
             <div class="product-image">
                 <img src="${imageUrl}" alt="${product.name}" 
@@ -218,20 +254,19 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="product-info">
                 <h3 class="product-name">${product.name}</h3>
-                <p class="product-price">${product.price.toFixed(2)} ₽</p>
-                <p class="product-category">Категория: ${categoryName}</p>
-                <p class="product-count">На складе: ${product.count} шт.</p>
+                <div class="product-meta">
+                    <p class="product-price">${product.price.toFixed(2)} ₽</p>
+                    <p class="product-stock ${stockClass}">${product.count} шт.</p>
+                </div>
+                <p class="product-category">${categoryName}</p>
                 <p class="product-description">${product.description || 'Описание отсутствует'}</p>
-            </div>
-            <div class="product-actions">
-                <button class="edit-btn" data-id="${product.id}">Редактировать</button>
-                <button class="delete-btn" data-id="${product.id}">Удалить</button>
             </div>
         `;
 
-        // Добавляем обработчики событий для кнопок
-        card.querySelector('.edit-btn').addEventListener('click', () => editProduct(product.id));
-        card.querySelector('.delete-btn').addEventListener('click', () => confirmDeleteProduct(product.id));
+        // Клик по всей карточке открывает редактирование
+        card.addEventListener('click', () => {
+            editProduct(product.id);
+        });
 
         return card;
     }
@@ -348,26 +383,21 @@ document.addEventListener('DOMContentLoaded', function() {
             if (product.image) {
                 const imageUrl = `/uploads/images/${product.image}`;
                 currentImage.src = imageUrl;
-                currentImage.style.display = 'block';
-                currentImagePreview.style.display = 'block';
 
                 // Добавляем обработчик ошибок для изображения
                 currentImage.onerror = function() {
                     this.src = '/images/no-image.png';
                 };
             } else {
-                currentImage.style.display = 'none';
-                currentImagePreview.style.display = 'none';
+                currentImage.src = '/images/no-image.png';
             }
 
             // Сброс выбора нового файла
             editImageFile.value = '';
             editFileName.textContent = 'Файл не выбран';
 
-            // Переключение на форму редактирования
-            editTabContent.classList.remove('active');
-            editFormContainer.style.display = 'block';
-            authLinks.style.display = 'none';
+            // Открытие модального окна
+            openEditModal();
 
         } catch (error) {
             console.error('Ошибка при загрузке товара для редактирования:', error);
@@ -429,8 +459,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             showNotification('Товар успешно обновлен!', 'success');
 
-            // Возврат к списку товаров и обновление
-            cancelEdit();
+            // Закрытие модального окна и обновление списка
+            closeEditModal();
             loadSellerProducts();
 
         } catch (error) {
@@ -439,24 +469,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } finally {
             updateSubmitBtn.disabled = false;
             updateSubmitBtn.textContent = 'Сохранить изменения';
-        }
-    }
-
-    // Отмена редактирования
-    function cancelEdit() {
-        currentEditingProductId = null;
-        editFormContainer.style.display = 'none';
-        editTabContent.classList.add('active');
-        authLinks.style.display = 'flex';
-        editProductForm.reset();
-        currentImage.style.display = 'none';
-        currentImagePreview.style.display = 'none';
-    }
-
-    // Подтверждение удаления товара
-    function confirmDeleteProduct(productId) {
-        if (confirm('Вы уверены, что хотите удалить этот товар?')) {
-            deleteProductConfirmed(productId);
         }
     }
 
@@ -502,9 +514,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             showNotification('Товар успешно удален!', 'success');
 
-            // Если удаляем из формы редактирования
+            // Если удаляем из модального окна
             if (currentEditingProductId === productId) {
-                cancelEdit();
+                closeEditModal();
             }
 
             // Обновление списка товаров
@@ -564,22 +576,23 @@ document.addEventListener('DOMContentLoaded', function() {
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 15px 20px;
-            border-radius: 5px;
+            padding: 15px 25px;
+            border-radius: 8px;
             color: white;
             font-weight: bold;
-            z-index: 1000;
+            z-index: 1001;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             opacity: 0;
-            transform: translateY(-20px);
+            transform: translateX(100%);
             transition: opacity 0.3s, transform 0.3s;
         `;
 
         if (type === 'success') {
-            notification.style.backgroundColor = '#4CAF50';
+            notification.style.background = 'linear-gradient(135deg, #4CAF50, #45a049)';
         } else if (type === 'error') {
-            notification.style.backgroundColor = '#f44336';
+            notification.style.background = 'linear-gradient(135deg, #f44336, #d32f2f)';
         } else {
-            notification.style.backgroundColor = '#2196F3';
+            notification.style.background = 'linear-gradient(135deg, #2196F3, #1976D2)';
         }
 
         document.body.appendChild(notification);
@@ -587,13 +600,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Анимация появления
         setTimeout(() => {
             notification.style.opacity = '1';
-            notification.style.transform = 'translateY(0)';
+            notification.style.transform = 'translateX(0)';
         }, 10);
 
         // Автоматическое скрытие
         setTimeout(() => {
             notification.style.opacity = '0';
-            notification.style.transform = 'translateY(-20px)';
+            notification.style.transform = 'translateX(100%)';
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
@@ -601,4 +614,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Глобальные функции для использования в HTML
     window.loadSellerProducts = loadSellerProducts;
     window.editProduct = editProduct;
+    window.closeEditModal = closeEditModal;
 });

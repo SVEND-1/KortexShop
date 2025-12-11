@@ -378,39 +378,42 @@ function setupSearch() {
     }
 }
 
-// Добавление в корзину через API
 async function addToCartViaAPI(productId) {
     try {
-        console.log('Добавление товара в корзину через API, productId:', productId);
-
-        // Используем ваш Spring API метод
         const response = await fetch(`/api/carts/items?productId=${productId}`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json'
-                // Не добавляем Content-Type для GET параметров
-            }
+            method: "POST",
+            credentials: "include", // важно!
+            headers: { "Accept": "application/json" }
         });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `Ошибка HTTP: ${response.status}`);
+        // 🔥 ПРОВЕРКА: Spring Security отредиректил на /login
+        if (response.redirected || response.url.endsWith("/login")) {
+            window.location.href = "/login";
+            return;
         }
 
-        const result = await response.json();
-        console.log('Товар добавлен в корзину (ответ сервера):', result);
+        // 🔥 ПРОВЕРКА: на случай, если вернулся HTML, а не JSON
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+            // Значит, мы получили HTML страницы логина
+            window.location.href = "/login";
+            return;
+        }
 
-        // Показываем уведомление
-        showNotification('Товар добавлен в корзину!');
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || "Ошибка при добавлении товара");
+        }
 
-        // Обновляем счетчик корзины
+        showNotification("Товар добавлен в корзину!");
         await updateCartCounter();
 
-    } catch (error) {
-        console.error('Ошибка при добавлении в корзину:', error);
-        showNotification('Ошибка: ' + error.message);
+    } catch (e) {
+        console.error(e);
+        showNotification("Ошибка: " + e.message);
     }
 }
+
 
 // Обновление счетчика корзины
 async function updateCartCounter() {

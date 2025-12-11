@@ -6,6 +6,7 @@ import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.domain.CartItemService;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.domain.CartService;
+import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.db.User;
@@ -28,12 +29,25 @@ public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
     private final CartMapper cartMapper;
+    private final OrderMapper orderMapper;
 
     @Autowired
-    public OrderController(OrderService orderService, UserService userService,CartMapper cartMapper) {
+    public OrderController(OrderService orderService, UserService userService,CartMapper cartMapper,OrderMapper orderMapper) {
         this.orderService = orderService;
         this.userService = userService;
         this.cartMapper = cartMapper;
+        this.orderMapper = orderMapper;
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getOrdersUser() {
+        try {
+            User user = userService.getCurrentUserOrders();
+            return ResponseEntity.ok().body(orderMapper.toDtoList(user.getOrders()));
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
     }
 
     @GetMapping("/me-create")//Отображение страницы заказа
