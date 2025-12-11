@@ -20,9 +20,9 @@ import java.util.Map;
 
 @Data
 public class OrderResponseDTO {
-    private Long orderId; // Добавьте ID заказа
-    private List<OrderItemDTO> items; // Список товаров
+    private Long orderId;
+    private List<OrderItemDTO> items;
     private LocalDate orderDate;
-    private BigDecimal totalAmount; // Общая сумма заказа
-    private Order.OrderStatus status; // Статус заказа
+    private BigDecimal totalAmount;
+    private Order.OrderStatus status;
 }

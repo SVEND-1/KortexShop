@@ -22,16 +22,12 @@ public class OrderCreateMapper {
 
         OrderCreatePageDTO dto = new OrderCreatePageDTO();
 
-        // 1. Данные пользователя
         dto.setUserInfo(toUserInfoDTO(user));
 
-        // 2. Товары в корзине
         dto.setCartItems(toCartItemOrderDTOList(cart.getCartItems()));
 
-        // 3. Итоговая информация
         dto.setSummary(calculateOrderSummary(cart, user));
 
-        // 4. Способы оплаты
         dto.setPaymentMethods(getAvailablePaymentMethods());
 
         return dto;
@@ -40,8 +36,6 @@ public class OrderCreateMapper {
     private UserInfoDTO toUserInfoDTO(User user) {
         UserInfoDTO dto = new UserInfoDTO();
 
-        // Если у вас есть отдельное поле fullName, используйте его
-        // Иначе можно скомбинировать name + surname
 
         dto.setFullName(user.getName());
         dto.setEmail(user.getEmail());

@@ -25,7 +25,6 @@ public class OrderMapper {
         dto.setTotalAmount(order.getTotalAmount());
         dto.setStatus(order.getStatus());
 
-        // Преобразуем все товары в заказе
         if (order.getOrderItems() != null) {
             List<OrderItemDTO> itemDTOs = order.getOrderItems().stream()
                     .map(this::toItemDto)

@@ -41,7 +41,7 @@ public class AdminRoleRequestController {
                                                  @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
         try {
             RoleRequestFilter filter = new RoleRequestFilter(role, status, actionType, pageSize, pageNumber);
-            return ResponseEntity.ok().body(roleRequestMapper.toDtoList(roleRequestService.getRoleRequests(filter)));
+            return ResponseEntity.ok().body(roleRequestMapper.toPageResponse(roleRequestService.getRoleRequests(filter)));
         }
         catch (EntityNotFoundException e) {
             log.error("Не удалось загрузить товары с фильтром,Ошибка: " + e.getMessage());
