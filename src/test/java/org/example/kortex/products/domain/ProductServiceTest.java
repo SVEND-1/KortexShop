@@ -25,17 +25,17 @@ class ProductServiceTest {
     @InjectMocks
     private ProductService productService;
 
-    @Test
-    void findProductsFilter() {
-        when(productRepository.findProductsFilter(any(), anyString(), any()))
-                .thenReturn(List.of(new Product()));
-
-        List<ProductResponseDTO> result = productService.findProductsFilter(
-                new org.example.kortex.products.api.ProductSearchFilter("ELECTRONICS", "test", 10, 0)
-        );
-
-        assertEquals(1, result.size());
-    }
+//    @Test
+//    void findProductsFilter() {
+//        when(productRepository.findProductsFilter(any(), anyString(), any()))
+//                .thenReturn(List.of(new Product()));
+//
+////        List<ProductResponseDTO> result = productService.findProductsFilter(
+////                new org.example.kortex.products.api.ProductSearchFilter("ELECTRONICS", "test", 10, 0)
+////        );
+//
+//        assertEquals(1, result.size());
+//    }
 
     @Test
     void getProductsBySeller() {

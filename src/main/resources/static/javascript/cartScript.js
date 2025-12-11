@@ -1,217 +1,131 @@
-// cartScript.js - исправленная версия с перенаправлением на checkout
+// cartScript.js - renders cartForm.html DOM using server DTO (format A)
+// Relies on cartManager singleton being available and initialized.
+// Uses element IDs present in cartForm.html: cartItems, totalItemsText, totalPrice, finalTotal, emptyCart, cartWithItems
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Страница корзины загружена');
-    initializeCart();
-
-    // Слушаем обновления корзины
-    window.addEventListener('cartUpdated', function() {
-        displayCartItems();
-    });
-});
-
-function initializeCart() {
-    displayCartItems();
-    setupCartEvents();
+async function initCartPage() {
+    // wait for initial load
+    if (!window.cartManager) {
+        console.error('cartManager not found');
+        return;
+    }
+    await window.cartManager.ready();
+    renderCart();
 }
 
-function displayCartItems() {
-    const cartItems = window.cartManager.getCartItems();
+// Render logic
+function renderCart() {
+    const items = window.cartManager.getItems();
+    const total = window.cartManager.getTotal();
+
     const cartItemsContainer = document.getElementById('cartItems');
     const emptyCart = document.getElementById('emptyCart');
     const cartWithItems = document.getElementById('cartWithItems');
+    const totalItemsText = document.getElementById('totalItemsText');
+    const totalPrice = document.getElementById('totalPrice');
+    const finalTotal = document.getElementById('finalTotal');
 
-    if (cartItems.length === 0) {
+    if (!cartItemsContainer || !emptyCart || !cartWithItems) {
+        console.error('Cart DOM elements missing');
+        return;
+    }
+
+    if (!items || items.length === 0) {
         emptyCart.style.display = 'block';
         cartWithItems.style.display = 'none';
+        if (totalItemsText) totalItemsText.textContent = 'Товары (0)';
+        if (totalPrice) totalPrice.textContent = formatPrice(0);
+        if (finalTotal) finalTotal.textContent = formatPrice(0);
+        cartItemsContainer.innerHTML = '';
         return;
     }
 
     emptyCart.style.display = 'none';
     cartWithItems.style.display = 'block';
 
-    // Отображаем товары
-    cartItemsContainer.innerHTML = cartItems.map(item => {
-        // Формируем правильный путь к изображению
-        const imagePath = item.image
-            ? `/uploads/images/${item.image}`
-            : (window.imageUploader ? window.imageUploader.getImage(item.id) : '/images/product-img.png');
-
-        // Получаем описание товара
-        const description = window.productManager?.getProductById(item.id)?.description ||
-            item.description || 'Описание товара';
-
+    // Render each item
+    cartItemsContainer.innerHTML = items.map(item => {
+        const imagePath = item.image ? `/uploads/images/${item.image}` : '/images/product-img.png';
+        const name = item.productName || item.name || 'Товар';
+        const price = (typeof item.price === 'number' ? item.price : Number(item.price || 0));
+        const quantity = (typeof item.quantity === 'number' ? item.quantity : Number(item.quantity || 1));
+        const subtotal = price * quantity;
         return `
-        <div class="cart-item" data-product-id="${item.id}">
+        <div class="cart-item" data-item-id="${item.id}">
             <div class="item-image">
-                <img src="${imagePath}" alt="${item.name}" 
-                     onerror="this.onerror=null; this.src='/images/product-img.png'"
-                     style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                <img src="${imagePath}" alt="${name}" onerror="this.onerror=null;this.src='/images/product-img.png'" style="width:100px;height:100px;object-fit:cover;border-radius:8px;">
             </div>
             <div class="item-details">
-                <h3 class="item-name">${item.name}</h3>
-                <p class="item-description" style="color: #666; font-size: 14px; margin: 5px 0;">
-                    ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}
-                </p>
-                <div class="item-price" style="font-size: 18px; font-weight: bold; color: #2d3748;">
-                    ${formatPrice(item.price)}
-                </div>
-                <div class="item-subtotal" style="color: #718096; font-size: 14px;">
-                    Итого: ${formatPrice(item.price * item.quantity)}
-                </div>
+                <h3 class="item-name">${escapeHtml(name)}</h3>
+                <p class="item-description">${escapeHtml((item.description||'').substring(0,120))}${(item.description && item.description.length>120)?'...':''}</p>
+                <div class="item-price">${formatPrice(price)}</div>
+                <div class="item-subtotal">Итого: ${formatPrice(subtotal)}</div>
             </div>
             <div class="item-controls">
-                <!-- Форма для изменения количества -->
-                <div class="quantity-controls" style="display: flex; align-items: center; gap: 10px;">
-                    <button type="button" class="quantity-btn minus-btn" 
-                            onclick="event.stopPropagation(); updateQuantity(${item.id}, ${item.quantity - 1})"
-                            style="padding: 5px 15px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
-                        -
-                    </button>
-                    <span class="quantity" style="font-weight: bold;">${item.quantity}</span>
-                    <button type="button" class="quantity-btn plus-btn" 
-                            onclick="event.stopPropagation(); updateQuantity(${item.id}, ${item.quantity + 1})"
-                            style="padding: 5px 15px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
-                        +
-                    </button>
+                <div class="quantity-controls">
+                    <button type="button" class="quantity-btn minus-btn" data-action="decrease" data-id="${item.id}">-</button>
+                    <span class="quantity">${quantity}</span>
+                    <button type="button" class="quantity-btn plus-btn" data-action="increase" data-id="${item.id}">+</button>
                 </div>
-                
-                <!-- Кнопка удаления -->
-                <button type="button" class="remove-btn" 
-                        onclick="event.stopPropagation(); removeFromCart(${item.id})"
-                        style="padding: 8px 16px; background: #fed7d7; color: #c53030; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px;">
-                    Удалить
-                </button>
+                <button type="button" class="remove-btn" data-action="remove" data-id="${item.id}">Удалить</button>
             </div>
-        </div>
-        `;
+        </div>`;
     }).join('');
 
-    // Обновляем итоги
-    updateCartSummary();
+    // Update summary
+    const uniqueCount = window.cartManager.getUniqueCount();
+    if (totalItemsText) totalItemsText.textContent = `Товары (${uniqueCount})`;
+    if (totalPrice) totalPrice.textContent = formatPrice(total);
+    if (finalTotal) finalTotal.textContent = formatPrice(total);
 
-    // Делаем товары кликабельными
-    makeCartItemsClickable();
+    // Attach event listeners (delegation)
+    attachCartEvents();
 }
 
-function updateCartSummary() {
-    const cartItems = window.cartManager.getCartItems();
-    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    const totalItemsElement = document.getElementById('totalItemsText');
-    const totalPriceElement = document.getElementById('totalPrice');
-    const finalTotalElement = document.getElementById('finalTotal');
-
-    if (totalItemsElement) {
-        totalItemsElement.textContent = `Товары (${totalItems})`;
-    }
-    if (totalPriceElement) {
-        totalPriceElement.textContent = formatPrice(totalPrice);
-    }
-    if (finalTotalElement) {
-        finalTotalElement.textContent = formatPrice(totalPrice);
-    }
-}
-
-function setupCartEvents() {
-    // Обработчик оформления заказа
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            checkout();
-        });
-    }
-}
-
-function updateQuantity(productId, newQuantity) {
-    if (newQuantity < 1) {
-        if (confirm('Удалить товар из корзины?')) {
-            window.cartManager.removeFromCart(productId);
-        }
-        return;
-    }
-
-    // Обновляем количество через cartManager
-    if (window.cartManager && window.cartManager.updateQuantity) {
-        window.cartManager.updateQuantity(productId, newQuantity);
-    } else {
-        // Fallback: обновляем localStorage напрямую
-        const cart = JSON.parse(localStorage.getItem('cart')) || [];
-        const itemIndex = cart.findIndex(item => item.id == productId);
-
-        if (itemIndex !== -1) {
-            cart[itemIndex].quantity = newQuantity;
-            localStorage.setItem('cart', JSON.stringify(cart));
-            displayCartItems();
-        }
-    }
-}
-
-function removeFromCart(productId) {
-    if (confirm('Удалить товар из корзины?')) {
-        if (window.cartManager && window.cartManager.removeFromCart) {
-            window.cartManager.removeFromCart(productId);
-        } else {
-            // Fallback: удаляем из localStorage
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
-            cart = cart.filter(item => item.id != productId);
-            localStorage.setItem('cart', JSON.stringify(cart));
-            displayCartItems();
-        }
-    }
-}
-
-function checkout() {
-    try {
-        // Получаем текущую корзину
-        const cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-        if (cart.length === 0) {
-            alert('Корзина пуста! Добавьте товары для оформления заказа.');
-            return;
-        }
-
-        // Просто перенаправляем на страницу оформления заказа
-        window.location.href = '/checkout';
-
-    } catch (error) {
-        console.error('Ошибка при переходе к оформлению:', error);
-        alert('Произошла ошибка при переходе к оформлению заказа. Попробуйте позже.');
-    }
-}
-
-function makeCartItemsClickable() {
-    const cartItems = document.querySelectorAll('.cart-item');
-    cartItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (!e.target.closest('button')) {
-                const productId = this.getAttribute('data-product-id');
-                viewProductDetails(parseInt(productId));
-            }
-        });
+// event delegation for cart items
+function attachCartEvents() {
+    const container = document.getElementById('cartItems');
+    if (!container) return;
+    container.querySelectorAll('[data-action]').forEach(btn => {
+        btn.removeEventListener('click', cartActionHandler);
+        btn.addEventListener('click', cartActionHandler);
     });
 }
 
-function viewProductDetails(productId) {
-    window.location.href = `/product/${productId}`;
+async function cartActionHandler(e) {
+    e.preventDefault();
+    const el = e.currentTarget;
+    const action = el.getAttribute('data-action');
+    const id = el.getAttribute('data-id');
+    if (!action || !id) return;
+    try {
+        if (action === 'increase') {
+            await window.cartManager.increase(id);
+        } else if (action === 'decrease') {
+            await window.cartManager.decrease(id);
+        } else if (action === 'remove') {
+            if (!confirm('Удалить товар из корзины?')) return;
+            await window.cartManager.remove(id);
+        }
+    } catch (err) {
+        console.error('Cart action failed', err);
+        alert('Не удалось выполнить действие. Попробуйте позже.');
+    }
 }
 
+// helper: price formatting and safe HTML escape
 function formatPrice(price) {
-    return new Intl.NumberFormat('ru-RU', {
-        style: 'currency',
-        currency: 'RUB',
-        minimumFractionDigits: 0
-    }).format(price);
+    try {
+        return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price);
+    } catch (e) {
+        return price + ' ₽';
+    }
+}
+function escapeHtml(unsafe) {
+    return String(unsafe).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]; });
 }
 
-// Экспортируем функции для использования
-window.cartPage = {
-    displayCartItems,
-    updateCartSummary,
-    updateQuantity,
-    removeFromCart,
-    checkout,
-    formatPrice
-};
+// init
+document.addEventListener('DOMContentLoaded', initCartPage);
+
+// expose helpers for other scripts
+window.cartPage = { renderCart, initCartPage, formatPrice };

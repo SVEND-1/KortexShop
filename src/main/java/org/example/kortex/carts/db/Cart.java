@@ -1,7 +1,6 @@
 package org.example.kortex.carts.db;
 
 import lombok.Data;
-import org.example.kortex.products.db.Product;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
@@ -12,7 +11,7 @@ import java.util.Objects;
 
 @Data
 @Entity
-@Table(name = "cards")
+@Table(name = "carts")
 public class Cart {
 
     @Id

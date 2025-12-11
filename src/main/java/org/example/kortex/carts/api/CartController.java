@@ -1,6 +1,7 @@
 package org.example.kortex.carts.api;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.carts.api.dto.CartMapper;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.domain.CartItemService;
 import org.example.kortex.carts.db.Cart;
@@ -25,24 +26,21 @@ public class CartController {
     private final CartService cartService;
     private final UserService userService;
     private final CartItemService cartItemService;
+    private final CartMapper cartMapper;
 
     @Autowired
-    public CartController(CartService cartService, UserService userService, CartItemService cartItemService) {
+    public CartController(CartService cartService, UserService userService, CartItemService cartItemService,CartMapper cartMapper) {
         this.cartService = cartService;
         this.userService = userService;
         this.cartItemService = cartItemService;
+        this.cartMapper = cartMapper;
     }
 
     @GetMapping("/me")
     public ResponseEntity<?> getCartPage() {
         try {
             Cart cart = cartService.getCartByUserId(userService.getCurrentUser().getId());
-            List<CartItem> cartItems = cartItemService.findAllByCartId(cart.getId());
-            Map<String, Object> response = new HashMap<>();
-            response.put("cartItems", cartItems);
-            response.put("totalPrice", cart.totalPrice());
-            response.put("totalItems", cart.getQuantity());
-            return ResponseEntity.ok().body(response);
+            return ResponseEntity.ok(cartMapper.toCartResponse(cart));
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении данных корзины: " + e.getMessage());

@@ -9,6 +9,7 @@ import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +31,7 @@ public class ProductService {
         this.productMapper = productMapper;
     }
 
-    public List<Product> findProductsFilter(ProductSearchFilter filter){
+    public Page<Product> findProductsFilter(ProductSearchFilter filter){
         log.info("Запрос на выдачу всех товаров с фильром: " + filter);
         Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
@@ -39,10 +40,10 @@ public class ProductService {
 
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        List<Product> products = productRepository.findProductsFilter(category,query,pageable);
+        Page<Product> productsPage = productRepository.findProductsFilter(category,query,pageable);
 
         log.info("Выдача всех товаров с фильтром: " + filter );
-        return products;
+        return productsPage;
     }
 
 

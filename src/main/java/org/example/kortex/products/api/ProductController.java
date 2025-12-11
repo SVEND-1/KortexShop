@@ -5,8 +5,11 @@ import org.example.kortex.products.api.dto.ProductMapper;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 
 @Slf4j
@@ -26,12 +29,17 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<?> getProducts(@RequestParam(name = "category",required = false) String category,
                                          @RequestParam(name = "query", required = false) String query,
-                                         @RequestParam(name = "pageSize",required = false) Integer pageSize,
-                                         @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
-        //Можно фильтровать по катерогиям и запросы,можнол только по категориям и только по запросу ,а можно вообще полный список
+                                         @RequestParam(name = "page", defaultValue = "0") Integer page,
+                                         @RequestParam(name = "size", defaultValue = "12") Integer size) {
         try {
-            ProductSearchFilter filter = new ProductSearchFilter(category, query, pageSize, pageNumber);
-            return ResponseEntity.ok().body(productMapper.toDtoList(productService.findProductsFilter(filter)));
+            ProductSearchFilter filter = new ProductSearchFilter(category, query, size, page);
+            // Получаем Page с товарами
+            Page<Product> productsPage = productService.findProductsFilter(filter);
+
+            // Возвращаем DTO с пагинацией
+            Map<String, Object> response = productMapper.toPageResponse(productsPage);
+
+            return ResponseEntity.ok().body(response);
         }
         catch (Exception e) {
             log.error("Не удалось загрузить товары для пользователя " + e.getMessage());
@@ -43,7 +51,7 @@ public class ProductController {
     public ResponseEntity<?> productDetailPage(@PathVariable String id)  {
         try {
             Product product = productService.getById(Long.parseLong(id));
-            return ResponseEntity.ok(productMapper.toDto(product));
+            return ResponseEntity.ok(productMapper.toDTODetails(product));
         }
         catch (Exception e) {
             log.error("Не удалось загрузить данные товара " + e.getMessage());
