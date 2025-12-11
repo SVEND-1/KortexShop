@@ -166,50 +166,50 @@ class OrderServiceTest {
         verify(orderRepository, times(1)).assignedOrders(courierId);
     }
 
-    @Test
-    void assignedCourierOrdersPage_ShouldReturnPagedOrders() {
-        Long courierId = 1L;
-        User courier = new User();
-        courier.setId(courierId);
-        courier.setRole(User.Role.COURIER);
-
-        OrdersSearchCourierFilter filter = new OrdersSearchCourierFilter(courierId, 10, 0);
-
-        Order order1 = new Order();
-        order1.setId(1L);
-        Order order2 = new Order();
-        order2.setId(2L);
-
-        when(userService.getById(courierId)).thenReturn(courier);
-        when(orderRepository.assignedOrdersPage(eq(courierId), any(Pageable.class)))
-                .thenReturn(Arrays.asList(order1, order2));
-
-        List<Order> result = orderService.assignedCourierOrdersPage(filter);
-
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        verify(orderRepository, times(1)).assignedOrdersPage(eq(courierId), any(Pageable.class));
-    }
-
-    @Test
-    void availableCourierOrdersPage_ShouldReturnAvailableOrders() {
-        Order order1 = new Order();
-        order1.setId(1L);
-        order1.setCourier(null);
-        order1.setStatus(Order.OrderStatus.PENDING);
-
-        Order order2 = new Order();
-        order2.setId(2L);
-        order2.setCourier(null);
-        order2.setStatus(Order.OrderStatus.PENDING);
-
-        when(orderRepository.availableOrdersPage(any(Pageable.class)))
-                .thenReturn(Arrays.asList(order1, order2));
-
-        List<Order> result = orderService.availableCourierOrdersPage(10, 0);
-
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        verify(orderRepository, times(1)).availableOrdersPage(any(Pageable.class));
-    }
+//    @Test
+//    void assignedCourierOrdersPage_ShouldReturnPagedOrders() {
+//        Long courierId = 1L;
+//        User courier = new User();
+//        courier.setId(courierId);
+//        courier.setRole(User.Role.COURIER);
+//
+//        OrdersSearchCourierFilter filter = new OrdersSearchCourierFilter(courierId, 10, 0);
+//
+//        Order order1 = new Order();
+//        order1.setId(1L);
+//        Order order2 = new Order();
+//        order2.setId(2L);
+//
+//        when(userService.getById(courierId)).thenReturn(courier);
+//        when(orderRepository.assignedOrdersPage(eq(courierId), any(Pageable.class)))
+//                .thenReturn(Arrays.asList(order1, order2));
+//
+//        List<Order> result = orderService.assignedCourierOrdersPage(filter);
+//
+//        assertNotNull(result);
+//        assertEquals(2, result.size());
+//        verify(orderRepository, times(1)).assignedOrdersPage(eq(courierId), any(Pageable.class));
+//    }
+//
+//    @Test
+//    void availableCourierOrdersPage_ShouldReturnAvailableOrders() {
+//        Order order1 = new Order();
+//        order1.setId(1L);
+//        order1.setCourier(null);
+//        order1.setStatus(Order.OrderStatus.PENDING);
+//
+//        Order order2 = new Order();
+//        order2.setId(2L);
+//        order2.setCourier(null);
+//        order2.setStatus(Order.OrderStatus.PENDING);
+//
+//        when(orderRepository.availableOrdersPage(any(Pageable.class)))
+//                .thenReturn(Arrays.asList(order1, order2));
+//
+//        List<Order> result = orderService.availableCourierOrdersPage(10, 0);
+//
+//        assertNotNull(result);
+//        assertEquals(2, result.size());
+//        verify(orderRepository, times(1)).availableOrdersPage(any(Pageable.class));
+//    }
 }

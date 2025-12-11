@@ -62,7 +62,7 @@ public class Order {
     }
 
     public enum OrderStatus {
-        PENDING, DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED;
+        PENDING, DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED,COMPLETED;
         public SimpleGrantedAuthority toAuthority() {
             return new SimpleGrantedAuthority("ROLE_" + this.name());
         }

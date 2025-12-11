@@ -35,10 +35,10 @@ const API_ENDPOINTS = {
 };
 
 const ROLE_MAP = {
-    'USER': { text: 'Покупатель', icon: '👤' },
-    'SELLER': { text: 'Продавец', icon: '🏪' },
-    'COURIER': { text: 'Курьер', icon: '🚚' },
-    'ADMIN': { text: 'Админ', icon: '⚙️' }
+    'USER': { text: 'Покупатель', icon: '👤', buttonText: 'Профиль' },
+    'SELLER': { text: 'Продавец', icon: '🏪', buttonText: 'Для продавца' },
+    'COURIER': { text: 'Курьер', icon: '🚚', buttonText: 'Для курьера' },
+    'ADMIN': { text: 'Админ', icon: '⚙️', buttonText: 'Для админа' }
 };
 
 const REQUEST_STATUS_MAP = {
@@ -159,17 +159,142 @@ function updateRoleDisplay(role) {
         el.innerHTML = `${roleInfo.icon} ${roleInfo.text}`;
     });
 
-    // Обновляем кнопки в зависимости от роли
-    const roleButtons = document.querySelectorAll('.role-buttons a');
-    roleButtons.forEach(btn => {
-        if (btn.classList.contains('btn-seller') && role === 'SELLER') {
-            btn.style.display = 'none';
-        } else if (btn.classList.contains('btn-courier') && role === 'COURIER') {
-            btn.style.display = 'none';
-        } else if (btn.classList.contains('btn-admin') && role !== 'ADMIN') {
-            btn.style.display = 'none';
+    // Обновляем кнопки в боковой панели на основе реальной роли
+    updateSidebarRoleButtons(role);
+}
+
+function updateSidebarRoleButtons(userRole) {
+    const roleButtonsContainer = document.querySelector('.role-buttons');
+    if (!roleButtonsContainer) return;
+
+    // Очищаем контейнер
+    roleButtonsContainer.innerHTML = '';
+
+    // Добавляем кнопки в зависимости от роли пользователя
+    if (userRole === 'USER') {
+        // Пользователь может подать заявку на продавца или курьера
+        roleButtonsContainer.innerHTML = `
+            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">
+                🏪 Для продавца
+            </a>
+            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">
+                🚚 Для курьера
+            </a>
+            <a href="/admin" class="btn btn-admin" style="width: 100%; display: none;">
+                ⚙️ Для админа
+            </a>
+        `;
+    } else if (userRole === 'SELLER') {
+        // Продавец видит кнопку для своей панели
+        roleButtonsContainer.innerHTML = `
+            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">
+                🏪 Панель продавца
+            </a>
+            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px; opacity: 0.6; cursor: not-allowed;" onclick="return false;">
+                🚚 Для курьера
+            </a>
+            <a href="/admin" class="btn btn-admin" style="width: 100%; display: none;">
+                ⚙️ Для админа
+            </a>
+        `;
+    } else if (userRole === 'COURIER') {
+        // Курьер видит кнопку для своей панели
+        roleButtonsContainer.innerHTML = `
+            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px; opacity: 0.6; cursor: not-allowed;" onclick="return false;">
+                🏪 Для продавца
+            </a>
+            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">
+                🚚 Панель курьера
+            </a>
+            <a href="/admin" class="btn btn-admin" style="width: 100%; display: none;">
+                ⚙️ Для админа
+            </a>
+        `;
+    } else if (userRole === 'ADMIN') {
+        // Админ видит кнопку для админ панели
+        roleButtonsContainer.innerHTML = `
+            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">
+                🏪 Панель продавца
+            </a>
+            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">
+                🚚 Панель курьера
+            </a>
+            <a href="/admin" class="btn btn-admin" style="width: 100%;">
+                ⚙️ Панель администратора
+            </a>
+        `;
+    }
+}
+
+// ============ ОБНОВЛЕНИЕ КНОПОК ЗАЯВОК НА РОЛИ ============
+
+function updateRoleButtons(userRole) {
+    const requestCards = document.querySelectorAll('.request-card');
+    if (!requestCards || requestCards.length < 3) return;
+
+    const sellerCard = requestCards[0];
+    const courierCard = requestCards[1];
+    const downgradeCard = requestCards[2];
+
+    // Сбрасываем все карточки
+    [sellerCard, courierCard, downgradeCard].forEach(card => {
+        card.style.opacity = '1';
+        const button = card.querySelector('button');
+        if (button) {
+            button.disabled = false;
         }
     });
+
+    // Настраиваем в зависимости от роли
+    if (userRole === 'USER') {
+        // Пользователь может подать заявку на продавца или курьера
+        sellerCard.querySelector('button').textContent = '📝 Стать продавцом';
+        courierCard.querySelector('button').textContent = '📝 Стать курьером';
+        sellerCard.style.opacity = '1';
+        courierCard.style.opacity = '1';
+        downgradeCard.style.opacity = '0.6';
+        downgradeCard.querySelector('button').disabled = true;
+        downgradeCard.querySelector('button').textContent = '📝 Сняться с роли';
+
+    } else if (userRole === 'SELLER') {
+        // Продавец не может подать заявку на продавца
+        sellerCard.style.opacity = '0.6';
+        sellerCard.querySelector('button').disabled = true;
+        sellerCard.querySelector('button').textContent = '✅ Вы уже продавец';
+
+        // Может подать заявку на курьера
+        courierCard.querySelector('button').textContent = '📝 Стать курьером';
+        courierCard.style.opacity = '1';
+
+        // Может подать заявку на снятие с роли
+        downgradeCard.style.opacity = '1';
+        downgradeCard.querySelector('button').disabled = false;
+        downgradeCard.querySelector('button').textContent = '📝 Сняться с роли продавца';
+
+    } else if (userRole === 'COURIER') {
+        // Курьер не может подать заявку на курьера
+        courierCard.style.opacity = '0.6';
+        courierCard.querySelector('button').disabled = true;
+        courierCard.querySelector('button').textContent = '✅ Вы уже курьер';
+
+        // Может подать заявку на продавца
+        sellerCard.querySelector('button').textContent = '📝 Стать продавцом';
+        sellerCard.style.opacity = '1';
+
+        // Может подать заявку на снятие с роли
+        downgradeCard.style.opacity = '1';
+        downgradeCard.querySelector('button').disabled = false;
+        downgradeCard.querySelector('button').textContent = '📝 Сняться с роли курьера';
+
+    } else if (userRole === 'ADMIN') {
+        // Админ не может подавать заявки на смену роли
+        [sellerCard, courierCard, downgradeCard].forEach(card => {
+            card.style.opacity = '0.6';
+            const button = card.querySelector('button');
+            button.disabled = true;
+            button.textContent = '🚫 Недоступно для админа';
+        });
+    }
 }
 
 // ============ ОБНОВЛЕНИЕ ПРОФИЛЯ ============
@@ -508,47 +633,6 @@ function hideOrdersSection() {
     const ordersSection = document.querySelector('.orders-history');
     if (ordersSection) {
         ordersSection.style.display = 'none';
-    }
-}
-
-function updateRoleButtons(userRole) {
-    const requestCards = document.querySelectorAll('.request-card');
-
-    if (!requestCards) return;
-
-    // Блокируем кнопки в зависимости от текущей роли
-    if (userRole === 'SELLER') {
-        requestCards[0].style.opacity = '0.6';
-        requestCards[0].querySelector('button').disabled = true;
-        requestCards[0].querySelector('button').textContent = 'Вы уже продавец';
-
-        requestCards[1].style.opacity = '1';
-        requestCards[1].querySelector('button').disabled = false;
-        requestCards[1].querySelector('button').textContent = 'Стать курьером';
-
-    } else if (userRole === 'COURIER') {
-        requestCards[1].style.opacity = '0.6';
-        requestCards[1].querySelector('button').disabled = true;
-        requestCards[1].querySelector('button').textContent = 'Вы уже курьер';
-
-        requestCards[0].style.opacity = '1';
-        requestCards[0].querySelector('button').disabled = false;
-        requestCards[0].querySelector('button').textContent = 'Стать продавцом';
-
-    } else if (userRole === 'ADMIN') {
-        requestCards.forEach(card => {
-            card.style.opacity = '0.6';
-            const button = card.querySelector('button');
-            button.disabled = true;
-            button.textContent = 'Недоступно для админа';
-        });
-    } else if (userRole === 'USER') {
-        // Обычный пользователь - все кнопки доступны
-        requestCards[0].querySelector('button').textContent = 'Стать продавцом';
-        requestCards[1].querySelector('button').textContent = 'Стать курьером';
-        requestCards[2].querySelector('button').textContent = 'Сняться с роли';
-        requestCards[2].style.opacity = '0.6';
-        requestCards[2].querySelector('button').disabled = true;
     }
 }
 

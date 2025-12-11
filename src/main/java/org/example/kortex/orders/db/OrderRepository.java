@@ -2,6 +2,7 @@ package org.example.kortex.orders.db;
 
 import org.aspectj.weaver.ast.Or;
 import org.example.kortex.products.db.Product;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -37,7 +38,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "user"})
     @Query("SELECT DISTINCT o FROM Order o WHERE o.courier.id = :courierId ORDER BY o.orderDate DESC")
-    List<Order> assignedOrdersPage(@Param("courierId") Long courierId,
+    Page<Order> assignedOrdersPage(@Param("courierId") Long courierId,
                                Pageable pageable);
 
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "user"})
@@ -46,6 +47,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "user"})
     @Query("SELECT DISTINCT o FROM Order o WHERE o.courier IS NULL AND o.status = 'PENDING' ORDER BY o.orderDate DESC")
-    List<Order> availableOrdersPage(Pageable pageable);
+    Page<Order> availableOrdersPage(Pageable pageable);
 
 }

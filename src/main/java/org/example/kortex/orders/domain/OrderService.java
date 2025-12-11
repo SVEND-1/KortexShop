@@ -16,6 +16,7 @@ import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,7 +52,8 @@ public class OrderService {
         return orderRepository.findByIdWithItems(id);
     }
 
-    public List<Order> assignedCourierOrders(Long userId){
+    // Существующий метод возвращает List
+    public List<Order> assignedCourierOrders(Long userId) {
         User courier = userService.getById(userId);
         validateCourier(courier);
         List<Order> orders = orderRepository.assignedOrders(userId);
@@ -59,24 +61,37 @@ public class OrderService {
         return orders;
     }
 
-    public List<Order> assignedCourierOrdersPage(OrdersSearchCourierFilter filter){
-        log.info("Заказы курьера с фильром: " + filter);
-        User courier = userService.getById(filter.userId());
+    // Новый метод для пагинации возвращает Page
+    public Page<Order> assignedCourierOrdersPage(Long userId, Integer pageSize, Integer pageNumber) {
+        User courier = userService.getById(userId);
+        validateCourier(courier);
 
+        pageSize = pageSize != null ? pageSize : 8;
+        pageNumber = pageNumber != null ? pageNumber : 0;
+        Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
+
+        Page<Order> orders = orderRepository.assignedOrdersPage(userId, pageable);
+        log.info("Заказы курьера с пагинацией выданы id курьера: " + userId);
+        return orders;
+    }
+
+    // Или обновите метод с фильтром
+    public Page<Order> assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
+        log.info("Заказы курьера с фильтром: " + filter);
+        User courier = userService.getById(filter.userId());
         validateCourier(courier);
 
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 8;
         int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
-        Pageable pageable = Pageable
-                .ofSize(pageSize)
-                .withPage(pageNumber);
+        Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        List<Order> orders =  orderRepository.assignedOrdersPage(filter.userId(),pageable);
-        log.info("Заказы курьера с фильром выданы");
+        var orders = orderRepository.assignedOrdersPage(filter.userId(), pageable);
+        log.info("Заказы курьера с фильтром выданы");
         return orders;
     }
 
-    public List<Order> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
+
+    public Page<Order> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
         log.info("Запрос доступный заказов для курьеров");
         pageSize = pageSize != null ? pageSize : 36;
         pageNumber = pageNumber != null ? pageNumber : 0;
@@ -84,7 +99,7 @@ public class OrderService {
                 .ofSize(pageSize)
                 .withPage(pageNumber);
 
-        List<Order> orders = orderRepository.availableOrdersPage(pageable);
+        var orders = orderRepository.availableOrdersPage(pageable);
         log.info("Доступные заказы для курьеров выданы ");
         return orders;
     }
@@ -108,7 +123,7 @@ public class OrderService {
 
     public Order setStatus(Order order, Order.OrderStatus status) {
         log.info("Изменения статуса заказа " + order.getId() + " на статсус " + status.name());
-        if(status == Order.OrderStatus.CANCELLED && order.getStatus() == Order.OrderStatus.DISPATCHED) {
+        if(status == Order.OrderStatus.CANCELLED) {
             log.info("Запрос курьера на отказ от заказа");
             order.setCourier(null);
             status = Order.OrderStatus.PENDING;
