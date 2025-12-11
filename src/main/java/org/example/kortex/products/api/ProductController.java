@@ -1,6 +1,7 @@
 package org.example.kortex.products.api;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.products.api.dto.ProductMapper;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,10 +14,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/products")
 public class ProductController {
     private final ProductService productService;
+    private final ProductMapper productMapper;
 
     @Autowired
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, ProductMapper productMapper)
+    {
         this.productService = productService;
+        this.productMapper = productMapper;
     }
 
     @GetMapping
@@ -27,7 +31,7 @@ public class ProductController {
         //Можно фильтровать по катерогиям и запросы,можнол только по категориям и только по запросу ,а можно вообще полный список
         try {
             ProductSearchFilter filter = new ProductSearchFilter(category, query, pageSize, pageNumber);
-            return ResponseEntity.ok().body(productService.findProductsFilter(filter));
+            return ResponseEntity.ok().body(productMapper.toDtoList(productService.findProductsFilter(filter)));
         }
         catch (Exception e) {
             log.error("Не удалось загрузить товары для пользователя " + e.getMessage());
@@ -39,7 +43,7 @@ public class ProductController {
     public ResponseEntity<?> productDetailPage(@PathVariable String id)  {
         try {
             Product product = productService.getById(Long.parseLong(id));
-            return ResponseEntity.ok(product);
+            return ResponseEntity.ok(productMapper.toDto(product));
         }
         catch (Exception e) {
             log.error("Не удалось загрузить данные товара " + e.getMessage());

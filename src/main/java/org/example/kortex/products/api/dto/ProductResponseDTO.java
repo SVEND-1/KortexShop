@@ -3,6 +3,7 @@ package org.example.kortex.products.api.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.kortex.products.db.Product;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +19,7 @@ public class ProductResponseDTO {
     private Long sellerId;
     private String sellerName;
     private String sellerEmail;
+
 
 
 }

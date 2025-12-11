@@ -410,7 +410,7 @@ async function addToCart(productId) {
 // Просмотр деталей товара
 function viewProductDetails(productId) {
     // Используем относительный путь
-    window.location.href = `/product/${productId}`;
+    window.location.href = `/api/products/${productId}`;
 }
 
 // Делаем карточки товаров кликабельными

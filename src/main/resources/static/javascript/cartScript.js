@@ -1,4 +1,4 @@
-// Скрипт для корзины
+// Скрипт для корзины - исправленная версия с правильными путями к изображениям
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Страница корзины загружена');
     initializeCart();
@@ -30,32 +30,62 @@ function displayCartItems() {
     cartWithItems.style.display = 'block';
 
     // Отображаем товары
-    cartItemsContainer.innerHTML = cartItems.map(item => `
+    cartItemsContainer.innerHTML = cartItems.map(item => {
+        // Формируем правильный путь к изображению
+        // Если в item есть поле image, используем его
+        const imagePath = item.image
+            ? `/uploads/images/${item.image}`  // Основной путь из DTO
+            : (window.imageUploader ? window.imageUploader.getImage(item.id) : '/images/product-img.png');
+
+        // Получаем описание товара
+        const description = window.productManager?.getProductById(item.id)?.description ||
+            item.description || 'Описание товара';
+
+        return `
         <div class="cart-item" data-product-id="${item.id}">
             <div class="item-image">
-                <img src="${window.imageUploader.getImage(item.id)}" alt="${item.name}" 
-                     onerror="this.src='images/product-img.png'">
+                <img src="${imagePath}" alt="${item.name}" 
+                     onerror="this.onerror=null; this.src='/images/product-img.png'"
+                     style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
             </div>
             <div class="item-details">
                 <h3 class="item-name">${item.name}</h3>
-                <p class="item-description">${window.productManager.getProductById(item.id)?.description || 'Описание товара'}</p>
-                <div class="item-price">${formatPrice(item.price)}</div>
+                <p class="item-description" style="color: #666; font-size: 14px; margin: 5px 0;">
+                    ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}
+                </p>
+                <div class="item-price" style="font-size: 18px; font-weight: bold; color: #2d3748;">
+                    ${formatPrice(item.price)}
+                </div>
+                <div class="item-subtotal" style="color: #718096; font-size: 14px;">
+                    Итого: ${formatPrice(item.price * item.quantity)}
+                </div>
             </div>
             <div class="item-controls">
                 <!-- Форма для изменения количества -->
-                <div class="quantity-controls">
-                    <button type="button" class="quantity-btn minus-btn" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">-</button>
-                    <span class="quantity">${item.quantity}</span>
-                    <button type="button" class="quantity-btn plus-btn" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">+</button>
+                <div class="quantity-controls" style="display: flex; align-items: center; gap: 10px;">
+                    <button type="button" class="quantity-btn minus-btn" 
+                            onclick="event.stopPropagation(); updateQuantity(${item.id}, ${item.quantity - 1})"
+                            style="padding: 5px 15px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                        -
+                    </button>
+                    <span class="quantity" style="font-weight: bold;">${item.quantity}</span>
+                    <button type="button" class="quantity-btn plus-btn" 
+                            onclick="event.stopPropagation(); updateQuantity(${item.id}, ${item.quantity + 1})"
+                            style="padding: 5px 15px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                        +
+                    </button>
                 </div>
                 
                 <!-- Кнопка удаления -->
-                <button type="button" class="remove-btn" onclick="removeFromCart(${item.id})">
+                <button type="button" class="remove-btn" 
+                        onclick="event.stopPropagation(); removeFromCart(${item.id})"
+                        style="padding: 8px 16px; background: #fed7d7; color: #c53030; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px;">
                     Удалить
                 </button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     // Обновляем итоги
     updateCartSummary();
@@ -65,12 +95,23 @@ function displayCartItems() {
 }
 
 function updateCartSummary() {
-    const totalItems = window.cartManager.getTotalItems();
-    const totalPrice = window.cartManager.getTotalPrice();
+    const cartItems = window.cartManager.getCartItems();
+    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    document.getElementById('totalItemsText').textContent = `Товары (${totalItems})`;
-    document.getElementById('totalPrice').textContent = formatPrice(totalPrice);
-    document.getElementById('finalTotal').textContent = formatPrice(totalPrice);
+    const totalItemsElement = document.getElementById('totalItemsText');
+    const totalPriceElement = document.getElementById('totalPrice');
+    const finalTotalElement = document.getElementById('finalTotal');
+
+    if (totalItemsElement) {
+        totalItemsElement.textContent = `Товары (${totalItems})`;
+    }
+    if (totalPriceElement) {
+        totalPriceElement.textContent = formatPrice(totalPrice);
+    }
+    if (finalTotalElement) {
+        finalTotalElement.textContent = formatPrice(totalPrice);
+    }
 }
 
 function setupCartEvents() {
@@ -85,22 +126,95 @@ function setupCartEvents() {
 }
 
 function updateQuantity(productId, newQuantity) {
-    window.cartManager.updateQuantity(productId, newQuantity);
+    if (newQuantity < 1) {
+        if (confirm('Удалить товар из корзины?')) {
+            window.cartManager.removeFromCart(productId);
+        }
+        return;
+    }
+
+    // Обновляем количество через cartManager
+    if (window.cartManager && window.cartManager.updateQuantity) {
+        window.cartManager.updateQuantity(productId, newQuantity);
+    } else {
+        // Fallback: обновляем localStorage напрямую
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const itemIndex = cart.findIndex(item => item.id == productId);
+
+        if (itemIndex !== -1) {
+            cart[itemIndex].quantity = newQuantity;
+            localStorage.setItem('cart', JSON.stringify(cart));
+            displayCartItems();
+        }
+    }
 }
 
 function removeFromCart(productId) {
     if (confirm('Удалить товар из корзины?')) {
-        window.cartManager.removeFromCart(productId);
+        if (window.cartManager && window.cartManager.removeFromCart) {
+            window.cartManager.removeFromCart(productId);
+        } else {
+            // Fallback: удаляем из localStorage
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            cart = cart.filter(item => item.id != productId);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            displayCartItems();
+        }
     }
 }
 
 function checkout() {
-    const order = window.cartManager.checkout();
-    if (order) {
-        alert(`Заказ оформлен! Номер заказа: ${order.id}\nСумма: ${formatPrice(order.total)}`);
-        window.location.href = '/profile'; // Переходим в профиль чтобы увидеть историю
-    } else {
-        alert('Корзина пуста!');
+    try {
+        // Получаем текущую корзину
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+        if (cart.length === 0) {
+            alert('Корзина пуста!');
+            return;
+        }
+
+        // Подготавливаем данные для заказа
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const orderData = {
+            items: cart.map(item => ({
+                productId: item.id,
+                quantity: item.quantity,
+                price: item.price
+            })),
+            total: total
+        };
+
+        // Отправляем заказ на сервер
+        fetch('/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Ошибка при оформлении заказа');
+            })
+            .then(order => {
+                alert(`Заказ оформлен! Номер заказа: ${order.id}\nСумма: ${formatPrice(order.total)}`);
+
+                // Очищаем корзину после успешного оформления
+                localStorage.removeItem('cart');
+
+                // Переходим в профиль или на страницу заказа
+                window.location.href = `/order/${order.id}`;
+            })
+            .catch(error => {
+                console.error('Ошибка оформления заказа:', error);
+                alert('Ошибка при оформлении заказа. Попробуйте позже.');
+            });
+
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при оформлении заказа');
     }
 }
 
@@ -117,11 +231,7 @@ function makeCartItemsClickable() {
 }
 
 function viewProductDetails(productId) {
-    const product = window.productManager.getProductById(productId);
-    if (product) {
-        localStorage.setItem('currentProduct', JSON.stringify(product));
-        window.location.href = '/productForm';
-    }
+    window.location.href = `/product/${productId}`;
 }
 
 function formatPrice(price) {
@@ -131,3 +241,13 @@ function formatPrice(price) {
         minimumFractionDigits: 0
     }).format(price);
 }
+
+// Экспортируем функции для использования
+window.cartPage = {
+    displayCartItems,
+    updateCartSummary,
+    updateQuantity,
+    removeFromCart,
+    checkout,
+    formatPrice
+};

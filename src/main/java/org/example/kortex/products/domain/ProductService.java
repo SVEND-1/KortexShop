@@ -3,6 +3,7 @@ package org.example.kortex.products.domain;
 import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.products.api.dto.ProductMapper;
 import org.example.kortex.products.api.dto.ProductResponseDTO;
 import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.db.Product;
@@ -21,13 +22,15 @@ import java.util.stream.Collectors;
 @Transactional
 public class ProductService {
     private final ProductRepository productRepository;
-
+    private final ProductMapper productMapper;
     @Autowired
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(ProductRepository productRepository, ProductMapper productMapper)
+    {
         this.productRepository = productRepository;
+        this.productMapper = productMapper;
     }
 
-    public List<ProductResponseDTO> findProductsFilter(ProductSearchFilter filter){
+    public List<Product> findProductsFilter(ProductSearchFilter filter){
         log.info("Запрос на выдачу всех товаров с фильром: " + filter);
         Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
@@ -39,30 +42,9 @@ public class ProductService {
         List<Product> products = productRepository.findProductsFilter(category,query,pageable);
 
         log.info("Выдача всех товаров с фильтром: " + filter );
-        return products.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-
+        return products;
     }
 
-    private ProductResponseDTO convertToDTO(Product product) {
-        ProductResponseDTO dto = new ProductResponseDTO();
-        dto.setId(product.getId());
-        dto.setName(product.getName());
-        dto.setDescription(product.getDescription());
-        dto.setPrice(product.getPrice());
-        dto.setCount(product.getCount());
-        dto.setCategory(product.getCategory() != null ? product.getCategory().name() : null);
-        dto.setImage(product.getImage());
-
-        if (product.getSeller() != null) {
-            dto.setSellerId(product.getSeller().getId());
-            dto.setSellerName(product.getSeller().getName());
-            dto.setSellerEmail(product.getSeller().getEmail());
-        }
-
-        return dto;
-    }
 
     public List<Product> getProductsBySeller(Long sellerId) {
         log.info("Запрос на товары у продавца: " + sellerId);

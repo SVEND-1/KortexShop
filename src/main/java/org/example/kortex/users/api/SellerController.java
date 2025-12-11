@@ -1,6 +1,7 @@
 package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.products.api.dto.ProductMapper;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
@@ -31,11 +32,13 @@ import java.util.UUID;
 public class SellerController {
     private final ProductService productService;
     private final UserService userService;
+    private final ProductMapper productMapper;
 
     @Autowired
-    public SellerController(ProductService productService, UserService userService) {
+    public SellerController(ProductService productService, UserService userService,ProductMapper productMapper) {
         this.productService = productService;
         this.userService = userService;
+        this.productMapper = productMapper;
     }
 
     @GetMapping("/products")
@@ -44,7 +47,7 @@ public class SellerController {
             User seller = userService.getCurrentUser();
             List<Product> products = productService.getProductsBySeller(seller.getId());
             log.info("Выданы продукты продовца");
-            return ResponseEntity.ok(products);
+            return ResponseEntity.ok(productMapper.toDtoList(products));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении товаров: " + e.getMessage());
@@ -64,7 +67,7 @@ public class SellerController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
             }
 
-            return ResponseEntity.ok(product);
+            return ResponseEntity.ok(productMapper.toDto(product));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка: " + e.getMessage());
@@ -131,7 +134,7 @@ public class SellerController {
             log.info("Обновление товара с id: " + id);
             Product existingProduct = productService.getById(id);
 
-            if (existingProduct == null) {//TODO в service мб
+            if (existingProduct == null) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Товар не найден");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
