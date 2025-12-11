@@ -282,24 +282,24 @@
     .auth-form {
         padding: 20px;
     }
-
+    
     .tabs {
         flex-direction: column;
     }
-
+    
     .tab-button {
         width: 100%;
         text-align: center;
     }
-
+    
     .product-details {
         grid-template-columns: 1fr;
     }
-
+    
     .product-actions {
         flex-direction: column;
     }
-
+    
     .form-buttons {
         flex-direction: column;
     }

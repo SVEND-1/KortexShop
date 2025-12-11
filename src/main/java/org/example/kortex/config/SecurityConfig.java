@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .antMatchers("/profile","/cart",
                         "/api/users/role-request/**","/api/users/**","/api/orders/**","/api/carts/**")
                         .hasAnyRole(User.Role.USER.name(),User.Role.ADMIN.name(),User.Role.COURIER.name(),User.Role.SELLER.name())
-                .antMatchers("/api/couriers/**")
+                .antMatchers("/api/couriers/**","/courier")
                         .hasAnyRole(User.Role.ADMIN.name(),User.Role.COURIER.name())
                 .antMatchers("/seller","/api/sellers/**")
                         .hasAnyRole(User.Role.ADMIN.name(),User.Role.SELLER.name())

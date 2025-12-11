@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class EmailSenderService {
         this.javaMailSender = javaMailSender;
     }
 
+    @Async
     public void sendMessage(String to, String subject, String content) {
         log.info("Отпрвавка сообщение на почту: " + to);
         SimpleMailMessage message = new SimpleMailMessage();
@@ -34,6 +36,7 @@ public class EmailSenderService {
         log.info("Сообщение отправлено на почту: " + to);
     }
 
+    @Async
     public void sendPasswordResetEmail(String to, String code) {
         log.info("Отпрвавка сообщение на изменения сброс на почту: " + to + " с кодом " + code);
         SimpleMailMessage message = new SimpleMailMessage();
@@ -57,6 +60,7 @@ public class EmailSenderService {
         log.info("Сообщение отправлено на изменения сброс на почту: " + to + " с кодом " + code);
     }
 
+    @Async
     public String sendVerification(String to,String code) {
         log.info("Отпрвавка сообщение на регистрацию на почту: " + to + " с кодом " + code);
         SimpleMailMessage message = new SimpleMailMessage();

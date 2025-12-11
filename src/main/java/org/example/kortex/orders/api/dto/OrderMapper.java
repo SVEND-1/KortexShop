@@ -36,8 +36,6 @@ public class OrderMapper {
         return dto;
     }
 
-
-
     private OrderItemDTO toItemDto(OrderItem item) {
         OrderItemDTO dto = new OrderItemDTO();
 
@@ -53,17 +51,6 @@ public class OrderMapper {
         dto.setCount(item.getQuantity() != null ? item.getQuantity() : 0);
 
         return dto;
-    }
-
-
-    public List<OrderItemDTO> toDtoItemsList(List<OrderItem> ordersItem) {
-        if (ordersItem == null) {
-            return Collections.emptyList();
-        }
-
-        return ordersItem.stream()
-                .map(this::toItemDto)
-                .collect(Collectors.toList());
     }
 
     public List<OrderResponseDTO> toDtoList(List<Order> orders) {

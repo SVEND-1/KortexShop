@@ -48,7 +48,6 @@ public class RoleRequest {//Добавить снять или повысить
     }
 
 
-
     public RoleRequest() {}
 
     public RoleRequest(User user, User.Role requestedRole, String message) {

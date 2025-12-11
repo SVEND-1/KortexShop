@@ -1,85 +1,193 @@
-// cartManager.js - Server-backed Cart Manager (DTO format A)
-// Expected server responses:
-// GET  /api/carts/me  -> { items: [{id, productId, productName, price, quantity}], total: number }
-// POST /api/carts/items?productId= -> returns added item or 200
-// PATCH/DELETE endpoints as used below.
-//
-// Always uses credentials: 'same-origin' so Spring session cookies are sent.
+// cartManager.js - Исправленная версия для твоего CartController
 
 class CartManager {
     constructor() {
         this.cart = { items: [], total: 0 };
-        // Try to load immediately
-        this._ready = this.refreshFromServer().catch(() => {});
+        this._ready = this.refreshFromServer().catch(e => {
+            console.error('Ошибка инициализации корзины:', e);
+        });
     }
 
-    // Public: ensure initial load finished
     async ready() {
         return this._ready;
     }
 
+    // Загружаем корзину через /api/carts/me
     async refreshFromServer() {
         try {
-            const resp = await fetch('/api/carts/me', { method: 'GET', credentials: 'same-origin' });
-            if (!resp.ok) {
-                // if server returns 401 or 403, keep cart empty
-                console.warn('Failed to load cart from server', resp.status);
-                this.cart = { items: [], total: 0 };
-                window.dispatchEvent(new CustomEvent('cartUpdated', { detail: this.cart }));
-                return this.cart;
+            const response = await fetch('/api/carts/me', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    console.log('Пользователь не авторизован, корзина пустая');
+                    this.cart = { items: [], total: 0 };
+                    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: this.cart }));
+                    return this.cart;
+                }
+                throw new Error(`HTTP ${response.status}`);
             }
-            const data = await resp.json();
-            // Normalize fields just in case
-            this.cart = {
-                items: Array.isArray(data.items) ? data.items : [],
-                total: (typeof data.total === 'number') ? data.total : (Array.isArray(data.items) ? data.items.reduce((s,i)=>s + (i.price * i.quantity),0) : 0)
-            };
-            window.dispatchEvent(new CustomEvent('cartUpdated', { detail: this.cart }));
+
+            const data = await response.json();
+
+            // ВАЖНО: адаптируем данные под формат, который ждет фронт
+            // Проверяем структуру ответа
+            console.log('Данные корзины с сервера:', data);
+
+            if (data.items && Array.isArray(data.items)) {
+                // Формат 1: есть поле items
+                this.cart = {
+                    items: data.items.map(item => ({
+                        id: item.id,
+                        productId: item.productId,
+                        productName: item.productName || item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        description: item.description,
+                        image: item.image
+                    })),
+                    total: data.total || 0
+                };
+            } else if (data.cartItems && Array.isArray(data.cartItems)) {
+                // Формат 2: есть поле cartItems (из /me-create)
+                this.cart = {
+                    items: data.cartItems.map(item => ({
+                        id: item.id,
+                        productId: item.productId,
+                        productName: item.productName || item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        description: item.description,
+                        image: item.image
+                    })),
+                    total: data.totalPrice || data.total || 0
+                };
+            } else {
+                // Неизвестный формат, пробуем адаптировать
+                this.cart = {
+                    items: Array.isArray(data) ? data : [],
+                    total: data.total || 0
+                };
+            }
+
+            window.dispatchEvent(new CustomEvent('cartUpdated', {
+                detail: this.cart
+            }));
+
             return this.cart;
-        } catch (e) {
-            console.error('Error loading cart from server', e);
+
+        } catch (error) {
+            console.error('Ошибка загрузки корзины:', error);
             this.cart = { items: [], total: 0 };
             window.dispatchEvent(new CustomEvent('cartUpdated', { detail: this.cart }));
             return this.cart;
         }
     }
 
-    async addItem(productId, quantity = 1) {
+    // Добавить товар (без quantity параметра, как в твоем API)
+    async addItem(productId) {
         try {
-            const resp = await fetch(`/api/carts/items?productId=${encodeURIComponent(productId)}&quantity=${encodeURIComponent(quantity)}`, {
+            const response = await fetch(`/api/carts/items?productId=${productId}`, {
                 method: 'POST',
-                credentials: 'same-origin'
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
             });
-            if (!resp.ok) {
-                const err = await resp.json().catch(()=>null);
-                throw new Error(err && err.error ? err.error : ('HTTP ' + resp.status));
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Ошибка ${response.status}`);
             }
-            await this.refreshFromServer();
-        } catch (e) {
-            console.error('addItem error', e);
-            throw e;
+
+            // Обновляем корзину после добавления
+            return this.refreshFromServer();
+
+        } catch (error) {
+            console.error('Ошибка добавления товара:', error);
+            throw error;
         }
     }
 
+    // Увеличить количество
     async increase(itemId) {
-        const resp = await fetch(`/api/carts/items/${itemId}/increase`, { method: 'PATCH', credentials: 'same-origin' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        await this.refreshFromServer();
+        try {
+            const response = await fetch(`/api/carts/items/${itemId}/increase`, {
+                method: 'PATCH',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Ошибка ${response.status}`);
+            }
+
+            return this.refreshFromServer();
+
+        } catch (error) {
+            console.error('Ошибка увеличения количества:', error);
+            throw error;
+        }
     }
 
+    // Уменьшить количество
     async decrease(itemId) {
-        const resp = await fetch(`/api/carts/items/${itemId}/decrease`, { method: 'PATCH', credentials: 'same-origin' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        await this.refreshFromServer();
+        try {
+            const response = await fetch(`/api/carts/items/${itemId}/decrease`, {
+                method: 'PATCH',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Ошибка ${response.status}`);
+            }
+
+            return this.refreshFromServer();
+
+        } catch (error) {
+            console.error('Ошибка уменьшения количества:', error);
+            throw error;
+        }
     }
 
+    // Удалить товар
     async remove(itemId) {
-        const resp = await fetch(`/api/carts/items/${itemId}`, { method: 'DELETE', credentials: 'same-origin' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        await this.refreshFromServer();
+        try {
+            const response = await fetch(`/api/carts/items/${itemId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Ошибка ${response.status}`);
+            }
+
+            return this.refreshFromServer();
+
+        } catch (error) {
+            console.error('Ошибка удаления товара:', error);
+            throw error;
+        }
     }
 
-    // Utilities used by frontend
+    // Геттеры для фронта
     getItems() {
         return this.cart.items || [];
     }
@@ -88,11 +196,10 @@ class CartManager {
         return this.cart.total || 0;
     }
 
-    // Number of unique positions (variant 2)
     getUniqueCount() {
         return (this.cart.items || []).length;
     }
 }
 
-// expose singleton
+// Создаем глобальный экземпляр
 window.cartManager = new CartManager();

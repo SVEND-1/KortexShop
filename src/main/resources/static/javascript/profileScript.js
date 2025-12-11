@@ -1,874 +1,842 @@
-// Конфигурация API
-const API_BASE_URL = 'http://localhost:8080';
-const API_ENDPOINTS = {
-    CREATE_REQUEST: '/api/users/role-request',
-    GET_CURRENT_USER: '/api/users/me',
-    GET_USER_ORDERS: '/api/users/me-orders',
-    UPDATE_ADDRESS: '/api/users/address'
-};
+// profileScript.js - ПОЛНАЯ ВЕРСИЯ С ЗАЯВКАМИ НА РОЛИ
 
-// Константы для ролей
-const USER_ROLES = {
-    CUSTOMER: 'CUSTOMER',
-    SELLER: 'SELLER',
-    COURIER: 'COURIER',
-    ADMIN: 'ADMIN'
-};
-
-const TYPE_ACTION = {
-    ENHANCE: 'ENHANCE',
-    REMOVE: 'REMOVE'
-};
-
-const REQUEST_STATUS = {
-    PENDING: 'PENDING',
-    APPROVED: 'APPROVED',
-    REJECTED: 'REJECTED'
-};
-
-// Получить заголовки с токеном
-function getHeaders(contentType = 'application/x-www-form-urlencoded') {
-    const token = localStorage.getItem('authToken');
-    const headers = {};
-    
-    if (contentType) {
-        headers['Content-Type'] = contentType;
-    }
-    
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    return headers;
-}
-
-// Инициализация
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Страница профиля загружена');
-    initTabs();
-    initProfileForms();
-    
+    console.log('Загрузка страницы профиля...');
+
     try {
-        // Загружаем пользователя с сервера
-        const user = await getCurrentUser();
-        if (user) {
-            loadProfileData(user);
-            updateRoleButtons(user.role);
-            await loadUserOrders();
-        } else {
-            loadProfileData();
-            displayOrdersHistory();
-        }
+        // 1. Инициализируем UI
+        initTabs();
+        initProfileForms();
+        initModals();
+
+        // 2. Загружаем профиль пользователя через DTO
+        await loadUserProfile();
+
+        // 3. Загружаем заявки пользователя на роли
+        await loadUserRoleRequests();
+
+        // 4. Скрываем историю заказов (временно)
+        hideOrdersSection();
+
     } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
-        loadProfileData();
-        displayOrdersHistory();
+        console.error('Ошибка инициализации профиля:', error);
+        showProfileNotification('Ошибка загрузки профиля', 'error');
+        renderDefaultProfile();
     }
-    
-    loadLocalRequests();
-    initModals();
 });
 
-// Получить текущего пользователя с сервера
-async function getCurrentUser() {
+// ============ КОНСТАНТЫ И НАСТРОЙКИ ============
+
+const API_ENDPOINTS = {
+    GET_PROFILE: '/api/users/me',
+    UPDATE_ADDRESS: '/api/users/address',
+    CREATE_ROLE_REQUEST: '/api/users/role-request',
+    GET_ROLE_REQUESTS: '/api/users/role-request'
+};
+
+const ROLE_MAP = {
+    'USER': { text: 'Покупатель', icon: '👤' },
+    'SELLER': { text: 'Продавец', icon: '🏪' },
+    'COURIER': { text: 'Курьер', icon: '🚚' },
+    'ADMIN': { text: 'Админ', icon: '⚙️' }
+};
+
+const REQUEST_STATUS_MAP = {
+    'PENDING': { text: '⏳ Ожидает', class: 'pending' },
+    'APPROVED': { text: '✅ Одобрено', class: 'approved' },
+    'REJECTED': { text: '❌ Отклонено', class: 'rejected' }
+};
+
+// ============ ЗАГРУЗКА ПРОФИЛЯ ============
+
+async function loadUserProfile() {
     try {
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.GET_CURRENT_USER}`, {
+        console.log('Запрос профиля через DTO...');
+
+        const response = await fetch(API_ENDPOINTS.GET_PROFILE, {
             method: 'GET',
-            headers: getHeaders('application/json')
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
         });
-        
-        if (response.ok) {
-            return await response.json();
-        } else if (response.status === 401) {
+
+        console.log('Статус профиля:', response.status);
+
+        if (response.status === 401) {
             console.warn('Пользователь не авторизован');
-            window.location.href = '/login';
-            return null;
-        } else {
-            console.error('Ошибка получения пользователя:', response.status);
-            return null;
+            window.location.href = '/login?redirect=/profile';
+            return;
         }
+
+        if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
+        }
+
+        const userData = await response.json();
+        console.log('Получен DTO профиль:', userData);
+
+        renderUserProfile(userData);
+        saveProfileToCache(userData);
+
     } catch (error) {
-        console.error('Ошибка сети:', error);
-        return null;
+        console.error('Ошибка загрузки профиля:', error);
+
+        // Пробуем загрузить из кэша
+        const cachedProfile = loadProfileFromCache();
+        if (cachedProfile) {
+            console.log('Используем кэшированный профиль');
+            renderUserProfile(cachedProfile);
+            showProfileNotification('⚠️ Используются локальные данные', 'warning');
+        } else {
+            renderDefaultProfile();
+        }
     }
 }
 
-// Загрузить заказы пользователя с сервера
-async function loadUserOrders() {
-    try {
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.GET_USER_ORDERS}`, {
-            method: 'GET',
-            headers: getHeaders('application/json')
+// ============ ОТОБРАЖЕНИЕ ПРОФИЛЯ ============
+
+function renderUserProfile(user) {
+    console.log('Рендерим профиль из DTO:', user);
+
+    // Основные поля из UserCartDTO
+    const name = user.name || 'Не указано';
+    const email = user.email || 'Не указан';
+    const address = user.address || 'Адрес не указан';
+    const role = user.role || 'USER';
+    const cartId = user.cartId || null;
+
+    // Заполняем форму
+    document.getElementById('profileName').value = name;
+    document.getElementById('profileEmail').value = email;
+    document.getElementById('profileAddress').value = address;
+
+    // Заголовок профиля
+    const profileNameElement = document.querySelector('.profile-name');
+    const profileEmailElement = document.querySelector('.profile-email');
+
+    if (profileNameElement) {
+        profileNameElement.textContent = name;
+    }
+
+    if (profileEmailElement) {
+        profileEmailElement.textContent = email;
+    }
+
+    // Отображаем роль
+    updateRoleDisplay(role);
+
+    // Обновляем кнопки ролей
+    updateRoleButtons(role);
+
+    // Сохраняем роль для использования в формах
+    document.body.dataset.userRole = role;
+}
+
+function renderDefaultProfile() {
+    const name = 'Гость';
+    const email = 'Войдите в аккаунт';
+
+    document.getElementById('profileName').value = name;
+    document.getElementById('profileEmail').value = email;
+    document.getElementById('profileAddress').value = '';
+
+    document.querySelector('.profile-name').textContent = name;
+    document.querySelector('.profile-email').textContent = email;
+
+    // Блокируем форму
+    const inputs = document.querySelectorAll('#personalForm input, #personalForm textarea');
+    inputs.forEach(input => input.disabled = true);
+
+    const submitBtn = document.querySelector('#personalForm .btn-primary');
+    if (submitBtn) submitBtn.disabled = true;
+}
+
+function updateRoleDisplay(role) {
+    const roleInfo = ROLE_MAP[role] || ROLE_MAP.USER;
+
+    // Обновляем отображение роли
+    const roleElements = document.querySelectorAll('.user-role-display');
+    roleElements.forEach(el => {
+        el.innerHTML = `${roleInfo.icon} ${roleInfo.text}`;
+    });
+
+    // Обновляем кнопки в зависимости от роли
+    const roleButtons = document.querySelectorAll('.role-buttons a');
+    roleButtons.forEach(btn => {
+        if (btn.classList.contains('btn-seller') && role === 'SELLER') {
+            btn.style.display = 'none';
+        } else if (btn.classList.contains('btn-courier') && role === 'COURIER') {
+            btn.style.display = 'none';
+        } else if (btn.classList.contains('btn-admin') && role !== 'ADMIN') {
+            btn.style.display = 'none';
+        }
+    });
+}
+
+// ============ ОБНОВЛЕНИЕ ПРОФИЛЯ ============
+
+function initProfileForms() {
+    const personalForm = document.getElementById('personalForm');
+    if (personalForm) {
+        personalForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await updateUserProfile();
         });
-        
-        if (response.ok) {
-            const orders = await response.json();
-            displayOrdersFromServer(orders);
-            updateProfileStats(orders.length);
-        } else {
-            console.error('Ошибка загрузки заказов:', response.status);
-            displayOrdersHistory();
-        }
-    } catch (error) {
-        console.error('Ошибка сети при загрузке заказов:', error);
-        displayOrdersHistory();
     }
 }
 
-// Отобразить заказы с сервера
-function displayOrdersFromServer(orders) {
-    const ordersGrid = document.getElementById('ordersGrid');
-    if (!ordersGrid) return;
-    
-    if (!orders || orders.length === 0) {
-        ordersGrid.innerHTML = `
-            <div class="empty-orders">
-                <div class="empty-orders-icon">
-                    <img src="images/empty-cart.svg" alt="Пустая история заказов" style="width: 80px; height: 80px;">
-                </div>
-                <h2>История заказов пуста</h2>
-                <p>Здесь появятся ваши завершенные заказы после оформления</p>
-                <a href="/" class="btn btn-primary" style="display: inline-block; margin-top: 15px;">
-                    Перейти к покупкам
-                </a>
-            </div>
-        `;
+async function updateUserProfile() {
+    const name = document.getElementById('profileName').value.trim();
+    const address = document.getElementById('profileAddress').value.trim();
+
+    if (!name) {
+        showProfileNotification('Имя не может быть пустым', 'error');
         return;
     }
-    
-    let ordersHtml = '';
-    
-    orders.forEach(order => {
-        order.items?.forEach(item => {
-            ordersHtml += `
-                <div class="order-item" data-product-id="${item.id || ''}">
-                    <div class="product-image">
-                        <img src="${item.image || 'images/product-img.png'}" 
-                             alt="${item.name || 'Товар'}" 
-                             onerror="this.src='images/product-img.png'">
-                    </div>
-                    <div class="product-price">${formatPrice(item.price || 0)}</div>
-                    <div class="product-name">${item.name || 'Неизвестный товар'}</div>
-                    <div class="order-date">${formatDate(order.createdAt || new Date())}</div>
-                    <div class="order-quantity">Количество: ${item.quantity || 1}</div>
-                    <button class="order-btn" onclick="reorderProduct(${item.id || 0})">
-                        Заказать снова
-                    </button>
-                </div>
-            `;
-        });
-    });
-    
-    ordersGrid.innerHTML = ordersHtml;
-    makeOrderItemsClickable();
-}
 
-// Обновить статистику профиля
-function updateProfileStats(orderCount) {
-    const statValue = document.querySelector('.stat-value');
-    if (statValue) {
-        statValue.textContent = orderCount;
+    try {
+        const submitBtn = document.querySelector('#personalForm .btn-primary');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Сохранение...';
+
+        // Обновляем адрес через API
+        let serverUpdated = false;
+        try {
+            const params = new URLSearchParams();
+            params.append('newAddress', address);
+
+            const response = await fetch(API_ENDPOINTS.UPDATE_ADDRESS, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params,
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                serverUpdated = true;
+                console.log('Адрес обновлен на сервере');
+            }
+        } catch (serverError) {
+            console.warn('Не удалось обновить на сервере:', serverError);
+        }
+
+        // Обновляем локальные данные
+        const currentUser = loadProfileFromCache() || {};
+        const updatedProfile = {
+            ...currentUser,
+            name: name,
+            address: address,
+            updatedAt: new Date().toISOString()
+        };
+
+        saveProfileToCache(updatedProfile);
+        document.querySelector('.profile-name').textContent = name;
+
+        // Показываем уведомление
+        if (serverUpdated) {
+            showProfileNotification('✅ Профиль успешно обновлен!', 'success');
+        } else {
+            showProfileNotification('⚠️ Изменения сохранены локально', 'warning');
+        }
+
+    } catch (error) {
+        console.error('Ошибка обновления профиля:', error);
+        showProfileNotification('❌ Ошибка при обновлении', 'error');
+    } finally {
+        const submitBtn = document.querySelector('#personalForm .btn-primary');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Сохранить изменения';
+        }
     }
 }
 
-// Инициализация табов
+// ============ ЗАЯВКИ НА РОЛИ ============
+
+async function loadUserRoleRequests() {
+    try {
+        console.log('Загрузка заявок на роли...');
+
+        const response = await fetch(API_ENDPOINTS.GET_ROLE_REQUESTS, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const requests = await response.json();
+            console.log('Получены заявки:', requests);
+            renderRoleRequests(requests);
+        } else {
+            console.warn('Не удалось загрузить заявки:', response.status);
+            renderEmptyRequests();
+        }
+
+    } catch (error) {
+        console.error('Ошибка загрузки заявок:', error);
+        renderEmptyRequests();
+    }
+}
+
+function renderRoleRequests(requests) {
+    const requestsList = document.getElementById('requestsList');
+    if (!requestsList) return;
+
+    if (!requests || requests.length === 0) {
+        renderEmptyRequests();
+        return;
+    }
+
+    let requestsHtml = '';
+
+    requests.forEach(request => {
+        const statusInfo = REQUEST_STATUS_MAP[request.status] || REQUEST_STATUS_MAP.PENDING;
+        const date = formatDate(request.createdAt);
+        const roleText = getRoleText(request.requestedRole);
+        const actionText = request.typeAction === 'ENHANCE' ? 'Повышение до' : 'Снятие роли';
+
+        requestsHtml += `
+            <div class="request-item status-${statusInfo.class}">
+                <div class="request-header">
+                    <span class="request-action">${actionText}</span>
+                    <span class="request-role">${roleText}</span>
+                    <span class="request-date">${date}</span>
+                </div>
+                <div class="request-body">
+                    <p class="request-message">${request.message || 'Без описания'}</p>
+                </div>
+                <div class="request-footer">
+                    <span class="request-status ${statusInfo.class}">${statusInfo.text}</span>
+                    <span class="request-id">ID: ${request.id}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    requestsList.innerHTML = requestsHtml;
+}
+
+function renderEmptyRequests() {
+    const requestsList = document.getElementById('requestsList');
+    if (!requestsList) return;
+
+    requestsList.innerHTML = `
+        <div class="no-requests">
+            <div class="no-requests-icon">📭</div>
+            <p>У вас еще нет отправленных заявок</p>
+            <p class="no-requests-hint">Отправьте заявку на изменение роли выше</p>
+        </div>
+    `;
+}
+
+async function submitRoleRequest(type, requestedRole, message) {
+    try {
+        const params = new URLSearchParams();
+        params.append('requestedRole', requestedRole);
+        params.append('typeAction', type);
+        params.append('message', message);
+
+        console.log('Отправка заявки:', { type, requestedRole, message });
+
+        const response = await fetch(API_ENDPOINTS.CREATE_ROLE_REQUEST, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params,
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Заявка создана:', result);
+
+            showProfileNotification('✅ Заявка успешно отправлена!', 'success');
+
+            // Обновляем список заявок
+            await loadUserRoleRequests();
+
+            return result;
+        } else {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Ошибка сервера');
+        }
+
+    } catch (error) {
+        console.error('Ошибка отправки заявки:', error);
+        throw error;
+    }
+}
+
+// ============ ИНИЦИАЛИЗАЦИЯ МОДАЛЬНЫХ ОКОН ============
+
+function initModals() {
+    // Счетчики символов
+    const textAreas = document.querySelectorAll('textarea[maxlength]');
+    textAreas.forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            const counter = this.parentNode.querySelector('.char-counter span');
+            if (counter) {
+                counter.textContent = this.value.length;
+            }
+        });
+    });
+
+    // Обработка формы повышения роли
+    const requestForm = document.getElementById('requestForm');
+    if (requestForm) {
+        requestForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleEnhanceRequest();
+        });
+    }
+
+    // Обработка формы снятия роли
+    const downgradeForm = document.getElementById('downgradeForm');
+    if (downgradeForm) {
+        downgradeForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await handleDowngradeRequest();
+        });
+    }
+
+    // Закрытие модалок
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this || e.target.classList.contains('modal-close')) {
+                this.style.display = 'none';
+                this.querySelector('form')?.reset();
+            }
+        });
+    });
+
+    // Закрытие по Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            modals.forEach(modal => {
+                modal.style.display = 'none';
+                modal.querySelector('form')?.reset();
+            });
+        }
+    });
+
+    // Обновление текста при выборе роли
+    const roleSelect = document.getElementById('requestRole');
+    if (roleSelect) {
+        roleSelect.addEventListener('change', function() {
+            const roleName = this.options[this.selectedIndex].text;
+            document.getElementById('roleName').textContent = roleName.toLowerCase();
+        });
+    }
+}
+
+async function handleEnhanceRequest() {
+    const role = document.getElementById('requestRole').value;
+    const message = document.getElementById('requestMessage').value.trim();
+
+    if (!role) {
+        showProfileNotification('Выберите роль', 'error');
+        return;
+    }
+
+    if (message.length < 20) {
+        showProfileNotification('Опишите причину подробнее (минимум 20 символов)', 'error');
+        return;
+    }
+
+    try {
+        const submitBtn = requestForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Отправка...';
+
+        await submitRoleRequest('ENHANCE', role, message);
+
+        closeRequestModal();
+
+    } catch (error) {
+        console.error('Ошибка отправки заявки:', error);
+        showProfileNotification(`❌ Ошибка: ${error.message}`, 'error');
+    } finally {
+        const submitBtn = requestForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Отправить заявку';
+        }
+    }
+}
+
+async function handleDowngradeRequest() {
+    const currentRole = document.getElementById('currentRole').value;
+    const message = document.getElementById('downgradeMessage').value.trim();
+
+    if (!currentRole) {
+        showProfileNotification('Выберите текущую роль', 'error');
+        return;
+    }
+
+    if (message.length < 20) {
+        showProfileNotification('Опишите причину подробнее (минимум 20 символов)', 'error');
+        return;
+    }
+
+    try {
+        const submitBtn = downgradeForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Отправка...';
+
+        // При downgrade requestedRole = USER
+        await submitRoleRequest('REMOVE', 'USER', message);
+
+        closeDowngradeModal();
+
+    } catch (error) {
+        console.error('Ошибка отправки заявки:', error);
+        showProfileNotification(`❌ Ошибка: ${error.message}`, 'error');
+    } finally {
+        const submitBtn = downgradeForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Отправить заявку';
+        }
+    }
+}
+
+// ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
+
+function hideOrdersSection() {
+    const ordersSection = document.querySelector('.orders-history');
+    if (ordersSection) {
+        ordersSection.style.display = 'none';
+    }
+}
+
+function updateRoleButtons(userRole) {
+    const requestCards = document.querySelectorAll('.request-card');
+
+    if (!requestCards) return;
+
+    // Блокируем кнопки в зависимости от текущей роли
+    if (userRole === 'SELLER') {
+        requestCards[0].style.opacity = '0.6';
+        requestCards[0].querySelector('button').disabled = true;
+        requestCards[0].querySelector('button').textContent = 'Вы уже продавец';
+
+        requestCards[1].style.opacity = '1';
+        requestCards[1].querySelector('button').disabled = false;
+        requestCards[1].querySelector('button').textContent = 'Стать курьером';
+
+    } else if (userRole === 'COURIER') {
+        requestCards[1].style.opacity = '0.6';
+        requestCards[1].querySelector('button').disabled = true;
+        requestCards[1].querySelector('button').textContent = 'Вы уже курьер';
+
+        requestCards[0].style.opacity = '1';
+        requestCards[0].querySelector('button').disabled = false;
+        requestCards[0].querySelector('button').textContent = 'Стать продавцом';
+
+    } else if (userRole === 'ADMIN') {
+        requestCards.forEach(card => {
+            card.style.opacity = '0.6';
+            const button = card.querySelector('button');
+            button.disabled = true;
+            button.textContent = 'Недоступно для админа';
+        });
+    } else if (userRole === 'USER') {
+        // Обычный пользователь - все кнопки доступны
+        requestCards[0].querySelector('button').textContent = 'Стать продавцом';
+        requestCards[1].querySelector('button').textContent = 'Стать курьером';
+        requestCards[2].querySelector('button').textContent = 'Сняться с роли';
+        requestCards[2].style.opacity = '0.6';
+        requestCards[2].querySelector('button').disabled = true;
+    }
+}
+
+function getRoleText(role) {
+    return ROLE_MAP[role]?.text || role;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'Не указана';
+
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return dateString;
+    }
+}
+
+// ============ КЭШИРОВАНИЕ ============
+
+function saveProfileToCache(profile) {
+    try {
+        localStorage.setItem('userProfileCache', JSON.stringify({
+            ...profile,
+            cachedAt: new Date().toISOString()
+        }));
+    } catch (e) {
+        console.warn('Не удалось сохранить в кэш:', e);
+    }
+}
+
+function loadProfileFromCache() {
+    try {
+        const cached = localStorage.getItem('userProfileCache');
+        if (cached) {
+            const data = JSON.parse(cached);
+
+            // Проверяем свежесть кэша (24 часа)
+            const cachedAt = new Date(data.cachedAt);
+            const now = new Date();
+            const hoursDiff = (now - cachedAt) / (1000 * 60 * 60);
+
+            if (hoursDiff < 24) {
+                return data;
+            }
+        }
+    } catch (e) {
+        console.warn('Не удалось загрузить из кэша:', e);
+    }
+    return null;
+}
+
+// ============ UI КОМПОНЕНТЫ ============
+
 function initTabs() {
     const tabButtons = document.querySelectorAll('.tab-button');
-    
+
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
             const tabId = this.getAttribute('data-tab');
-            
+
             tabButtons.forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-            
+
             this.classList.add('active');
             document.getElementById(`${tabId}-tab`).classList.add('active');
         });
     });
 }
 
-// Инициализация форм профиля
-function initProfileForms() {
-    initPersonalForm();
-    initSettingsForm();
-    initAvatarUpload();
-}
-
-// Загрузка данных профиля
-function loadProfileData(userData = null) {
-    if (userData) {
-        document.getElementById('profileName').value = userData.name || 'Не указано';
-        document.getElementById('profileEmail').value = userData.email || 'Не указан';
-        document.getElementById('profileAddress').value = userData.address || 'Адрес не указан';
-        
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        localStorage.setItem('userRole', userData.role || USER_ROLES.CUSTOMER);
-        
-        document.querySelector('.profile-name').textContent = userData.name || 'Не указано';
-        document.querySelector('.profile-email').textContent = userData.email || 'Не указан';
-        
-    } else {
-        const profileData = JSON.parse(localStorage.getItem('userProfile') || '{}');
-        
-        document.getElementById('profileName').value = profileData.name || 'Иван Иванов';
-        document.getElementById('profileEmail').value = profileData.email || 'ivan@example.com';
-        document.getElementById('profileAddress').value = profileData.address || 'Адрес не указан';
-        
-        document.querySelector('.profile-name').textContent = profileData.name || 'Иван Иванов';
-        document.querySelector('.profile-email').textContent = profileData.email || 'ivan@example.com';
-    }
-}
-
-// Форма личной информации
-function initPersonalForm() {
-    const personalForm = document.getElementById('personalForm');
-    
-    if (personalForm) {
-        personalForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('profileName').value;
-            const email = document.getElementById('profileEmail').value;
-            const address = document.getElementById('profileAddress').value;
-            
-            try {
-                const params = new URLSearchParams();
-                params.append('newAddress', address);
-                
-                const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.UPDATE_ADDRESS}`, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: params
-                });
-                
-                if (response.ok) {
-                    const profileData = {
-                        name: name,
-                        email: email,
-                        address: address,
-                        avatar: localStorage.getItem('userAvatar') || 'images/avatar.jpg'
-                    };
-                    
-                    localStorage.setItem('userProfile', JSON.stringify(profileData));
-                    
-                    document.querySelector('.profile-name').textContent = name;
-                    document.querySelector('.profile-email').textContent = email;
-                    
-                    showProfileNotification('✅ Профиль успешно обновлен!', 'success');
-                } else {
-                    const errorText = await response.text();
-                    showProfileNotification(`❌ Ошибка: ${errorText || 'Не удалось обновить профиль'}`, 'error');
-                }
-            } catch (error) {
-                console.error('Ошибка обновления профиля:', error);
-                showProfileNotification('❌ Ошибка сети при обновлении профиля', 'error');
-            }
-        });
-    }
-}
-
-// Форма настроек
-function initSettingsForm() {
-    const settingsForm = document.getElementById('settingsForm');
-    
-    if (settingsForm) {
-        settingsForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            showProfileNotification('Настройки сохранены!', 'success');
-        });
-    }
-}
-
-// Загрузка аватарки
-function initAvatarUpload() {
-    const avatarInput = document.getElementById('avatarInput');
-    const avatarPreview = document.getElementById('avatarPreview');
-    const removeAvatarBtn = document.getElementById('removeAvatar');
-    
-    if (!avatarInput || !avatarPreview || !removeAvatarBtn) return;
-    
-    avatarInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imageUrl = e.target.result;
-                    
-                    avatarPreview.src = imageUrl;
-                    document.querySelector('.profile-avatar').src = imageUrl;
-                    
-                    localStorage.setItem('userAvatar', imageUrl);
-                    
-                    const profileData = JSON.parse(localStorage.getItem('userProfile') || '{}');
-                    profileData.avatar = imageUrl;
-                    localStorage.setItem('userProfile', JSON.stringify(profileData));
-                    
-                    showProfileNotification('Аватарка успешно обновлена!', 'success');
-                };
-                reader.readAsDataURL(file);
-            } else {
-                showProfileNotification('Пожалуйста, выберите файл изображения', 'error');
-            }
-        }
-    });
-    
-    removeAvatarBtn.addEventListener('click', function() {
-        const defaultAvatar = 'images/avatar.jpg';
-        
-        avatarPreview.src = defaultAvatar;
-        document.querySelector('.profile-avatar').src = defaultAvatar;
-        
-        localStorage.removeItem('userAvatar');
-        
-        const profileData = JSON.parse(localStorage.getItem('userProfile') || '{}');
-        profileData.avatar = defaultAvatar;
-        localStorage.setItem('userProfile', JSON.stringify(profileData));
-        
-        showProfileNotification('Аватарка удалена!', 'success');
-    });
-}
-
-// Инициализация модальных окон
-function initModals() {
-    const requestMessage = document.getElementById('requestMessage');
-    const downgradeMessage = document.getElementById('downgradeMessage');
-    
-    if (requestMessage) {
-        requestMessage.addEventListener('input', function() {
-            document.getElementById('charCount').textContent = this.value.length;
-        });
-    }
-    
-    if (downgradeMessage) {
-        downgradeMessage.addEventListener('input', function() {
-            document.getElementById('downgradeCharCount').textContent = this.value.length;
-        });
-    }
-    
-    const requestRole = document.getElementById('requestRole');
-    if (requestRole) {
-        requestRole.addEventListener('change', function() {
-            const roleName = this.options[this.selectedIndex].text;
-            document.getElementById('roleName').textContent = roleName.toLowerCase();
-        });
-    }
-    
-    const requestForm = document.getElementById('requestForm');
-    if (requestForm) {
-        requestForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitRequest();
-        });
-    }
-    
-    const downgradeForm = document.getElementById('downgradeForm');
-    if (downgradeForm) {
-        downgradeForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitDowngradeRequest();
-        });
-    }
-    
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                if (this.id === 'requestModal') {
-                    closeRequestModal();
-                } else if (this.id === 'downgradeModal') {
-                    closeDowngradeModal();
-                }
-            }
-        });
-    });
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeRequestModal();
-            closeDowngradeModal();
-        }
-    });
-}
-
-// Открыть модальное окно подачи заявки
-function openRequestModal(type = null) {
-    const modal = document.getElementById('requestModal');
-    const form = document.getElementById('requestForm');
-    const requestRole = document.getElementById('requestRole');
-    
-    if (!modal || !form || !requestRole) return;
-    
-    form.reset();
-    document.getElementById('charCount').textContent = '0';
-    
-    if (type === 'seller') {
-        requestRole.value = 'SELLER';
-        document.getElementById('roleName').textContent = 'продавцом';
-        document.getElementById('requestModalTitle').textContent = 'Заявка на роль продавца';
-    } else if (type === 'courier') {
-        requestRole.value = 'COURIER';
-        document.getElementById('roleName').textContent = 'курьером';
-        document.getElementById('requestModalTitle').textContent = 'Заявка на роль курьера';
-    } else {
-        requestRole.value = '';
-        document.getElementById('roleName').textContent = '...';
-        document.getElementById('requestModalTitle').textContent = 'Подача заявки';
-    }
-    
-    modal.style.display = 'flex';
-}
-
-// Закрыть модальное окно подачи заявки
-function closeRequestModal() {
-    const modal = document.getElementById('requestModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-// Открыть модальное окно снятия роли
-function openDowngradeModal() {
-    const modal = document.getElementById('downgradeModal');
-    const form = document.getElementById('downgradeForm');
-    const userRole = localStorage.getItem('userRole') || USER_ROLES.CUSTOMER;
-    
-    if (!modal || !form) return;
-    
-    form.reset();
-    document.getElementById('downgradeCharCount').textContent = '0';
-    
-    const currentRoleSelect = document.getElementById('currentRole');
-    
-    if (currentRoleSelect) {
-        if (userRole !== USER_ROLES.CUSTOMER) {
-            currentRoleSelect.value = userRole;
-            currentRoleSelect.disabled = true;
-            currentRoleSelect.title = 'Текущая роль определена автоматически';
-        } else {
-            currentRoleSelect.disabled = false;
-            currentRoleSelect.value = '';
-        }
-    }
-    
-    modal.style.display = 'flex';
-}
-
-// Закрыть модальное окно снятия роли
-function closeDowngradeModal() {
-    const modal = document.getElementById('downgradeModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-// Отправить заявку на повышение
-async function submitRequest() {
-    const role = document.getElementById('requestRole').value;
-    const message = document.getElementById('requestMessage').value.trim();
-    
-    if (!role) {
-        showProfileNotification('Пожалуйста, выберите роль', 'error');
-        return;
-    }
-    
-    if (message.length < 20) {
-        showProfileNotification('Пожалуйста, напишите более подробное описание (минимум 20 символов)', 'error');
-        return;
-    }
-    
-    if (message.length > 500) {
-        showProfileNotification('Сообщение не должно превышать 500 символов', 'error');
-        return;
-    }
-    
-    try {
-        const params = new URLSearchParams();
-        params.append('requestedRole', role);
-        params.append('typeAction', TYPE_ACTION.ENHANCE);
-        params.append('message', message);
-        
-        console.log('Отправка заявки на:', `${API_BASE_URL}${API_ENDPOINTS.CREATE_REQUEST}`);
-        console.log('Параметры:', params.toString());
-        
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_REQUEST}`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: params
-        });
-        
-        const responseText = await response.text();
-        console.log('Ответ сервера:', responseText);
-        
-        if (response.ok) {
-            try {
-                const requestData = JSON.parse(responseText);
-                showProfileNotification('✅ Заявка успешно отправлена! Ожидайте рассмотрения администратором.', 'success');
-                closeRequestModal();
-                
-                addRequestToLocalHistory({
-                    id: requestData.id || Date.now(),
-                    typeAction: TYPE_ACTION.ENHANCE,
-                    requestedRole: role,
-                    message: message,
-                    status: REQUEST_STATUS.PENDING,
-                    createdAt: new Date().toISOString()
-                });
-                
-            } catch (e) {
-                showProfileNotification('✅ Заявка успешно отправлена!', 'success');
-                closeRequestModal();
-                
-                addRequestToLocalHistory({
-                    id: Date.now(),
-                    typeAction: TYPE_ACTION.ENHANCE,
-                    requestedRole: role,
-                    message: message,
-                    status: REQUEST_STATUS.PENDING,
-                    createdAt: new Date().toISOString()
-                });
-            }
-        } else {
-            showProfileNotification(`❌ Ошибка: ${responseText || 'Сервер вернул ошибку'}`, 'error');
-        }
-    } catch (error) {
-        console.error('Ошибка отправки заявки:', error);
-        showProfileNotification('❌ Ошибка сети при отправке заявки', 'error');
-    }
-}
-
-// Отправить заявку на снятие роли
-async function submitDowngradeRequest() {
-    const currentRole = document.getElementById('currentRole').value;
-    const message = document.getElementById('downgradeMessage').value.trim();
-    
-    if (!currentRole) {
-        showProfileNotification('Пожалуйста, выберите текущую роль', 'error');
-        return;
-    }
-    
-    if (message.length < 20) {
-        showProfileNotification('Пожалуйста, напишите более подробное описание (минимум 20 символов)', 'error');
-        return;
-    }
-    
-    if (message.length > 500) {
-        showProfileNotification('Сообщение не должно превышать 500 символов', 'error');
-        return;
-    }
-    
-    try {
-        const params = new URLSearchParams();
-        params.append('requestedRole', USER_ROLES.CUSTOMER);
-        params.append('typeAction', TYPE_ACTION.REMOVE);
-        params.append('message', message);
-        
-        console.log('Отправка заявки на снятие на:', `${API_BASE_URL}${API_ENDPOINTS.CREATE_REQUEST}`);
-        console.log('Параметры:', params.toString());
-        
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.CREATE_REQUEST}`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: params
-        });
-        
-        const responseText = await response.text();
-        console.log('Ответ сервера:', responseText);
-        
-        if (response.ok) {
-            showProfileNotification('✅ Заявка на снятие роли успешно отправлена!', 'success');
-            closeDowngradeModal();
-            
-            addRequestToLocalHistory({
-                id: Date.now(),
-                typeAction: TYPE_ACTION.REMOVE,
-                requestedRole: USER_ROLES.CUSTOMER,
-                message: message,
-                status: REQUEST_STATUS.PENDING,
-                createdAt: new Date().toISOString(),
-                currentRole: currentRole
-            });
-            
-        } else {
-            showProfileNotification(`❌ Ошибка: ${responseText || 'Сервер вернул ошибку'}`, 'error');
-        }
-    } catch (error) {
-        console.error('Ошибка отправки заявки:', error);
-        showProfileNotification('❌ Ошибка сети при отправке заявки', 'error');
-    }
-}
-
-// Добавить заявку в локальную историю
-function addRequestToLocalHistory(request) {
-    const requests = JSON.parse(localStorage.getItem('userRoleRequests') || '[]');
-    requests.unshift(request);
-    localStorage.setItem('userRoleRequests', JSON.stringify(requests));
-    
-    loadLocalRequests();
-}
-
-// Загрузить локальные заявки
-function loadLocalRequests() {
-    const requestsList = document.getElementById('requestsList');
-    if (!requestsList) return;
-    
-    const requests = JSON.parse(localStorage.getItem('userRoleRequests') || '[]');
-    
-    if (requests.length === 0) {
-        requestsList.innerHTML = `
-            <div class="no-requests">
-                <p>📭 У вас еще нет отправленных заявок</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const requestsHtml = requests.map(request => {
-        const requestTypeText = getRequestTypeText(request.typeAction, request.requestedRole);
-        const statusText = getStatusText(request.status);
-        const date = formatDate(request.createdAt);
-        const message = request.message || 'Без описания';
-        
-        return `
-            <div class="request-item">
-                <div class="request-info">
-                    <h4>${requestTypeText}</h4>
-                    <p><strong>Дата:</strong> ${date}</p>
-                    <p><strong>Сообщение:</strong> ${message.substring(0, 60)}${message.length > 60 ? '...' : ''}</p>
-                    <p><strong>Статус:</strong> <span class="status-text status-${request.status.toLowerCase()}">${statusText}</span></p>
-                </div>
-                <div class="request-id">
-                    #${request.id}
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    requestsList.innerHTML = requestsHtml;
-}
-
-// Обновить кнопки в зависимости от роли
-function updateRoleButtons(userRole) {
-    const requestCards = document.querySelectorAll('.request-card');
-    
-    if (!requestCards) return;
-    
-    if (userRole === USER_ROLES.SELLER || userRole === USER_ROLES.COURIER) {
-        requestCards.forEach((card, index) => {
-            if (index < 2) {
-                card.style.opacity = '0.6';
-                card.style.pointerEvents = 'none';
-                
-                const button = card.querySelector('button');
-                if (button) {
-                    button.textContent = 'Роль уже активна';
-                    button.disabled = true;
-                    button.classList.remove('btn-primary');
-                    button.classList.add('btn-secondary');
-                }
-            } else if (index === 2) {
-                const button = card.querySelector('button');
-                if (button) {
-                    button.textContent = `Сняться с роли ${getRoleText(userRole).toLowerCase()}`;
-                    button.classList.remove('btn-secondary');
-                    button.classList.add('btn-primary');
-                }
-            }
-        });
-    } else if (userRole === USER_ROLES.CUSTOMER) {
-        const downgradeCard = requestCards[2];
-        if (downgradeCard) {
-            downgradeCard.style.opacity = '0.6';
-            downgradeCard.style.pointerEvents = 'none';
-            
-            const button = downgradeCard.querySelector('button');
-            if (button) {
-                button.textContent = 'Доступно только для продавцов/курьеров';
-                button.disabled = true;
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-secondary');
-            }
-        }
-    } else if (userRole === USER_ROLES.ADMIN) {
-        requestCards.forEach(card => {
-            card.style.opacity = '0.6';
-            card.style.pointerEvents = 'none';
-            
-            const button = card.querySelector('button');
-            if (button) {
-                button.textContent = 'Недоступно для админа';
-                button.disabled = true;
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-secondary');
-            }
-        });
-    }
-}
-
-// Показать уведомление
 function showProfileNotification(message, type = 'success') {
     const notification = document.createElement('div');
-    notification.className = `profile-notification ${type === 'error' ? 'error' : 'success'}`;
-    notification.textContent = message;
-    
+    notification.className = `profile-notification ${type}`;
+
+    const icon = type === 'success' ? '✅' :
+        type === 'warning' ? '⚠️' : '❌';
+
+    const bgColor = type === 'success' ? '#28a745' :
+        type === 'warning' ? '#ffc107' : '#dc3545';
+
+    const textColor = type === 'warning' ? '#212529' : 'white';
+
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${icon}</span>
+            <span class="notification-text">${message}</span>
+        </div>
+    `;
+
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${bgColor};
+        color: ${textColor};
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+    `;
+
     document.body.appendChild(notification);
-    
-    setTimeout(() => notification.classList.add('show'), 100);
-    
+
     setTimeout(() => {
-        notification.classList.remove('show');
+        notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
 
-// Отображение истории заказов (локальной)
-function displayOrdersHistory() {
-    const ordersGrid = document.getElementById('ordersGrid');
-    if (!ordersGrid) return;
-    
-    const orders = window.cartManager ? window.cartManager.getOrdersHistory() : [];
-    
-    if (orders.length === 0) {
-        ordersGrid.innerHTML = `
-            <div class="empty-orders">
-                <div class="empty-orders-icon">
-                    <img src="images/empty-cart.svg" alt="Пустая история заказов" style="width: 80px; height: 80px;">
-                </div>
-                <h2>История заказов пуста</h2>
-                <p>Здесь появятся ваши завершенные заказы после оформления</p>
-                <a href="/" class="btn btn-primary" style="display: inline-block; margin-top: 15px;">
-                    Перейти к покупкам
-                </a>
-            </div>
-        `;
-        return;
+// ============ ГЛОБАЛЬНЫЕ ФУНКЦИИ ============
+
+window.openRequestModal = function(type) {
+    const modal = document.getElementById('requestModal');
+    if (!modal) return;
+
+    const roleSelect = document.getElementById('requestRole');
+    const roleNameSpan = document.getElementById('roleName');
+    const title = document.getElementById('requestModalTitle');
+
+    if (type === 'seller') {
+        roleSelect.value = 'SELLER';
+        roleNameSpan.textContent = 'продавцом';
+        title.textContent = 'Заявка на роль продавца';
+    } else if (type === 'courier') {
+        roleSelect.value = 'COURIER';
+        roleNameSpan.textContent = 'курьером';
+        title.textContent = 'Заявка на роль курьера';
+    }
+
+    modal.style.display = 'flex';
+};
+
+window.closeRequestModal = function() {
+    const modal = document.getElementById('requestModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.querySelector('form').reset();
+        document.getElementById('charCount').textContent = '0';
+    }
+};
+
+window.openDowngradeModal = function() {
+    const modal = document.getElementById('downgradeModal');
+    if (!modal) return;
+
+    // Автоматически заполняем текущую роль пользователя
+    const currentRole = document.body.dataset.userRole || 'USER';
+    const roleSelect = document.getElementById('currentRole');
+
+    if (roleSelect && currentRole !== 'USER') {
+        roleSelect.value = currentRole;
+        roleSelect.disabled = true;
+    }
+
+    modal.style.display = 'flex';
+};
+
+window.closeDowngradeModal = function() {
+    const modal = document.getElementById('downgradeModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.querySelector('form').reset();
+        document.getElementById('downgradeCharCount').textContent = '0';
+
+        // Разблокируем select
+        const roleSelect = document.getElementById('currentRole');
+        if (roleSelect) roleSelect.disabled = false;
+    }
+};
+
+// ============ CSS СТИЛИ ============
+
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
     
-    const allOrderItems = [];
-    orders.forEach(order => {
-        order.items.forEach(item => {
-            allOrderItems.push({
-                ...item,
-                orderDate: order.date,
-                orderId: order.id
-            });
-        });
-    });
-    
-    ordersGrid.innerHTML = allOrderItems.map(item => `
-        <div class="order-item" data-product-id="${item.id}">
-            <div class="product-image">
-                <img src="${window.imageUploader ? window.imageUploader.getImage(item.id) : item.image}" 
-                     alt="${item.name}" 
-                     onerror="this.src='images/product-img.png'">
-            </div>
-            <div class="product-price">${formatPrice(item.price)}</div>
-            <div class="product-name">${item.name}</div>
-            <div class="order-date">${item.orderDate}</div>
-            <div class="order-quantity">Количество: ${item.quantity}</div>
-            <button class="order-btn" onclick="reorderProduct(${item.id})">
-                Заказать снова
-            </button>
-        </div>
-    `).join('');
-    
-    makeOrderItemsClickable();
-}
-
-// Перезаказ товара
-function reorderProduct(productId) {
-    if (window.cartManager && window.cartManager.addToCart(productId)) {
-        const product = window.productManager.getProductById(productId);
-        showProfileNotification(`Товар "${product.name}" добавлен в корзину!`);
-    } else {
-        showProfileNotification('Ошибка при добавлении товара в корзину');
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
     }
-}
-
-// Делаем товары в истории заказов кликабельными
-function makeOrderItemsClickable() {
-    const orderItems = document.querySelectorAll('.order-item');
-    orderItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (!e.target.closest('button')) {
-                const productId = this.getAttribute('data-product-id');
-                viewProductDetails(parseInt(productId));
-            }
-        });
-    });
-}
-
-// Просмотр деталей товара
-function viewProductDetails(productId) {
-    const product = window.productManager.getProductById(productId);
-    if (product) {
-        localStorage.setItem('currentProduct', JSON.stringify(product));
-        window.location.href = 'productForm.html';
-    }
-}
-
-// Форматирование цены
-function formatPrice(price) {
-    return new Intl.NumberFormat('ru-RU', {
-        style: 'currency',
-        currency: 'RUB',
-        minimumFractionDigits: 0
-    }).format(price);
-}
-
-// Проверить статус заявок
-function checkUserRequestsStatus() {
-    const requests = JSON.parse(localStorage.getItem('userRoleRequests') || '[]');
-    const pendingRequests = requests.filter(r => r.status === REQUEST_STATUS.PENDING);
     
-    if (pendingRequests.length > 0) {
-        console.log(`У вас ${pendingRequests.length} активных заявок`);
+    .user-role-display {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        background: #f0f0f0;
+        border-radius: 4px;
+        font-size: 12px;
+        margin-left: 10px;
     }
-}
-
-// Вспомогательные функции
-function getRequestTypeText(typeAction, requestedRole) {
-    if (typeAction === 'ENHANCE') {
-        if (requestedRole === 'SELLER') return '📈 Стать продавцом';
-        if (requestedRole === 'COURIER') return '📈 Стать курьером';
-        return '📈 Повышение роли';
-    } else if (typeAction === 'REMOVE') {
-        return '📉 Снятие с роли';
+    
+    .request-item {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: white;
     }
-    return typeAction;
-}
-
-function getStatusText(status) {
-    const statusMap = {
-        'PENDING': '⏳ Ожидает',
-        'APPROVED': '✅ Одобрено',
-        'REJECTED': '❌ Отклонено'
-    };
-    return statusMap[status] || status;
-}
-
-function getRoleText(role) {
-    const roleMap = {
-        'CUSTOMER': 'Покупатель',
-        'SELLER': 'Продавец',
-        'COURIER': 'Курьер',
-        'ADMIN': 'Администратор'
-    };
-    return roleMap[role] || role;
-}
-
-function formatDate(dateString) {
-    if (!dateString) return 'Не указана';
     
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
+    .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
     
-    return date.toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
+    .request-action {
+        font-weight: bold;
+    }
+    
+    .request-role {
+        background: #667eea;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    
+    .request-date {
+        color: #666;
+        font-size: 12px;
+    }
+    
+    .request-message {
+        color: #333;
+        margin-bottom: 10px;
+        line-height: 1.5;
+    }
+    
+    .request-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+    }
+    
+    .request-status {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-approved {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-rejected {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .no-requests {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+    
+    .no-requests-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+    
+    .no-requests-hint {
+        font-size: 14px;
+        margin-top: 10px;
+        color: #999;
+    }
+    
+    input:disabled, textarea:disabled {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+`;
+document.head.appendChild(style);

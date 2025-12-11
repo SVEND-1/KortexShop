@@ -100,7 +100,7 @@ public class UserService {
     public User downgrade(Long userId, User.Role role) {
         User user = getById(userId);
         log.info("Понижение пользователя id: " + user.getId() + " на роль : " + role.name());
-        if (!user.getRole().equals(role)) {
+        if (user.getRole().equals(role)) {
             log.warn("Нельзя забрать роль " + role + " у пользователя с ролью: " + user.getRole());
             throw new IllegalArgumentException(
                     "Нельзя забрать роль " + role + " у пользователя с ролью: " + user.getRole()

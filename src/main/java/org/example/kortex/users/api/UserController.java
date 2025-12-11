@@ -5,6 +5,7 @@ import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
+import org.example.kortex.users.api.dto.UserDTOMapper;
 import org.example.kortex.users.db.User;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.users.domain.UserService;
@@ -24,18 +25,20 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
     private final OrderMapper orderMapper;
+    private final UserDTOMapper userDTOMapper;
 
     @Autowired
-    public UserController(UserService userService, OrderMapper orderMapper) {
+    public UserController(UserService userService, OrderMapper orderMapper, UserDTOMapper userDTOMapper) {
         this.userService = userService;
         this.orderMapper = orderMapper;
+        this.userDTOMapper = userDTOMapper;
     }
 
 
     @GetMapping("/me")
     public ResponseEntity<?> profile(){
         try {
-            return ResponseEntity.ok().body(userService.getCurrentUser());
+            return ResponseEntity.ok().body(userDTOMapper.toDto(userService.getCurrentUser()));
         }
         catch (Exception e) {
             log.error("Не удалось загрущить профиль" + e.getMessage());

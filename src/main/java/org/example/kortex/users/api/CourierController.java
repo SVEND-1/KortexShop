@@ -5,6 +5,7 @@ import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.db.User;
+import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,11 +23,13 @@ import java.util.Map;
 public class CourierController {
     private final OrderService orderService;
     private final UserService userService;
+    private final EmailSenderService emailSenderService;
 
     @Autowired
-    public CourierController(OrderService orderService, UserService userService) {
+    public CourierController(OrderService orderService, UserService userService,EmailSenderService emailSenderService) {
         this.orderService = orderService;
         this.userService = userService;
+        this.emailSenderService = emailSenderService;
     }
 
     @GetMapping("/assignedOrders")//Заказы курьера
@@ -76,7 +79,7 @@ public class CourierController {
             }
 
             Order updateOrder = orderService.setCourier( orderService.getById(id), courier.getId());
-
+            emailSenderService.sendMessage(updateOrder.getUser().getEmail(),"Курьер взял ваш заказ","Курьер ведет идет к вам" + courier.getName());
             log.info("Курьер с id: " + courier.getId() + " взял заказ с id:" + updateOrder.getId());
 
             return ResponseEntity.ok().body(updateOrder);
@@ -92,7 +95,9 @@ public class CourierController {
     public ResponseEntity<?> setStatus(@PathVariable Long id, @RequestParam("status") Order.OrderStatus status) {
         try {
             Order orderUpdate = orderService.setStatus(orderService.getById(id), status);
-
+            if(status.equals(Order.OrderStatus.DISPATCHED)) {
+               emailSenderService.sendMessage(orderUpdate.getUser().getEmail(),"Курьер привез заказ","Курьер уже приехал к вам заберите заказ");
+            }
             log.info("У заказа с id:" + id + " изменен статус на" + status.name());
             return ResponseEntity.ok().body(orderUpdate);
         }

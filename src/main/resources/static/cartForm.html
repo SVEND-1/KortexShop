@@ -6,9 +6,59 @@
     <title>Корзина</title>
     <link rel="stylesheet" href="design/mainFormStyle.css">
     <link rel="stylesheet" href="design/cartStyle.css">
+    <!-- Добавляем FontAwesome для иконок загрузки -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Стили для индикатора загрузки */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Стили для временно заблокированных кнопок */
+        .quantity-btn:disabled,
+        .remove-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .item-updating {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+    </style>
 </head>
 
 <body>
+<!-- Индикатор загрузки -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <p style="margin-top: 20px; color: #333;">Обновление корзины...</p>
+</div>
+
 <!--Шапка страницы-->
 <header class="header">
     <div class="container">
@@ -27,7 +77,7 @@
             <nav class="nav">
                 <a href="/cart" class="nav-link">
                     <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
-                    Корзина
+                    <span id="cartCounter">Корзина</span>
                 </a>
 
                 <a href="/profile" class="nav-link">
@@ -52,11 +102,11 @@
         <!-- Блок пустой корзины -->
         <div id="emptyCart" class="empty-cart">
             <div class="empty-cart-icon">
-                <img src="images/empty-cart.svg" alt="Пустая корзина">
+                <i class="fas fa-shopping-cart" style="font-size: 80px; color: #ccc;"></i>
             </div>
             <h2>Ваша корзина пуста</h2>
             <p>Добавьте товары из каталога, чтобы сделать заказ</p>
-            <a href="mainForm.html" class="btn btn-primary">Перейти на главную</a>
+            <a href="/" class="btn btn-primary">Перейти на главную</a>
         </div>
 
         <!-- Блок с товарами -->
@@ -64,7 +114,10 @@
             <div class="cart-content">
                 <!-- Список товаров -->
                 <div class="cart-items" id="cartItems">
-                    <!-- Товары будут загружаться через JavaScript -->
+                    <!-- Товары загружаются через JavaScript -->
+                    <div class="cart-loading" id="cartLoading">
+                        <p><i class="fas fa-spinner fa-spin"></i> Загрузка корзины...</p>
+                    </div>
                 </div>
 
                 <!-- Итоговая информация -->
@@ -85,13 +138,18 @@
                         </div>
 
                         <!-- Форма оформления заказа -->
-                        <form action="/checkout" method="POST">
-                            <button type="submit" class="btn btn-primary checkout-btn" id="checkoutBtn">
+                        <!-- ИСПОЛЬЗУЕМ ТВОЙ МЕТОД /me-create В АДРЕСЕ -->
+                        <form action="/checkout" method="GET">
+                            <button type="submit" class="btn btn-primary checkout-btn" id="checkoutBtn" disabled>
                                 Перейти к оформлению
                             </button>
                         </form>
 
-                        <a href="mainForm.html" class="continue-shopping">Продолжить покупки</a>
+                        <p style="font-size: 12px; color: #666; text-align: center; margin-top: 10px;">
+                            <i class="fas fa-info-circle"></i> При оформлении будут использованы данные из вашего профиля
+                        </p>
+
+                        <a href="/" class="continue-shopping">Продолжить покупки</a>
                     </div>
                 </div>
             </div>
@@ -100,8 +158,41 @@
 </main>
 
 <script src="javascript/productManager.js"></script>
-<script src="javascript/imageUploader.js"></script>
 <script src="javascript/cartManager.js"></script>
 <script src="javascript/cartScript.js"></script>
+
+<script>
+    // Дополнительные функции для обновления счетчика в шапке
+    function updateCartCounter(count) {
+        const counter = document.getElementById('cartCounter');
+        if (counter) {
+            if (count > 0) {
+                counter.innerHTML = `Корзина <span style="background: #667eea; color: white; border-radius: 50%; padding: 2px 8px; font-size: 12px; margin-left: 5px;">${count}</span>`;
+            } else {
+                counter.textContent = 'Корзина';
+            }
+        }
+    }
+
+    // Обновляем счетчик при изменении корзины
+    window.addEventListener('cartUpdated', function(event) {
+        const items = event.detail?.items || [];
+        updateCartCounter(items.length);
+
+        // Прячем индикатор загрузки
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+    });
+
+    // Показываем загрузку при действиях
+    document.addEventListener('cartActionStarted', function() {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+        }
+    });
+</script>
 </body>
 </html>
