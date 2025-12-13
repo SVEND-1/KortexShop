@@ -7,7 +7,6 @@
     background: #f5f5f5;
     min-height: 100vh;
 }
-
 .courier-header {
     display: flex;
     justify-content: space-between;
@@ -16,18 +15,15 @@
     flex-wrap: wrap;
     gap: 20px;
 }
-
 .courier-header h1 {
     font-size: 2rem;
     color: #333;
     margin: 0;
 }
-
 /* Блок информации о курьере */
 .courier-info {
     margin-bottom: 30px;
 }
-
 .courier-card {
     background: white;
     border-radius: 12px;
@@ -35,25 +31,21 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     border: 1px solid #e0e0e0;
 }
-
 .courier-details h2 {
     font-size: 1.5rem;
     color: #333;
     margin-bottom: 5px;
 }
-
 .courier-role {
     color: #666;
     margin-bottom: 25px;
     font-size: 1rem;
 }
-
 .courier-stats {
     display: flex;
     gap: 30px;
     flex-wrap: wrap;
 }
-
 .stat-item {
     background: #f8f9fa;
     border-radius: 8px;
@@ -62,7 +54,6 @@
     min-width: 120px;
     border: 1px solid #dee2e6;
 }
-
 .stat-value {
     display: block;
     font-size: 1.8rem;
@@ -70,25 +61,21 @@
     color: #667eea;
     margin-bottom: 8px;
 }
-
 .stat-label {
     font-size: 0.9rem;
     color: #666;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-
 /* Фильтры заказов */
 .orders-filters {
     margin-bottom: 25px;
 }
-
 .filter-buttons {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
 }
-
 .filter-btn {
     padding: 12px 24px;
     border: 2px solid #667eea;
@@ -102,13 +89,11 @@
     min-width: 150px;
     font-size: 0.95rem;
 }
-
 .filter-btn.active,
 .filter-btn:hover {
     background: #667eea;
     color: white;
 }
-
 /* Список заказов */
 .orders-list {
     background: white;
@@ -117,20 +102,17 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     border: 1px solid #e0e0e0;
 }
-
 .orders-list h3 {
     color: #333;
     margin-bottom: 20px;
     font-size: 1.3rem;
     font-weight: 600;
 }
-
 .orders-container {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
-
 /* Карточка заказа */
 .order-card {
     border: 1px solid #e0e0e0;
@@ -139,12 +121,10 @@
     transition: all 0.3s ease;
     background: white;
 }
-
 .order-card:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border-color: #667eea;
 }
-
 .order-header {
     display: flex;
     justify-content: space-between;
@@ -153,14 +133,12 @@
     padding-bottom: 15px;
     border-bottom: 1px solid #f0f0f0;
 }
-
 .order-number {
     color: #333;
     font-size: 1.1rem;
     margin: 0;
     font-weight: 600;
 }
-
 .order-status {
     padding: 6px 12px;
     border-radius: 20px;
@@ -168,76 +146,63 @@
     font-weight: 600;
     text-transform: uppercase;
 }
-
 .order-status.ASSIGNED {
     background: #fff3cd;
     color: #856404;
     border: 1px solid #ffeaa7;
 }
-
 .order-status.DISPATCHED {
     background: #cce7ff;
     color: #004085;
     border: 1px solid #b3d7ff;
 }
-
 .order-status.DELIVERED {
     background: #d4edda;
     color: #155724;
     border: 1px solid #c3e6cb;
 }
-
 .order-status.CANCELLED {
     background: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
-
 .order-status.PENDING {
     background: #e9ecef;
     color: #495057;
     border: 1px solid #dee2e6;
 }
-
 /* Информация о клиенте */
 .order-customer {
     margin-bottom: 20px;
 }
-
 .customer-info {
     display: flex;
     margin-bottom: 8px;
     align-items: center;
 }
-
 .customer-info strong {
     color: #333;
     min-width: 80px;
     font-weight: 600;
 }
-
 .customer-info span {
     color: #666;
     margin-left: 10px;
 }
-
 .order-price {
     margin-top: 15px;
     padding-top: 15px;
     border-top: 1px dashed #e0e0e0;
 }
-
 .order-price strong {
     color: #333;
     font-weight: 600;
 }
-
 .order-price .price-value {
     color: #28a745;
     font-weight: bold;
     font-size: 1.1rem;
 }
-
 /* Действия с заказом */
 .order-actions {
     display: flex;
@@ -247,7 +212,6 @@
     padding-top: 20px;
     border-top: 1px solid #f0f0f0;
 }
-
 .btn {
     padding: 10px 20px;
     border-radius: 6px;
@@ -257,74 +221,60 @@
     transition: all 0.3s ease;
     font-size: 0.9rem;
 }
-
 .btn-primary {
     background: #667eea;
     color: white;
 }
-
 .btn-primary:hover {
     background: #5a67d8;
 }
-
 .btn-secondary {
     background: #6c757d;
     color: white;
 }
-
 .btn-secondary:hover {
     background: #5a6268;
 }
-
 .btn-success {
     background: #28a745;
     color: white;
 }
-
 .btn-success:hover {
     background: #218838;
 }
-
 .btn-outline {
     background: transparent;
     border: 1px solid #667eea;
     color: #667eea;
 }
-
 .btn-outline:hover {
     background: #667eea;
     color: white;
 }
-
 .btn-small {
     padding: 8px 16px;
     font-size: 0.85rem;
 }
-
 /* Состояние без заказов */
 .no-orders {
     text-align: center;
     padding: 60px 20px;
     color: #666;
 }
-
 .no-orders-icon {
     font-size: 48px;
     margin-bottom: 20px;
     opacity: 0.3;
 }
-
 .no-orders h4 {
     color: #333;
     margin-bottom: 10px;
     font-weight: 600;
 }
-
 .no-orders p {
     margin: 0;
     color: #6c757d;
 }
-
 /* Индикатор загрузки */
 .loading {
     text-align: center;
@@ -332,7 +282,6 @@
     color: #666;
     font-size: 1rem;
 }
-
 .loading::after {
     content: "";
     display: inline-block;
@@ -344,11 +293,11 @@
     animation: spin 1s linear infinite;
     margin-left: 10px;
 }
-
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
-
 /* Ошибка */
 .error-message {
     background: #f8d7da;
@@ -358,96 +307,77 @@
     margin: 20px 0;
     border: 1px solid #f5c6cb;
 }
-
 /* Адаптивность */
 @media (max-width: 768px) {
     .courier-header {
         flex-direction: column;
         text-align: center;
     }
-
     .courier-stats {
         justify-content: center;
         gap: 15px;
     }
-
     .stat-item {
         min-width: 100px;
         padding: 15px;
     }
-
     .filter-buttons {
         flex-direction: column;
     }
-
     .order-header {
         flex-direction: column;
         gap: 10px;
         align-items: flex-start;
     }
-
     .order-actions {
         flex-direction: column;
     }
-
     .btn {
         width: 100%;
     }
 }
-
 @media (max-width: 480px) {
     .courier-container {
         padding: 15px 10px;
     }
-
     .courier-card {
         padding: 20px;
     }
-
     .stat-value {
         font-size: 1.5rem;
     }
 }
-
 /* Стиль для отмены */
 .btn-danger {
     background: #dc3545;
     color: white;
 }
-
 .btn-danger:hover {
     background: #c82333;
 }
-
 /* Стили для статусов в соответствии с вашими статусами */
 .order-status.PENDING {
     background: #e9ecef;
     color: #495057;
     border: 1px solid #dee2e6;
 }
-
 .order-status.DISPATCHED {
     background: #cce7ff;
     color: #004085;
     border: 1px solid #b3d7ff;
 }
-
 .order-status.DELIVERED_TO_DESTINATION {
     background: #d4edda;
     color: #155724;
     border: 1px solid #c3e6cb;
 }
-
 .order-status.CANCELLED {
     background: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
-
 .order-status.RETURNED {
     background: #fff3cd;
     color: #856404;
     border: 1px solid #ffeaa7;
 }
-
-

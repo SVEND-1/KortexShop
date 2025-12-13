@@ -32,7 +32,7 @@ function updateNavigation(userData) {
 
         // Показываем ссылку на выход
         const logoutLink = document.createElement('a');
-        logoutLink.href = '#';
+        logoutLink.href = '/';
         logoutLink.className = 'nav-link';
         logoutLink.innerHTML = '<img src="images/logout-img.png" alt="Выйти" class="nav-icon"> Выйти';
         logoutLink.addEventListener('click', async (e) => {

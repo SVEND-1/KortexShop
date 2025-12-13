@@ -1,5 +1,6 @@
 package org.example.kortex.orders.db;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.example.kortex.products.db.Product;
 
@@ -21,6 +22,7 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnore
     private Product product;
 
     @Column(name = "quantity", nullable = false)

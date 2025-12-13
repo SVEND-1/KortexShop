@@ -7,7 +7,6 @@
     background: #f5f5f5;
     min-height: 100vh;
 }
-
 .admin-header {
     text-align: center;
     margin-bottom: 30px;
@@ -16,19 +15,16 @@
     padding: 30px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
-
 .admin-header h1 {
     font-size: 2.2rem;
     color: #333;
     margin-bottom: 10px;
 }
-
 .admin-subtitle {
     color: #666;
     font-size: 1.1rem;
     margin: 0;
 }
-
 /* Фильтры */
 .filters-section {
     background: white;
@@ -41,7 +37,6 @@
     flex-wrap: wrap;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
-
 .filter-group {
     display: flex;
     flex-direction: column;
@@ -49,13 +44,11 @@
     flex: 1;
     min-width: 200px;
 }
-
 .filter-group label {
     color: #333;
     font-weight: 600;
     font-size: 0.9rem;
 }
-
 .filter-select {
     padding: 10px 15px;
     border: 2px solid #e0e0e0;
@@ -64,18 +57,15 @@
     background: white;
     cursor: pointer;
 }
-
 .filter-select:focus {
     outline: none;
     border-color: #667eea;
 }
-
 .filter-actions {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
 }
-
 /* Секция заявок */
 .requests-section {
     background: white;
@@ -83,7 +73,6 @@
     padding: 30px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
-
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -92,7 +81,6 @@
     padding-bottom: 15px;
     border-bottom: 2px solid #f0f0f0;
 }
-
 .section-header h2 {
     color: #333;
     font-size: 1.5rem;
@@ -101,13 +89,11 @@
     align-items: center;
     gap: 10px;
 }
-
 .section-info {
     display: flex;
     align-items: center;
     gap: 15px;
 }
-
 .requests-count {
     background: #667eea;
     color: white;
@@ -116,23 +102,19 @@
     font-size: 0.9rem;
     font-weight: 600;
 }
-
 /* Таблица заявок */
 .requests-container {
     overflow-x: auto;
     margin-bottom: 20px;
 }
-
 .requests-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
 }
-
 .requests-table thead {
     background: #f8f9fa;
 }
-
 .requests-table th {
     padding: 15px;
     text-align: left;
@@ -141,21 +123,17 @@
     border-bottom: 2px solid #e0e0e0;
     white-space: nowrap;
 }
-
 .requests-table td {
     padding: 15px;
     border-bottom: 1px solid #f0f0f0;
     vertical-align: middle;
 }
-
 .requests-table tbody tr {
     transition: background-color 0.3s ease;
 }
-
 .requests-table tbody tr:hover {
     background: #f8f9fa;
 }
-
 /* Статусы в таблице */
 .status-badge {
     padding: 4px 12px;
@@ -165,22 +143,18 @@
     text-transform: uppercase;
     display: inline-block;
 }
-
 .status-pending {
     background: #fff3cd;
     color: #856404;
 }
-
 .status-approved {
     background: #d4edda;
     color: #155724;
 }
-
 .status-rejected {
     background: #f8d7da;
     color: #721c24;
 }
-
 /* Типы запросов */
 .request-type {
     padding: 4px 12px;
@@ -188,17 +162,14 @@
     font-size: 0.85rem;
     font-weight: 600;
 }
-
 .type-upgrade {
     background: #e3f2fd;
     color: #1565c0;
 }
-
 .type-downgrade {
     background: #f3e5f5;
     color: #7b1fa2;
 }
-
 /* Кнопки в таблице */
 .action-buttons {
     display: flex;
@@ -206,7 +177,6 @@
     align-items: center;
     flex-wrap: nowrap;
 }
-
 .btn-table {
     padding: 6px 12px;
     font-size: 0.85rem;
@@ -217,47 +187,38 @@
     transition: all 0.2s ease;
     font-weight: 500;
 }
-
 .btn-table-primary {
     background: #667eea;
     color: white;
 }
-
 .btn-table-primary:hover {
     background: #5a6fd8;
     transform: translateY(-1px);
 }
-
 .btn-table-success {
     background: #28a745;
     color: white;
 }
-
 .btn-table-success:hover {
     background: #218838;
     transform: translateY(-1px);
 }
-
 .btn-table-danger {
     background: #dc3545;
     color: white;
 }
-
 .btn-table-danger:hover {
     background: #c82333;
     transform: translateY(-1px);
 }
-
 .user-info {
     display: flex;
     flex-direction: column;
 }
-
 .user-info small {
     color: #666;
     font-size: 0.85rem;
 }
-
 /* Модальное окно */
 .modal {
     display: none;
@@ -272,7 +233,6 @@
     align-items: center;
     animation: fadeIn 0.3s ease;
 }
-
 .modal-content {
     background: white;
     border-radius: 16px;
@@ -283,13 +243,11 @@
     animation: modalSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
-
 .modal-sm {
     max-width: 450px;
     border-radius: 12px;
     overflow: hidden;
 }
-
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -300,12 +258,10 @@
     color: white;
     border-radius: 16px 16px 0 0;
 }
-
 .modal-sm .modal-header {
     padding: 20px 30px;
     border-radius: 12px 12px 0 0;
 }
-
 .modal-header h3 {
     color: white;
     margin: 0;
@@ -314,11 +270,9 @@
     align-items: center;
     gap: 10px;
 }
-
 .modal-sm .modal-header h3 {
     font-size: 1.3rem;
 }
-
 .modal-close {
     background: none;
     border: none;
@@ -330,28 +284,23 @@
     transition: opacity 0.3s ease;
     opacity: 0.8;
 }
-
 .modal-close:hover {
     opacity: 1;
 }
-
 .modal-body {
     padding: 30px;
     max-height: 70vh;
     overflow-y: auto;
 }
-
 .modal-sm .modal-body {
     padding: 35px 30px 30px 30px;
     text-align: center;
 }
-
 /* Секции в модальном окне */
 .info-section,
 .description-section {
     margin-bottom: 30px;
 }
-
 .info-section h4,
 .description-section h4 {
     color: #333;
@@ -363,7 +312,6 @@
     padding-bottom: 12px;
     border-bottom: 2px solid #f0f0f0;
 }
-
 .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -374,27 +322,23 @@
     margin-bottom: 20px;
     border: 1px solid #e0e0e0;
 }
-
 .info-item {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 12px 0;
 }
-
 .info-label {
     font-weight: 600;
     color: #555;
     font-size: 0.95rem;
     margin-bottom: 4px;
 }
-
 .info-value {
     color: #222;
     font-size: 1.1rem;
     font-weight: 500;
 }
-
 /* Бейджи статусов в модальном окне */
 .modal .status-badge {
     padding: 6px 16px;
@@ -404,25 +348,21 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-
 .modal .status-pending {
     background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
     color: #fff;
     box-shadow: 0 2px 8px rgba(255, 152, 0, 0.2);
 }
-
 .modal .status-approved {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
     color: #fff;
     box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
 }
-
 .modal .status-rejected {
     background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
     color: #fff;
     box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
 }
-
 /* Описание */
 .description-content {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -435,7 +375,6 @@
     font-size: 1rem;
     margin-top: 5px;
 }
-
 /* Текст подтверждения */
 .modal-sm .modal-body p {
     margin: 0 0 25px 0;
@@ -443,7 +382,6 @@
     color: #333;
     line-height: 1.5;
 }
-
 /* Действия в модальном окне */
 .modal-actions {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -452,28 +390,23 @@
     margin-top: 30px;
     border: 1px solid #e0e0e0;
 }
-
 .actions-info {
     margin-bottom: 20px;
     color: #555;
     font-size: 1rem;
     line-height: 1.6;
 }
-
 .actions-info p {
     margin: 0 0 10px 0;
 }
-
 .actions-info p:last-child {
     margin-bottom: 0;
 }
-
 .actions-buttons {
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
 }
-
 .actions-buttons .btn {
     flex: 1;
     min-width: 180px;
@@ -489,37 +422,30 @@
     border: none;
     cursor: pointer;
 }
-
 .actions-buttons .btn-success {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
     color: white;
 }
-
 .actions-buttons .btn-success:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
 }
-
 .actions-buttons .btn-warning {
     background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
     color: #fff;
 }
-
 .actions-buttons .btn-warning:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
 }
-
 .actions-buttons .btn-danger {
     background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
     color: white;
 }
-
 .actions-buttons .btn-danger:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
 }
-
 /* Кнопки подтверждения */
 .confirm-actions {
     display: flex;
@@ -527,7 +453,6 @@
     justify-content: center;
     margin-top: 25px;
 }
-
 .confirm-actions .btn {
     min-width: 130px;
     padding: 12px 25px;
@@ -538,29 +463,24 @@
     border: none;
     cursor: pointer;
 }
-
 .confirm-actions .btn-primary {
     background: #667eea;
     color: white;
 }
-
 .confirm-actions .btn-primary:hover {
     background: #5a6fd8;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
-
 .confirm-actions .btn-secondary {
     background: #f8f9fa;
     color: #333;
     border: 1px solid #e0e0e0;
 }
-
 .confirm-actions .btn-secondary:hover {
     background: #e9ecef;
     transform: translateY(-2px);
 }
-
 /* Кнопки общего назначения */
 .btn {
     padding: 12px 24px;
@@ -577,56 +497,45 @@
     gap: 8px;
     white-space: nowrap;
 }
-
 .btn-primary {
     background: #667eea;
     color: white;
 }
-
 .btn-primary:hover {
     background: #5a6fd8;
     transform: translateY(-1px);
 }
-
 .btn-success {
     background: #28a745;
     color: white;
 }
-
 .btn-success:hover {
     background: #218838;
     transform: translateY(-1px);
 }
-
 .btn-danger {
     background: #dc3545;
     color: white;
 }
-
 .btn-danger:hover {
     background: #c82333;
     transform: translateY(-1px);
 }
-
 .btn-warning {
     background: #ffc107;
     color: #333;
 }
-
 .btn-warning:hover {
     background: #e0a800;
     transform: translateY(-1px);
 }
-
 .btn-secondary {
     background: #6c757d;
     color: white;
 }
-
 .btn-secondary:hover {
     background: #5a6268;
 }
-
 /* Пагинация */
 .pagination {
     display: flex;
@@ -635,7 +544,6 @@
     gap: 10px;
     margin-top: 20px;
 }
-
 .pagination-btn {
     padding: 8px 16px;
     border: 1px solid #e0e0e0;
@@ -645,29 +553,24 @@
     font-size: 0.9rem;
     transition: all 0.3s ease;
 }
-
 .pagination-btn:hover:not(:disabled) {
     background: #f0f0f0;
     border-color: #667eea;
 }
-
 .pagination-btn.active {
     background: #667eea;
     color: white;
     border-color: #667eea;
 }
-
 .pagination-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
-
 .pagination-info {
     color: #666;
     font-size: 0.9rem;
     margin: 0 10px;
 }
-
 /* Уведомления */
 .notification {
     position: fixed;
@@ -684,25 +587,20 @@
     z-index: 1001;
     animation: slideInRight 0.3s ease;
 }
-
 .notification.success {
     background: #28a745;
 }
-
 .notification.error {
     background: #dc3545;
 }
-
 .notification.warning {
     background: #ffc107;
     color: #333;
 }
-
 .notification.info {
     background: #17a2b8;
     color: white;
 }
-
 .notification-close {
     background: none;
     border: none;
@@ -716,13 +614,15 @@
     align-items: center;
     justify-content: center;
 }
-
 /* Анимации */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
-
 @keyframes modalSlideUp {
     from {
         transform: translateY(50px) scale(0.95);
@@ -733,7 +633,6 @@
         opacity: 1;
     }
 }
-
 @keyframes slideInRight {
     from {
         transform: translateX(100%);
@@ -744,7 +643,6 @@
         opacity: 1;
     }
 }
-
 /* Загрузка */
 .loading {
     text-align: center;
@@ -753,126 +651,100 @@
     font-style: italic;
     font-size: 1.1rem;
 }
-
 /* Адаптивность */
 @media (max-width: 992px) {
     .filters-section {
         flex-direction: column;
         align-items: stretch;
     }
-    
     .filter-group {
         min-width: 100%;
     }
-    
     .requests-table {
         font-size: 0.9rem;
     }
-    
     .requests-table th,
     .requests-table td {
         padding: 10px;
     }
-    
     .action-buttons {
         flex-direction: column;
         align-items: stretch;
         gap: 6px;
     }
-    
     .btn-table {
         width: 100%;
         text-align: center;
         padding: 8px;
     }
-    
     .requests-table td:last-child {
         min-width: 200px;
     }
 }
-
 @media (max-width: 768px) {
     .admin-container {
         padding: 15px 10px;
     }
-    
     .admin-header {
         padding: 20px;
     }
-    
     .admin-header h1 {
         font-size: 1.8rem;
     }
-    
     .requests-section {
         padding: 20px;
     }
-    
     .modal-content {
         width: 95%;
         margin: 10px;
     }
-    
     .info-grid {
         grid-template-columns: 1fr;
     }
-    
     .actions-buttons {
         flex-direction: column;
     }
-    
     .actions-buttons .btn {
         width: 100%;
         min-width: auto;
     }
-    
     .confirm-actions {
         flex-direction: column;
     }
-    
     .confirm-actions .btn {
         width: 100%;
         min-width: auto;
     }
-    
     .btn {
         width: 100%;
         justify-content: center;
     }
 }
-
 @media (max-width: 480px) {
     .section-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
     }
-    
     .pagination {
         flex-wrap: wrap;
     }
-    
     .requests-table {
         font-size: 0.85rem;
     }
-    
     .modal-body {
         padding: 20px;
     }
-    
     .modal-sm .modal-body {
         padding: 25px 20px 20px 20px;
     }
-    
     .info-grid {
         padding: 15px;
         gap: 15px;
     }
-    
     .description-content {
         padding: 15px;
     }
-    
     .modal-actions {
         padding: 15px;
     }

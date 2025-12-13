@@ -1,6 +1,7 @@
 package org.example.kortex.carts.db;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.example.kortex.products.db.Product;
 
@@ -18,6 +19,7 @@ public class CartItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cart_id", nullable = false)
+    @JsonIgnore
     private Cart cart;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,7 +37,7 @@ public class CartItem {
         this.cart = cart;
         this.product = product;
         this.quantity = quantity;
-        this.price = price;
+        calculatePrice();
     }
 
     public CartItem() {

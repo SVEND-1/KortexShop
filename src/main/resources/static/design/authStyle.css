@@ -7,7 +7,6 @@
     padding: 40px 20px;
     background: #f8fafc;
 }
-
 .auth-form {
     background: white;
     padding: 40px;
@@ -18,11 +17,9 @@
     border: 1px solid #e9ecef;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-
 .auth-form:hover {
     box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
 }
-
 .registerH2 {
     margin-bottom: 25px;
     text-align: center;
@@ -32,7 +29,6 @@
     position: relative;
     padding-bottom: 15px;
 }
-
 .registerH2::after {
     content: '';
     position: absolute;
@@ -44,11 +40,9 @@
     background: #667eea;
     border-radius: 2px;
 }
-
 .loginForm {
     margin-top: 25px;
 }
-
 .loginForm input {
     width: 100%;
     padding: 14px 16px;
@@ -61,17 +55,14 @@
     transition: all 0.3s ease;
     background: #f8f9fa;
 }
-
 .loginForm input:focus {
     border-color: #667eea;
     background: white;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
-
 .loginForm input::placeholder {
     color: #adb5bd;
 }
-
 .loginForm label {
     display: block;
     margin-bottom: 8px;
@@ -79,7 +70,6 @@
     color: #495057;
     font-size: 14px;
 }
-
 .loginBtn {
     width: 100%;
     padding: 14px;
@@ -94,24 +84,20 @@
     transition: all 0.3s ease;
     letter-spacing: 0.5px;
 }
-
 .loginBtn:hover {
     background: #5a6fd8;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
-
 .loginBtn:active {
     transform: translateY(0);
 }
-
 .auth-links {
     margin-top: 25px;
     text-align: center;
     padding-top: 20px;
     border-top: 1px solid #e9ecef;
 }
-
 .auth-links a {
     color: #667eea;
     text-decoration: none;
@@ -122,33 +108,27 @@
     transition: all 0.3s ease;
     padding: 5px 0;
 }
-
 .auth-links a:hover {
     color: #5a6fd8;
     text-decoration: none;
     transform: translateX(3px);
 }
-
 .toRegistration {
     font-weight: 600 !important;
     font-size: 15px !important;
 }
-
 .back-to-main {
     color: #6c757d !important;
     margin-top: 25px !important;
     font-size: 14px !important;
 }
-
 .back-link {
     color: #6c757d !important;
 }
-
 .forgotPassword {
     color: #495057 !important;
     font-size: 13px !important;
 }
-
 .checkbox-container {
     display: flex;
     align-items: flex-start;
@@ -159,7 +139,6 @@
     border-radius: 8px;
     border: 1px solid #e9ecef;
 }
-
 .checkbox-container label {
     margin: 0;
     font-weight: normal;
@@ -168,20 +147,17 @@
     color: #495057;
     cursor: pointer;
 }
-
 .checkbox-container input {
     width: auto;
     margin: 4px 0 0 0;
     cursor: pointer;
     accent-color: #667eea;
 }
-
 /* Стили для формы с кодом */
 .code-form {
     text-align: center;
     max-width: 450px;
 }
-
 .notification-info {
     display: flex;
     align-items: center;
@@ -195,19 +171,16 @@
     font-size: 14px;
     color: #495057;
 }
-
 .notification-icon {
     font-size: 18px;
     color: #667eea;
 }
-
 .code-message {
     font-size: 17px;
     margin-bottom: 8px;
     color: #333;
     font-weight: 500;
 }
-
 .code-hint {
     font-size: 16px;
     margin-bottom: 25px;
@@ -218,21 +191,18 @@
     border-radius: 20px;
     display: inline-block;
 }
-
 .code-inputs-container {
     margin: 25px 0;
     padding: 20px;
     background: #f8f9fa;
     border-radius: 10px;
 }
-
 .code-inputs {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
 }
-
 /* ФИКС ДЛЯ ПОЛЕЙ ВВОДА КОДА - ЦИФРЫ ТЕПЕРЬ БУДУТ ВИДНЫ */
 .code-input {
     width: 65px;
@@ -254,20 +224,17 @@
     align-items: center !important; /* ДОБАВИЛИ */
     justify-content: center !important; /* ДОБАВИЛИ */
 }
-
 .code-input:focus {
     border-color: #667eea;
     background: white;
     box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.25);
     transform: translateY(-3px);
 }
-
 .code-input.filled {
     border-color: #667eea;
     background-color: #f0f7ff;
     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
 }
-
 .code-separator {
     font-size: 24px;
     font-weight: bold;
@@ -278,7 +245,6 @@
     justify-content: center;
     height: 65px;
 }
-
 .resend-code {
     margin-top: 30px;
     margin-bottom: 25px;
@@ -287,7 +253,6 @@
     align-items: center;
     gap: 12px;
 }
-
 .resend-btn {
     background: transparent;
     border: 2px solid #667eea;
@@ -300,14 +265,12 @@
     font-weight: 600;
     min-width: 200px;
 }
-
 .resend-btn:hover:not(:disabled) {
     background: #667eea;
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
-
 .resend-btn:disabled {
     border-color: #dee2e6;
     color: #adb5bd;
@@ -316,7 +279,6 @@
     box-shadow: none;
     opacity: 0.6;
 }
-
 .timer {
     color: #ff6b6b;
     font-size: 16px;
@@ -330,7 +292,6 @@
     min-width: 80px;
     text-align: center;
 }
-
 /* Стили для ошибок и успеха */
 .error-message {
     color: #dc3545;
@@ -343,7 +304,6 @@
     border: 1px solid #f5c6cb;
     display: none;
 }
-
 .success-message {
     color: #28a745;
     background: #d4edda;
@@ -355,7 +315,6 @@
     border: 1px solid #c3e6cb;
     display: none;
 }
-
 /* Индикатор силы пароля */
 .password-strength {
     margin-top: -10px;
@@ -365,95 +324,78 @@
     border-radius: 2px;
     overflow: hidden;
 }
-
 .strength-bar {
     height: 100%;
     width: 0%;
     transition: width 0.3s ease, background 0.3s ease;
 }
-
 .strength-bar.weak {
     background: #dc3545;
     width: 33%;
 }
-
 .strength-bar.medium {
     background: #ffc107;
     width: 66%;
 }
-
 .strength-bar.strong {
     background: #28a745;
     width: 100%;
 }
-
 .strength-text {
     font-size: 12px;
     color: #6c757d;
     margin-top: 5px;
     text-align: right;
 }
-
 /* Адаптивность для мобильных */
 @media (max-width: 768px) {
     .auth-container {
         padding: 20px 15px;
         min-height: calc(100vh - 100px);
     }
-
     .auth-form {
         padding: 30px 25px;
         box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
     }
-
     .registerH2 {
         font-size: 1.6rem;
         margin-bottom: 20px;
     }
-
     .code-input {
         width: 55px;
         height: 60px;
         font-size: 22px;
     }
-
     .code-separator {
         font-size: 22px;
         height: 60px;
     }
 }
-
 @media (max-width: 480px) {
     .auth-form {
         padding: 25px 20px;
     }
-
     .code-input {
         width: 50px;
         height: 55px;
         font-size: 20px;
     }
-
     .code-inputs {
         gap: 5px;
     }
-
     .code-separator {
         font-size: 20px;
         margin: 0 4px;
         height: 55px;
     }
-
     .loginForm input {
         padding: 13px 15px;
         font-size: 14px;
     }
-
     .loginBtn {
         padding: 13px;
         font-size: 15px;
     }
-
     .resend-btn {
         padding: 10px 16px;
         font-size: 14px;

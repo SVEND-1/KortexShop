@@ -1,5 +1,6 @@
 package org.example.kortex.users.db;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.db.Order;
@@ -35,13 +36,16 @@ public class User {
     private String address;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private Cart cart;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Column(name = "orders", nullable = false)
+    @JsonIgnore
     private List<Order> orders = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<RoleRequest> roleRequests = new ArrayList<>();
 
     public User(Long id, String email, String name, String password, Role role, String address, List<Order> orders, Cart cart, List<RoleRequest> roleRequests) {

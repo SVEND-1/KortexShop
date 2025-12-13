@@ -1,5 +1,6 @@
 package org.example.kortex.products.db;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.orders.db.OrderItem;
@@ -21,6 +22,7 @@ public class Product {
 
     @ManyToOne()
     @JoinColumn(name = "seller_id", nullable = false)
+    @JsonIgnore
     private User seller;
 
     @Column(name = "name", nullable = false)
@@ -42,24 +44,6 @@ public class Product {
     @Column(name = "category")
     private Category category;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OrderItem> orderItems = new ArrayList<>();
-
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<CartItem> cartItems = new ArrayList<>();
-
-    public Product(Long id,User seller, String name, Double price, int count, String description, String image, Category category, List<OrderItem> orderItems, List<CartItem> cartItems) {
-        this.id = id;
-        this.seller = seller;
-        this.name = name;
-        this.price = price;
-        this.count = count;
-        this.description = description;
-        this.image = image;
-        this.category = category;
-        this.orderItems = orderItems;
-        this.cartItems = cartItems;
-    }
 
     public Product(User seller,String name, Double price, int count, String description, String image, Category category) {
         this.seller = seller;
