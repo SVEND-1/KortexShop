@@ -10,5 +10,4 @@ public class KortexApplication {
     public static void main(String[] args) {
         SpringApplication.run(KortexApplication.class, args);
     }
-
 }
