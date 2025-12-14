@@ -64,7 +64,6 @@ class CartServiceTest {
         testCart = new Cart();
         testCart.setId(1L);
         testCart.setCartItems(Arrays.asList(cartItem1, cartItem2));
-        testCart.setTotalPrice(BigDecimal.valueOf(400.0));
     }
 
     @Test
