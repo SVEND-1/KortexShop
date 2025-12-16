@@ -81,32 +81,63 @@ public class CartItemService {
         }
     }
 
-    public CartItem updateQuantity(Long cartItemId, Integer quantity) {
-        log.info("Обновление количество товара в cartItem" + cartItemId + " на " + quantity);
-        if (quantity == null || quantity <= 0) {
-            log.error("Количество должно быть больше 0");
-            throw new IllegalArgumentException("Количество должно быть больше 0");
-        }
+    @Transactional
+    public CartItem updateIncrement(Long cartItemId) {
+        log.info("Увеличение количества товара в cartItem: {}", cartItemId);
 
         CartItem cartItem = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new EntityNotFoundException("CartItem не найден"));
 
-        cartItem.setQuantity(quantity);
+        Product product = cartItem.getProduct();
+        if (product.getCount() <= 0) {
+            throw new IllegalStateException("Товар отсутствует на складе");
+        }
+        if(product.getCount() > cartItem.getQuantity()) {
+            cartItem.setQuantity(cartItem.getQuantity() + 1);
+            cartItem.calculatePrice();
+
+            CartItem savedCartItem = cartItemRepository.save(cartItem);
+            log.info("Количество товара увеличено до: {}", savedCartItem.getQuantity());
+            return savedCartItem;
+        }
+        else {
+            log.info("Достингут лимит товаров на складе");
+            return cartItem;
+        }
+    }
+
+    @Transactional
+    public CartItem decreaseQuantityOrRemove(Long cartItemId) {
+        log.info("Уменьшение количества или удаление cartItem: {}", cartItemId);
+
+        CartItem cartItem = cartItemRepository.findById(cartItemId)
+                .orElseThrow(() -> new EntityNotFoundException("CartItem не найден"));
+
+        if (cartItem.getQuantity() <= 1) {
+            removeItemFromCart(cartItemId);
+            return null;
+        }
+
+        cartItem.setQuantity(cartItem.getQuantity() - 1);
         cartItem.calculatePrice();
 
         CartItem savedCartItem = cartItemRepository.save(cartItem);
-        log.info("Количество товара изменено");
+        log.info("Количество товара уменьшено до: {}", savedCartItem.getQuantity());
         return savedCartItem;
     }
 
+    @Transactional
     public void removeItemFromCart(Long cartItemId) {
-        log.info("Удаление товара из корзины cartItem id:" + cartItemId);
-        if (!cartItemRepository.existsById(cartItemId)) {
-            throw new EntityNotFoundException("CartItem не найден");
-        }
+        CartItem cartItem = cartItemRepository.findById(cartItemId)
+                .orElseThrow(() -> new EntityNotFoundException("CartItem не найден"));
 
-        cartItemRepository.deleteById(cartItemId);
-        log.info("Товар удален из корзины");
+        // Возвращаем все количество товара на склад
+        Product product = cartItem.getProduct();
+        product.setCount(product.getCount() + cartItem.getQuantity());
+
+        cartItemRepository.delete(cartItem);
+        log.info("CartItem удален: {}", cartItemId);
     }
+
 
 }

@@ -3,8 +3,6 @@ package org.example.kortex.users.domain;
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
-import java.util.List;
 
 
 @Slf4j
@@ -69,6 +66,7 @@ public class UserService {
     public User getById(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
     }
+
 
     public User appoint(Long userId, User.Role role) {
         User user = getById(userId);

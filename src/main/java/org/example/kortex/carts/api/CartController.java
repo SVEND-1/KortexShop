@@ -52,7 +52,7 @@ public class CartController {
         try {
             log.info("Добавление товара в корзину");
             User user = userService.getCurrentUserCart();
-            Cart cart = cartService.cartAddProduct(user.getCart().getId(), productId);
+            Cart cart = cartService.cartAddProduct(user.getCart(), productId);
             log.info("Продукт с id: " + productId + " добавлен в корзину с id: " + cart.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(cart);
         }
@@ -69,10 +69,9 @@ public class CartController {
     public ResponseEntity<?> increaseQuantity(@PathVariable Long itemId) {
         try {
             log.info("Инкремент товара");
-            CartItem item = cartItemService.findById(itemId);
-            CartItem updated = cartItemService.updateQuantity(itemId, item.getQuantity() + 1);
+            CartItem updated = cartItemService.updateIncrement(itemId);
             log.info("Успешно инкремент товара id cartItem: " + updated.getId());
-            return ResponseEntity.ok(updated);
+            return ResponseEntity.ok("Успешно");
         } catch (Exception e) {
             log.error("Ошибка инкремента: " + e.getMessage());
             return ResponseEntity.badRequest()
@@ -84,17 +83,15 @@ public class CartController {
     public ResponseEntity<?> decreaseQuantity(@PathVariable Long itemId) {
         try {
             log.info("Декрменет товара");
-            CartItem item = cartItemService.findById(itemId);
 
-            if (item.getQuantity() <= 1) {
-                cartItemService.removeItemFromCart(itemId);
-                log.info("Товар удален из корзины id cartItem: " + item.getId());
+            CartItem updated = cartItemService.decreaseQuantityOrRemove(itemId);
+
+            if (updated == null) {
                 return ResponseEntity.ok(Map.of("message", "Товар удален из корзины"));
             }
 
-            CartItem updated = cartItemService.updateQuantity(itemId, item.getQuantity() - 1);
             log.info("Успешно декремент товара id cartItem: " + updated.getId());
-            return ResponseEntity.ok(updated);
+            return ResponseEntity.ok("Успешно");
         } catch (Exception e) {
             log.error("Ошибка декремента: " + e.getMessage());
             return ResponseEntity.badRequest()

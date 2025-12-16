@@ -33,10 +33,9 @@ public class ProductController {
                                          @RequestParam(name = "size", defaultValue = "12") Integer size) {
         try {
             ProductSearchFilter filter = new ProductSearchFilter(category, query, size, page);
-            // Получаем Page с товарами
+
             Page<Product> productsPage = productService.findProductsFilter(filter);
 
-            // Возвращаем DTO с пагинацией
             Map<String, Object> response = productMapper.toPageResponse(productsPage);
 
             return ResponseEntity.ok().body(response);

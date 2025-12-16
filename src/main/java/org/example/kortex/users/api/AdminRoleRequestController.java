@@ -73,7 +73,7 @@ public class AdminRoleRequestController {
     public ResponseEntity<?> approveAdminRoleRequest(@PathVariable("id") long id) {
         try{
             RoleRequest roleRequest = roleRequestService.approveRole(id);
-             emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили повышение");
+            emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили повышение");
             log.info("Повышение пользователя с id: " + roleRequest.getUser().getId());
             return ResponseEntity.ok().body(roleRequest);
         }

@@ -6,14 +6,14 @@ import org.example.kortex.users.db.RoleRequest;
 import java.time.LocalDateTime;
 
 public record RoleRequestResponse(
-        Long Id,
+        Long id,
         RoleRequest.Status status,
         RoleRequest.TypeAction typeAction ,
         String message,
-         LocalDateTime createdAt,
-         Long userId,
-         String name,
-         String email
+        LocalDateTime createdAt,
+        Long userId,
+        String name,
+        String email
 ){
 
 }

@@ -11,6 +11,7 @@ import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -86,7 +87,16 @@ public class CourierController {
             emailSenderService.sendMessage(updateOrder.getUser().getEmail(),"Курьер взял ваш заказ ","Курьер ведет идет к вам," + courier.getName());
             log.info("Курьер с id: " + courier.getId() + " взял заказ с id:" + updateOrder.getId());
 
-            return ResponseEntity.ok().body(updateOrder);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Заказ успешно назначен курьеру");
+            response.put("orderId", updateOrder.getId());
+            response.put("courierId", courier.getId());
+            response.put("courierName", courier.getName());
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
         }catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при взятия заказа курьером: " + e.getMessage());
@@ -103,7 +113,16 @@ public class CourierController {
                emailSenderService.sendMessage(orderUpdate.getUser().getEmail(),"Курьер привез заказ","Курьер уже приехал к вам заберите заказ");
             }
             log.info("У заказа с id:" + id + " изменен статус на" + status.name());
-            return ResponseEntity.ok().body(orderUpdate);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Статус заказа успешно обновлен");
+            response.put("orderId", orderUpdate.getId());
+            response.put("status", status.name());
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
         }
         catch (Exception e) {
             Map<String, String> error = new HashMap<>();

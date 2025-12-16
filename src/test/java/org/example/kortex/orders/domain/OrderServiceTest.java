@@ -131,7 +131,7 @@ class OrderServiceTest {
 
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            orderService.createOrderFromCart(userId);
+            orderService.createOrderFromCart(userId,"ААА","Вввв");
         });
 
         assertTrue(exception.getMessage().contains("Корзина не найдена"));

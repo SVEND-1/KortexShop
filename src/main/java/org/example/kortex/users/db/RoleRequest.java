@@ -13,7 +13,6 @@ public class RoleRequest {//Добавить снять или повысить
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonIgnore
     private Long id;
 
     @ManyToOne

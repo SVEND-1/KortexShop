@@ -10,13 +10,6 @@ const API_ENDPOINTS = {
     DOWNGRADE_REQUEST: '/api/admin/role-request'
 };
 
-// Константы
-const REQUEST_STATUS = {
-    PENDING: 'PENDING',
-    APPROVED: 'APPROVED',
-    REJECTED: 'REJECTED'
-};
-
 // Текущее состояние
 let currentPage = 0;
 const pageSize = 10;
@@ -28,72 +21,24 @@ let currentFilters = {
     role: 'ALL'
 };
 
-// ============ ФУНКЦИИ ДЛЯ ПАГИНАЦИИ ============
-
-function updatePagination(totalItems, currentPage, totalPages) {
-    const pagination = document.getElementById('pagination');
-    if (!pagination) return;
-
-    totalRequests = totalItems;
-
-    let paginationHtml = '';
-
-    // Информация о странице
-    const startItem = currentPage * pageSize + 1;
-    const endItem = Math.min((currentPage + 1) * pageSize, totalItems);
-
-    // Кнопка "Назад"
-    paginationHtml += `
-        <button class="pagination-btn ${currentPage === 0 ? 'disabled' : ''}" 
-                onclick="loadRequests(${currentPage - 1})"
-                ${currentPage === 0 ? 'disabled' : ''}>
-            ← Назад
-        </button>
-    `;
-
-    // Номера страниц (показываем максимум 5 страниц)
-    const startPage = Math.max(0, currentPage - 2);
-    const endPage = Math.min(totalPages - 1, currentPage + 2);
-
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHtml += `
-            <button class="pagination-btn ${i === currentPage ? 'active' : ''}" 
-                    onclick="loadRequests(${i})">
-                ${i + 1}
-            </button>
-        `;
-    }
-
-    // Кнопка "Вперед"
-    paginationHtml += `
-        <button class="pagination-btn ${currentPage >= totalPages - 1 ? 'disabled' : ''}" 
-                onclick="loadRequests(${currentPage + 1})"
-                ${currentPage >= totalPages - 1 ? 'disabled' : ''}>
-            Вперед →
-        </button>
-    `;
-
-    // Информация о записях
-    paginationHtml += `
-        <div class="pagination-info">
-            Показано ${startItem}-${endItem} из ${totalItems}
-        </div>
-    `;
-
-    pagination.innerHTML = paginationHtml;
-}
-
-function updateRequestsCount(count) {
-    const countElement = document.getElementById('requestsCount');
-    if (countElement) {
-        countElement.textContent = `Заявок: ${count}`;
-    }
-}
-
 // ============ ИНИЦИАЛИЗАЦИЯ ============
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Админ панель загружена');
+
+    // Ждем немного, чтобы страница точно загрузилась
+    setTimeout(initializeAdminPanel, 100);
+});
+
+function initializeAdminPanel() {
+    console.log('Инициализация админ-панели...');
+
+    // Проверяем, что все необходимые элементы существуют
+    if (!document.getElementById('requestsList')) {
+        console.error('Элемент requestsList не найден! Проверьте HTML структуру');
+        showNotification('❌ Ошибка загрузки панели: не найдена таблица заявок', 'error');
+        return;
+    }
 
     // Настройка фильтров
     setupFilters();
@@ -104,14 +49,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Настройка кнопок
     setupButtons();
 
-    // Загружаем заявки (после того как все функции определены)
-    setTimeout(() => loadRequests(), 100);
-});
+    // Загружаем заявки
+    loadRequests();
+}
 
 // ============ ЗАГРУЗКА ДАННЫХ ============
 
 async function loadRequests(page = 0) {
     try {
+        console.log(`Загрузка заявок, страница: ${page}`);
         showLoading(true);
         currentPage = page;
 
@@ -128,11 +74,11 @@ async function loadRequests(page = 0) {
         }
 
         if (currentFilters.actionType !== 'ALL') {
-            params.append('actionType', currentFilters.actionType);
+            params.append('typeAction', currentFilters.actionType);
         }
 
         if (currentFilters.role !== 'ALL') {
-            params.append('role', currentFilters.role);
+            params.append('requestedRole', currentFilters.role);
         }
 
         // Делаем запрос
@@ -158,47 +104,61 @@ async function loadRequests(page = 0) {
 
         if (!response.ok) {
             const errorText = await response.text();
+            console.error('Ошибка сервера:', errorText);
             throw new Error(`Ошибка сервера: ${response.status} - ${errorText}`);
         }
 
         const responseData = await response.json();
-        console.log('Получены данные:', responseData);
+        console.log('Получены данные от API:', responseData);
 
-        // Обрабатываем данные в зависимости от формата
+        // ВАЖНО: Анализируем структуру ответа
         let requests = [];
         let totalElements = 0;
         let currentPageNum = 0;
         let totalPagesNum = 1;
 
-        // Проверяем формат ответа
+        // Если ответ - массив (прямой список заявок)
         if (Array.isArray(responseData)) {
-            // Ответ - массив
             requests = responseData;
             totalElements = requests.length;
             totalPagesNum = Math.ceil(totalElements / pageSize);
-        } else if (responseData && typeof responseData === 'object') {
-            // Ответ - объект с пагинацией
+        }
+        // Если ответ - объект с пагинацией (стандартный Spring Page)
+        else if (responseData && typeof responseData === 'object') {
+            console.log('Ответ - объект. Ищем данные в:', Object.keys(responseData));
+
+            // Проверяем различные возможные имена полей
             if (responseData.content && Array.isArray(responseData.content)) {
                 requests = responseData.content;
-                totalElements = responseData.totalElements || requests.length;
+                totalElements = responseData.totalElements || responseData.total || requests.length;
                 totalPagesNum = responseData.totalPages || Math.ceil(totalElements / pageSize);
-                currentPageNum = responseData.page || page;
-            } else {
-                // Если content нет, но есть массив напрямую
-                const keys = Object.keys(responseData);
-                if (keys.length > 0 && Array.isArray(responseData[keys[0]])) {
-                    requests = responseData[keys[0]];
-                    totalElements = requests.length;
-                    totalPagesNum = Math.ceil(totalElements / pageSize);
-                } else {
-                    // Пробуем найти массив в любом свойстве
-                    for (const key in responseData) {
-                        if (Array.isArray(responseData[key])) {
-                            requests = responseData[key];
-                            totalElements = requests.length;
-                            totalPagesNum = Math.ceil(totalElements / pageSize);
-                            break;
-                        }
+                currentPageNum = responseData.number || responseData.page || page;
+            }
+            // Проверяем другие возможные имена полей
+            else if (responseData.requests && Array.isArray(responseData.requests)) {
+                requests = responseData.requests;
+                totalElements = responseData.total || requests.length;
+                totalPagesNum = Math.ceil(totalElements / pageSize);
+            }
+            else if (responseData.data && Array.isArray(responseData.data)) {
+                requests = responseData.data;
+                totalElements = responseData.total || requests.length;
+                totalPagesNum = Math.ceil(totalElements / pageSize);
+            }
+            else if (responseData.items && Array.isArray(responseData.items)) {
+                requests = responseData.items;
+                totalElements = responseData.total || requests.length;
+                totalPagesNum = Math.ceil(totalElements / pageSize);
+            }
+            else {
+                // Ищем первый массив в объекте
+                for (const key in responseData) {
+                    if (Array.isArray(responseData[key])) {
+                        requests = responseData[key];
+                        totalElements = requests.length;
+                        totalPagesNum = Math.ceil(totalElements / pageSize);
+                        console.log(`Найден массив в поле "${key}"`);
+                        break;
                     }
                 }
             }
@@ -208,12 +168,18 @@ async function loadRequests(page = 0) {
             requestsCount: requests.length,
             totalElements,
             currentPageNum,
-            totalPagesNum
+            totalPagesNum,
+            firstRequest: requests[0] || 'Нет заявок'
         });
 
         // Рендерим таблицу
         renderRequestsTable(requests);
-        updatePagination(totalElements, currentPageNum, totalPagesNum);
+
+        // Обновляем пагинацию
+        if (totalElements > 0) {
+            updatePagination(totalElements, currentPageNum, totalPagesNum);
+        }
+
         updateRequestsCount(totalElements);
 
     } catch (error) {
@@ -230,10 +196,16 @@ async function loadRequests(page = 0) {
 // ============ ОТОБРАЖЕНИЕ ТАБЛИЦЫ ============
 
 function renderRequestsTable(requests) {
+    console.log('renderRequestsTable вызвана, количество заявок:', requests?.length);
+
     const tbody = document.getElementById('requestsList');
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('Элемент tbody (requestsList) не найден!');
+        return;
+    }
 
     if (!requests || requests.length === 0) {
+        console.log('Нет заявок для отображения');
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" class="loading">
@@ -243,6 +215,9 @@ function renderRequestsTable(requests) {
                         <p style="margin: 0; color: #999; text-align: center;">
                             Попробуйте изменить фильтры или загрузить заново
                         </p>
+                        <button class="btn btn-primary" onclick="loadRequests(0)" style="margin-top: 20px;">
+                            Обновить список
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -250,83 +225,119 @@ function renderRequestsTable(requests) {
         return;
     }
 
-    // Сортируем по дате (новые сверху)
-    requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Проверяем структуру первой заявки
+    const firstRequest = requests[0];
+    console.log('Структура первой заявки:', firstRequest);
+    console.log('ID:', firstRequest.id, 'Тип ID:', typeof firstRequest.id);
+    console.log('Поля заявки:', Object.keys(firstRequest));
 
-    // Рендерим строки
+    // Рендерим строки с безопасным доступом к данным
     tbody.innerHTML = requests.map(request => {
-        const statusClass = getStatusClass(request.status);
-        const statusText = getStatusText(request.status);
-        const requestType = getRequestTypeText(request.typeAction, request.requestedRole);
-        const requestTypeClass = request.typeAction === 'ENHANCE' ? 'type-upgrade' : 'type-downgrade';
-        const userInfo = request.user || {};
+        try {
+            // Безопасное получение данных
+            const requestId = request.id || request.requestId || 'N/A';
+            const status = request.status || 'PENDING';
+            const typeAction = request.typeAction || request.actionType || 'ENHANCE';
+            const requestedRole = request.requestedRole || request.role || 'USER';
 
-        // Получаем ID пользователя (может быть в разных полях)
-        const userId = request.userId || userInfo.id || request.id || 'N/A';
-        const userName = request.name || userInfo.name || 'Не указано';
-        const userEmail = request.email || userInfo.email || 'Не указан';
+            // Получаем данные пользователя (может быть вложенным объектом)
+            let userInfo = {};
+            if (request.user && typeof request.user === 'object') {
+                userInfo = request.user;
+            }
 
-        return `
-            <tr>
-                <td class="request-id">#${request.id}</td>
-                <td>
-                    <div class="user-info">
-                        <strong>${userName}</strong>
-                        <small>ID: ${userId}</small>
-                    </div>
-                </td>
-                <td>${userEmail}</td>
-                <td>
-                    <span class="request-type ${requestTypeClass}">
-                        ${requestType}
-                    </span>
-                </td>
-                <td>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
-                </td>
-                <td>${formatDate(request.createdAt)}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-table btn-table-primary" 
-                                onclick="viewRequestDetails(${request.id})"
-                                title="Просмотр деталей">
-                            👁️ Подробно
-                        </button>
-                        
-                        ${request.status === 'PENDING' ? `
-                            ${request.typeAction === 'ENHANCE' ? `
-                                <button class="btn-table btn-table-success" 
-                                        onclick="approveRequest(${request.id})"
-                                        title="Одобрить повышение">
-                                    ⬆️ Повысить
-                                </button>
-                            ` : `
-                                <button class="btn-table btn-table-warning" 
-                                        onclick="downgradeRequest(${request.id})"
-                                        title="Одобрить понижение">
-                                    ⬇️ Понизить
-                                </button>
-                            `}
-                            <button class="btn-table btn-table-danger" 
-                                    onclick="rejectRequest(${request.id})"
-                                    title="Отклонить заявку">
-                                ❌ Отклонить
+            const userId = request.userId || userInfo.id || 'N/A';
+            const userName = request.name || userInfo.name || userInfo.username || 'Не указано';
+            const userEmail = request.email || userInfo.email || 'Не указан';
+            const currentRole = userInfo.role || 'USER';
+
+            const message = request.message || 'Без описания';
+            const createdAt = request.createdAt || request.createAt || request.created_date || 'Не указана';
+
+            const statusClass = getStatusClass(status);
+            const statusText = getStatusText(status);
+            const requestType = getRequestTypeText(typeAction, requestedRole);
+            const requestTypeClass = typeAction === 'ENHANCE' ? 'type-upgrade' : 'type-downgrade';
+
+            const formattedDate = formatDate(createdAt);
+
+            return `
+                <tr>
+                    <td class="request-id">#${requestId}</td>
+                    <td>
+                        <div class="user-info">
+                            <strong>${escapeHtml(userName)}</strong>
+                            <small>ID: ${userId}</small>
+                        </div>
+                    </td>
+                    <td>${escapeHtml(userEmail)}</td>
+                    <td>
+                        <span class="request-type ${requestTypeClass}">
+                            ${escapeHtml(requestType)}
+                        </span>
+                        <br>
+                        <small>Текущая роль: ${getRoleText(currentRole)}</small>
+                    </td>
+                    <td>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </td>
+                    <td>${formattedDate}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-table btn-table-primary" 
+                                    onclick="viewRequestDetails(${requestId})"
+                                    title="Просмотр деталей">
+                                👁️ Подробно
                             </button>
-                        ` : ''}
-                    </div>
-                </td>
-            </tr>
-        `;
+                            
+                            ${status === 'PENDING' ? `
+                                ${typeAction === 'ENHANCE' ? `
+                                    <button class="btn-table btn-table-success" 
+                                            onclick="approveRequest(${requestId})"
+                                            title="Одобрить повышение">
+                                        ⬆️ Повысить
+                                    </button>
+                                ` : `
+                                    <button class="btn-table btn-table-warning" 
+                                            onclick="downgradeRequest(${requestId})"
+                                            title="Одобрить понижение">
+                                        ⬇️ Понизить
+                                    </button>
+                                `}
+                                <button class="btn-table btn-table-danger" 
+                                        onclick="rejectRequest(${requestId})"
+                                        title="Отклонить заявку">
+                                    ❌ Отклонить
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        } catch (error) {
+            console.error('Ошибка рендеринга строки:', error, request);
+            return `<tr><td colspan="7" style="color: red;">Ошибка отображения данных</td></tr>`;
+        }
     }).join('');
 }
 
 // ============ ДЕТАЛИ ЗАЯВКИ ============
 
 async function viewRequestDetails(requestId) {
+    console.log('viewRequestDetails вызвана с ID:', requestId);
+
     try {
         showLoading(true);
 
-        const response = await fetch(`${API_ENDPOINTS.GET_REQUEST_BY_ID}/${requestId}`, {
+        // Проверяем ID
+        if (!requestId || requestId === 'undefined') {
+            throw new Error('Неверный идентификатор заявки');
+        }
+
+        const url = `${API_ENDPOINTS.GET_REQUEST_BY_ID}/${requestId}`;
+        console.log('Запрос деталей заявки:', url);
+
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
@@ -335,12 +346,16 @@ async function viewRequestDetails(requestId) {
             credentials: 'include'
         });
 
+        console.log('Статус ответа деталей:', response.status);
+
         if (!response.ok) {
-            throw new Error(`Ошибка ${response.status}`);
+            const errorText = await response.text();
+            console.error('Ошибка деталей:', errorText);
+            throw new Error(`Ошибка ${response.status}: ${errorText}`);
         }
 
         const request = await response.json();
-        console.log('Детали заявки:', request);
+        console.log('Детали заявки получены:', request);
 
         fillRequestModal(request);
         showModal('requestModal');
@@ -354,83 +369,118 @@ async function viewRequestDetails(requestId) {
 }
 
 function fillRequestModal(request) {
-    const userInfo = request.user || {};
+    try {
+        // Безопасное получение данных
+        const requestId = request.id || request.requestId || 'N/A';
+        const userId = request.userId || (request.user && request.user.id) || 'N/A';
+        const userName = request.name || (request.user && request.user.name) || 'Не указано';
+        const userEmail = request.email || (request.user && request.user.email) || 'Не указан';
+        const currentRole = (request.user && request.user.role) || 'USER';
+        const requestedRole = request.requestedRole || request.role || 'USER';
+        const status = request.status || 'PENDING';
+        const typeAction = request.typeAction || request.actionType || 'ENHANCE';
+        const message = request.message || 'Описание отсутствует';
+        const createdAt = request.createdAt || request.createAt || 'Не указана';
 
-    // Основная информация
-    document.getElementById('modalRequestId').textContent = request.id;
-    document.getElementById('modalUserId').textContent = request.userId || userInfo.id || 'N/A';
-    document.getElementById('modalUserName').textContent = request.name || userInfo.name || 'Не указано';
-    document.getElementById('modalUserEmail').textContent = request.email || userInfo.email || 'Не указан';
-    document.getElementById('modalCurrentRole').textContent = getRoleText(userInfo.role);
-    document.getElementById('modalRequestedRole').textContent = getRoleText(request.requestedRole);
+        // Основная информация
+        document.getElementById('modalRequestId').textContent = requestId;
+        document.getElementById('modalUserId').textContent = userId;
+        document.getElementById('modalUserName').textContent = userName;
+        document.getElementById('modalUserEmail').textContent = userEmail;
+        document.getElementById('modalCurrentRole').textContent = getRoleText(currentRole);
+        document.getElementById('modalRequestedRole').textContent = getRoleText(requestedRole);
 
-    // Статус
-    const statusElement = document.getElementById('modalStatus');
-    statusElement.textContent = getStatusText(request.status);
-    statusElement.className = `info-value status-badge status-${request.status.toLowerCase()}`;
+        // Статус
+        const statusElement = document.getElementById('modalStatus');
+        statusElement.textContent = getStatusText(status);
+        statusElement.className = `info-value status-badge status-${status.toLowerCase()}`;
 
-    document.getElementById('modalCreatedAt').textContent = formatDate(request.createdAt);
-    document.getElementById('modalDescription').textContent = request.message || 'Описание отсутствует';
+        document.getElementById('modalCreatedAt').textContent = formatDate(createdAt);
+        document.getElementById('modalDescription').textContent = message;
 
-    // Действия
-    const actionsSection = document.getElementById('modalActions');
-    const actionsInfo = document.getElementById('actionsInfo');
-    const actionsButtons = document.getElementById('actionsButtons');
+        // Действия
+        const actionsSection = document.getElementById('modalActions');
+        const actionsInfo = document.getElementById('actionsInfo');
+        const actionsButtons = document.getElementById('actionsButtons');
 
-    if (request.status === 'PENDING') {
-        actionsSection.style.display = 'block';
+        if (status === 'PENDING') {
+            actionsSection.style.display = 'block';
 
-        if (request.typeAction === 'ENHANCE') {
-            actionsInfo.innerHTML = `
-                <p><strong>⚠️ Эта заявка ожидает рассмотрения</strong></p>
-                <p>Пользователь запрашивает <strong>повышение роли</strong>.</p>
-                <p><strong>Текущая роль:</strong> ${getRoleText(userInfo.role || 'USER')}</p>
-                <p><strong>Запрашиваемая роль:</strong> ${getRoleText(request.requestedRole)}</p>
-            `;
+            if (typeAction === 'ENHANCE') {
+                actionsInfo.innerHTML = `
+                    <p><strong>⚠️ Эта заявка ожидает рассмотрения</strong></p>
+                    <p>Пользователь запрашивает <strong>повышение роли</strong>.</p>
+                    <p><strong>Текущая роль:</strong> ${getRoleText(currentRole)}</p>
+                    <p><strong>Запрашиваемая роль:</strong> ${getRoleText(requestedRole)}</p>
+                `;
 
-            actionsButtons.innerHTML = `
-                <button class="btn btn-success" onclick="approveRequest(${request.id})">
-                    ⬆️ Одобрить повышение
-                </button>
-                <button class="btn btn-danger" onclick="rejectRequest(${request.id})">
-                    ❌ Отклонить заявку
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal()">
-                    Закрыть
-                </button>
-            `;
+                actionsButtons.innerHTML = `
+                    <button class="btn btn-success" onclick="approveRequest(${requestId})">
+                        ⬆️ Одобрить повышение
+                    </button>
+                    <button class="btn btn-danger" onclick="rejectRequest(${requestId})">
+                        ❌ Отклонить заявку
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal()">
+                        Закрыть
+                    </button>
+                `;
+            } else {
+                actionsInfo.innerHTML = `
+                    <p><strong>⚠️ Эта заявка ожидает рассмотрения</strong></p>
+                    <p>Пользователь запрашивает <strong>снятие с роли</strong>.</p>
+                    <p><strong>Текущая роль:</strong> ${getRoleText(currentRole)}</p>
+                    <p><strong>Станет:</strong> ${getRoleText('USER')}</p>
+                `;
+
+                actionsButtons.innerHTML = `
+                    <button class="btn btn-warning" onclick="downgradeRequest(${requestId})">
+                        ⬇️ Одобрить понижение
+                    </button>
+                    <button class="btn btn-danger" onclick="rejectRequest(${requestId})">
+                        ❌ Отклонить заявку
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal()">
+                        Закрыть
+                    </button>
+                `;
+            }
         } else {
-            actionsInfo.innerHTML = `
-                <p><strong>⚠️ Эта заявка ожидает рассмотрения</strong></p>
-                <p>Пользователь запрашивает <strong>снятие с роли</strong>.</p>
-                <p><strong>Текущая роль:</strong> ${getRoleText(userInfo.role || 'USER')}</p>
-                <p><strong>Станет:</strong> ${getRoleText('USER')}</p>
-            `;
-
-            actionsButtons.innerHTML = `
-                <button class="btn btn-warning" onclick="downgradeRequest(${request.id})">
-                    ⬇️ Одобрить понижение
-                </button>
-                <button class="btn btn-danger" onclick="rejectRequest(${request.id})">
-                    ❌ Отклонить заявку
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal()">
-                    Закрыть
-                </button>
-            `;
+            actionsSection.style.display = 'none';
         }
-    } else {
-        actionsSection.style.display = 'none';
+    } catch (error) {
+        console.error('Ошибка заполнения модального окна:', error);
+        showNotification('❌ Ошибка отображения деталей заявки', 'error');
     }
 }
 
 // ============ ОПЕРАЦИИ С ЗАЯВКАМИ ============
 
 async function approveRequest(requestId) {
+    console.log('approveRequest вызвана с параметром:', requestId, 'Тип:', typeof requestId);
+
+    // Проверяем ID
+    if (!requestId || requestId === 'undefined' || requestId === 'null' || requestId === 'N/A') {
+        console.error('ERROR: requestId is invalid!', requestId);
+        showNotification('❌ Ошибка: неверный идентификатор заявки', 'error');
+        return;
+    }
+
+    // Преобразуем в число для безопасности
+    const id = Number(requestId);
+    if (isNaN(id) || id <= 0) {
+        console.error('ERROR: requestId is not a valid number!', requestId);
+        showNotification('❌ Ошибка: некорректный идентификатор заявки', 'error');
+        return;
+    }
+
     if (!confirm('Вы уверены, что хотите одобрить повышение роли?')) return;
 
     try {
-        const response = await fetch(`${API_ENDPOINTS.APPROVE_REQUEST}/${requestId}/approve`, {
+        const url = `${API_ENDPOINTS.APPROVE_REQUEST}/${id}/approve`;
+        console.log('Отправка запроса на одобрение:', url);
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -439,9 +489,17 @@ async function approveRequest(requestId) {
             credentials: 'include'
         });
 
+        console.log('Ответ на одобрение:', response.status);
+
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || `Ошибка ${response.status}`);
+            let errorMessage = `Ошибка ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (e) {
+                // Не удалось распарсить JSON
+            }
+            throw new Error(errorMessage);
         }
 
         showNotification('✅ Заявка одобрена успешно!', 'success');
@@ -455,10 +513,28 @@ async function approveRequest(requestId) {
 }
 
 async function downgradeRequest(requestId) {
+    console.log('downgradeRequest вызвана с параметром:', requestId, 'Тип:', typeof requestId);
+
+    if (!requestId || requestId === 'undefined' || requestId === 'null' || requestId === 'N/A') {
+        console.error('ERROR: requestId is invalid!', requestId);
+        showNotification('❌ Ошибка: неверный идентификатор заявки', 'error');
+        return;
+    }
+
+    const id = Number(requestId);
+    if (isNaN(id) || id <= 0) {
+        console.error('ERROR: requestId is not a valid number!', requestId);
+        showNotification('❌ Ошибка: некорректный идентификатор заявки', 'error');
+        return;
+    }
+
     if (!confirm('Вы уверены, что хотите одобрить понижение роли?')) return;
 
     try {
-        const response = await fetch(`${API_ENDPOINTS.DOWNGRADE_REQUEST}/${requestId}/downgrade`, {
+        const url = `${API_ENDPOINTS.DOWNGRADE_REQUEST}/${id}/downgrade`;
+        console.log('Отправка запроса на понижение:', url);
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -467,9 +543,15 @@ async function downgradeRequest(requestId) {
             credentials: 'include'
         });
 
+        console.log('Ответ на понижение:', response.status);
+
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || `Ошибка ${response.status}`);
+            let errorMessage = `Ошибка ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (e) {}
+            throw new Error(errorMessage);
         }
 
         showNotification('✅ Понижение роли одобрено!', 'success');
@@ -483,10 +565,28 @@ async function downgradeRequest(requestId) {
 }
 
 async function rejectRequest(requestId) {
+    console.log('rejectRequest вызвана с параметром:', requestId, 'Тип:', typeof requestId);
+
+    if (!requestId || requestId === 'undefined' || requestId === 'null' || requestId === 'N/A') {
+        console.error('ERROR: requestId is invalid!', requestId);
+        showNotification('❌ Ошибка: неверный идентификатор заявки', 'error');
+        return;
+    }
+
+    const id = Number(requestId);
+    if (isNaN(id) || id <= 0) {
+        console.error('ERROR: requestId is not a valid number!', requestId);
+        showNotification('❌ Ошибка: некорректный идентификатор заявки', 'error');
+        return;
+    }
+
     if (!confirm('Вы уверены, что хотите отклонить заявку?')) return;
 
     try {
-        const response = await fetch(`${API_ENDPOINTS.REJECT_REQUEST}/${requestId}/reject`, {
+        const url = `${API_ENDPOINTS.REJECT_REQUEST}/${id}/reject`;
+        console.log('Отправка запроса на отклонение:', url);
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -495,9 +595,15 @@ async function rejectRequest(requestId) {
             credentials: 'include'
         });
 
+        console.log('Ответ на отклонение:', response.status);
+
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || `Ошибка ${response.status}`);
+            let errorMessage = `Ошибка ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (e) {}
+            throw new Error(errorMessage);
         }
 
         showNotification('❌ Заявка отклонена', 'warning');
@@ -510,7 +616,7 @@ async function rejectRequest(requestId) {
     }
 }
 
-// ============ ФИЛЬТРЫ ============
+// ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
 
 function setupFilters() {
     const statusFilter = document.getElementById('statusFilter');
@@ -527,7 +633,6 @@ function setupFilters() {
 
     if (requestTypeFilter) {
         requestTypeFilter.addEventListener('change', function() {
-            // Конвертируем значение фильтра в формат бэкенда
             const filterValue = this.value;
             switch(filterValue) {
                 case 'UPGRADE_TO_SELLER':
@@ -579,10 +684,7 @@ function clearFilters() {
     loadRequests(0);
 }
 
-// ============ МОДАЛЬНЫЕ ОКНА ============
-
 function setupModals() {
-    // Закрытие по клику вне окна
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('modal')) {
             closeModal();
@@ -590,7 +692,6 @@ function setupModals() {
         }
     });
 
-    // Закрытие по Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeModal();
@@ -598,13 +699,119 @@ function setupModals() {
         }
     });
 
-    // Кнопки закрытия
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', function() {
             const modal = this.closest('.modal');
             if (modal) modal.style.display = 'none';
         });
     });
+}
+
+function setupButtons() {
+    const refreshBtn = document.querySelector('.filter-actions .btn-primary');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            loadRequests(currentPage);
+        });
+    }
+
+    const clearBtn = document.querySelector('.filter-actions .btn-secondary');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            clearFilters();
+        });
+    }
+}
+
+function showLoading(show) {
+    const tbody = document.getElementById('requestsList');
+    if (!tbody) return;
+
+    if (show) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="loading">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px;">
+                        <div class="spinner" style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <p style="margin: 0; color: #666;">Загрузка заявок...</p>
+                    </div>
+                    <style>
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    </style>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function updatePagination(totalItems, currentPage, totalPages) {
+    const pagination = document.getElementById('pagination');
+    if (!pagination) {
+        console.warn('Элемент пагинации не найден');
+        return;
+    }
+
+    if (totalItems <= pageSize) {
+        pagination.innerHTML = `
+            <div class="pagination-info">
+                Всего заявок: ${totalItems}
+            </div>
+        `;
+        return;
+    }
+
+    let paginationHtml = '';
+
+    const startItem = currentPage * pageSize + 1;
+    const endItem = Math.min((currentPage + 1) * pageSize, totalItems);
+
+    paginationHtml += `
+        <button class="pagination-btn ${currentPage === 0 ? 'disabled' : ''}" 
+                onclick="loadRequests(${currentPage - 1})"
+                ${currentPage === 0 ? 'disabled' : ''}>
+            ← Назад
+        </button>
+    `;
+
+    const startPage = Math.max(0, currentPage - 2);
+    const endPage = Math.min(totalPages - 1, currentPage + 2);
+
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `
+            <button class="pagination-btn ${i === currentPage ? 'active' : ''}" 
+                    onclick="loadRequests(${i})">
+                ${i + 1}
+            </button>
+        `;
+    }
+
+    paginationHtml += `
+        <button class="pagination-btn ${currentPage >= totalPages - 1 ? 'disabled' : ''}" 
+                onclick="loadRequests(${currentPage + 1})"
+                ${currentPage >= totalPages - 1 ? 'disabled' : ''}>
+            Вперед →
+        </button>
+    `;
+
+    paginationHtml += `
+        <div class="pagination-info">
+            Показано ${startItem}-${endItem} из ${totalItems}
+        </div>
+    `;
+
+    pagination.innerHTML = paginationHtml;
+}
+
+function updateRequestsCount(count) {
+    const countElement = document.getElementById('requestsCount');
+    if (countElement) {
+        countElement.textContent = `Заявок: ${count}`;
+    } else {
+        console.warn('Элемент для отображения количества заявок не найден');
+    }
 }
 
 function showModal(modalId) {
@@ -628,8 +835,6 @@ function closeConfirmModal() {
     }
 }
 
-// ============ УВЕДОМЛЕНИЯ ============
-
 function showNotification(message, type = 'success') {
     const notification = document.getElementById('notification');
     const notificationText = document.getElementById('notificationText');
@@ -640,7 +845,6 @@ function showNotification(message, type = 'success') {
     notification.className = `notification ${type}`;
     notification.style.display = 'flex';
 
-    // Автоматическое скрытие через 5 секунд
     setTimeout(() => {
         notification.style.display = 'none';
     }, 5000);
@@ -650,41 +854,6 @@ function hideNotification() {
     const notification = document.getElementById('notification');
     if (notification) {
         notification.style.display = 'none';
-    }
-}
-
-// ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
-
-function setupButtons() {
-    // Кнопка обновления списка
-    const refreshBtn = document.querySelector('.filter-actions .btn-primary');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            loadRequests(currentPage);
-        });
-    }
-
-    // Кнопка очистки фильтров
-    const clearBtn = document.querySelector('.filter-actions .btn-secondary');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', function() {
-            clearFilters();
-        });
-    }
-}
-
-function showLoading(show) {
-    const tbody = document.getElementById('requestsList');
-    if (!tbody) return;
-
-    if (show) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="loading">
-                    ⏳ Загрузка заявок...
-                </td>
-            </tr>
-        `;
     }
 }
 
@@ -743,28 +912,11 @@ function formatDate(dateString) {
     }
 }
 
-// ============ ДЕБАГ ФУНКЦИИ ============
-
-// Функция для тестирования API
-async function testApi() {
-    try {
-        const response = await fetch('/api/admin/role-request?pageSize=5&pageNumber=0', {
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-
-        const data = await response.json();
-        console.log('API Response:', data);
-
-        // Показываем структуру ответа
-        alert(JSON.stringify(data, null, 2));
-
-        return data;
-    } catch (error) {
-        console.error('API Test Error:', error);
-        alert(`API Error: ${error.message}`);
-    }
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // ============ ГЛОБАЛЬНЫЕ ФУНКЦИИ ============
@@ -778,4 +930,6 @@ window.rejectRequest = rejectRequest;
 window.closeModal = closeModal;
 window.closeConfirmModal = closeConfirmModal;
 window.hideNotification = hideNotification;
-window.testApi = testApi; // Для отладки
+window.debugApiResponse = debugApiResponse;
+
+console.log('Admin script loaded and ready');

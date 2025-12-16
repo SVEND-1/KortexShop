@@ -52,7 +52,6 @@ public class OrderService {
         return orderRepository.findByIdWithItems(id);
     }
 
-    // Существующий метод возвращает List
     public List<Order> assignedCourierOrders(Long userId) {
         User courier = userService.getById(userId);
         validateCourier(courier);
@@ -61,7 +60,6 @@ public class OrderService {
         return orders;
     }
 
-    // Новый метод для пагинации возвращает Page
     public Page<Order> assignedCourierOrdersPage(Long userId, Integer pageSize, Integer pageNumber) {
         User courier = userService.getById(userId);
         validateCourier(courier);
@@ -75,7 +73,6 @@ public class OrderService {
         return orders;
     }
 
-    // Или обновите метод с фильтром
     public Page<Order> assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
         log.info("Заказы курьера с фильтром: " + filter);
         User courier = userService.getById(filter.userId());
