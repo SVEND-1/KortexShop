@@ -919,6 +919,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+
 // ============ ГЛОБАЛЬНЫЕ ФУНКЦИИ ============
 
 window.loadRequests = loadRequests;

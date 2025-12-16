@@ -44,4 +44,5 @@ public interface RoleRequestRepository  extends JpaRepository<RoleRequest, Long>
                                    Pageable pageable);
 
     List<RoleRequest> getAllByUserId(Long userId);
+
 }

@@ -23,3 +23,4 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     @Query("SELECT DISTINCT oi FROM OrderItem oi WHERE oi.order.id IN :orderIds")
     List<OrderItem> findByOrderIds(@Param("orderIds") List<Long> orderIds);
 }
+

@@ -42,5 +42,4 @@ public class CartMapper {
                 .map(this::toCartItemDto)
                 .collect(Collectors.toList());
     }
-
 }

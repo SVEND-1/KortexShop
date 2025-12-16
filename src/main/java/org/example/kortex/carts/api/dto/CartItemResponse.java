@@ -10,4 +10,5 @@ public record CartItemResponse(
         BigDecimal price,
         Integer quantity
 ) {
+
 }

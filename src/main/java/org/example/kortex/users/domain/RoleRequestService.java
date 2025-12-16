@@ -53,7 +53,6 @@ public class RoleRequestService {
     }
 
 
-
     public RoleRequest getRoleRequest(Long roleRequestId) {
         return roleRequestRepository.findById(roleRequestId).orElseThrow(() -> new EntityNotFoundException("Заявка не найдена"));
     }

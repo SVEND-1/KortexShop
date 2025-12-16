@@ -7,5 +7,4 @@ public record CartResponse(
         List<CartItemResponse> items,
         BigDecimal total
 ) {
-
 }

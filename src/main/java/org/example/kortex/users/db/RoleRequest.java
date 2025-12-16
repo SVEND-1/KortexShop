@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "role_requests")
-public class RoleRequest {//Добавить снять или повысить
+public class RoleRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

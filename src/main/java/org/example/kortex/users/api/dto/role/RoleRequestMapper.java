@@ -26,7 +26,6 @@ public class RoleRequestMapper {
                 roleRequest.getUser().getName(),
                 roleRequest.getUser().getEmail()
         );
-
         return dto;
     }
 

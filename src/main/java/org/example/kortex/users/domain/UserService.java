@@ -121,7 +121,6 @@ public class UserService {
         } else {
             log.debug("Пользователь найден с email:" + user.getEmail());
         }
-
         return user;
     }
 

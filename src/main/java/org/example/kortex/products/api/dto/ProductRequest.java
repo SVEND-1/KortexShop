@@ -12,5 +12,4 @@ public record ProductRequest(
         Product.Category category,
         MultipartFile imageFile
 ) {
-
 }

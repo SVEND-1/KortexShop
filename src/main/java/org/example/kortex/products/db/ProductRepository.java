@@ -33,4 +33,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @EntityGraph(attributePaths = {"seller"})
     @Query("SELECT DISTINCT p FROM Product p")
     List<Product> findAllWithSeller();
+
 }

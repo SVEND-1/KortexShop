@@ -59,7 +59,6 @@ public class Product {
 
     }
 
-
     public enum Category {
         ELECTRONICS("Электроника"), CLOTHING("Одежда"), BOOKS("Книги"), FOOD("Еда"),
         SPORTS("Спорт товары"), HOME("Товары для дома"), BEAUTY("Красота"), OTHER("Другое");

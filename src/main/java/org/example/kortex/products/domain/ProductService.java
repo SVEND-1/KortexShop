@@ -105,3 +105,4 @@ public class ProductService {
         log.info("Продукт удален id: " + id);
     }
 }
+

@@ -87,7 +87,6 @@ public class OrderService {
         return orders;
     }
 
-
     public Page<Order> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
         log.info("Запрос доступный заказов для курьеров");
         pageSize = pageSize != null ? pageSize : 36;

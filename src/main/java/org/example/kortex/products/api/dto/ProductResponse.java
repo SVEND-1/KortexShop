@@ -7,5 +7,5 @@ public record ProductResponse(
          Double price,
          Integer count,
          String category,
-         String image) {//Вывод товаров
+         String image) {
 }

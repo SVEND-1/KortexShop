@@ -72,7 +72,6 @@ public class User {
     public User() {
     }
 
-
     public enum Role {
         USER, ADMIN, COURIER, SELLER;
 

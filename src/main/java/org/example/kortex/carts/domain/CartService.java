@@ -60,6 +60,7 @@ public class CartService {
         return saveCart;
     }
 
+
     public Cart cartAddProduct(Cart cart, Long productId) {
         log.info("Добавление продукта " + productId + " в корзину " + cart.getId());
         cartItemService.addItemToCart(cart.getId(),productId,1);

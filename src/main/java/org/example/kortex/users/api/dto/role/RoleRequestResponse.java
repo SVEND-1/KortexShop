@@ -15,5 +15,4 @@ public record RoleRequestResponse(
         String name,
         String email
 ){
-
 }
