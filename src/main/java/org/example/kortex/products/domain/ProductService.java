@@ -4,7 +4,6 @@ import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.api.dto.ProductMapper;
-import org.example.kortex.products.api.dto.ProductResponseDTO;
 import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;

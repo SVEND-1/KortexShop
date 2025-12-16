@@ -1,17 +1,16 @@
-package org.example.kortex.users.api.dto;
+package org.example.kortex.users.api.dto.user;
 
-import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.User;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UserDTOMapper {
-    public UserCartDTO toDto(User user) {
+public class UserMapper {
+    public UserResponse toDto(User user) {
         if (user == null) {
             return null;
         }
 
-        UserCartDTO dto = new UserCartDTO();
+        UserResponse dto = new UserResponse();
         dto.setId(user.getId());
         dto.setRole(user.getRole());
         dto.setAddress(user.getAddress());

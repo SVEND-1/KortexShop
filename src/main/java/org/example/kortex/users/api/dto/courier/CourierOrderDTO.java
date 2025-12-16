@@ -1,4 +1,4 @@
-package org.example.kortex.users.api.dto;
+package org.example.kortex.users.api.dto.courier;
 
 import lombok.Data;
 import org.example.kortex.orders.db.Order;
@@ -18,9 +18,4 @@ public class CourierOrderDTO {
     private CustomerInfoDTO customer;
     private List<CourierOrderItemDTO> orderItems;
 
-    // Дополнительные поля
-    private String deliveryTimeSlot;
-    private String deliveryInstructions;
-    private String paymentMethod;
-    private String contactPhone;
 }

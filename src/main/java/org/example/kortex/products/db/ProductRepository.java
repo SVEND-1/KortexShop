@@ -19,7 +19,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findBySellerId(@Param("sellerId") Long sellerId);
 
 
-    @EntityGraph(attributePaths = {"seller"})
+    @EntityGraph(attributePaths = {"seller","seller.cart"})
     @Query("""
        SELECT DISTINCT p FROM Product p
            WHERE (:category IS NULL OR p.category = :category)

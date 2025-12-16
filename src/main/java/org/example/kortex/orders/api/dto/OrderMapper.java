@@ -2,8 +2,7 @@ package org.example.kortex.orders.api.dto;
 
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
-import org.example.kortex.products.api.dto.ProductResponseDTO;
-import org.example.kortex.products.db.Product;
+import org.example.kortex.users.db.User;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -13,7 +12,7 @@ import java.util.stream.Collectors;
 @Component
 public class OrderMapper {
 
-    public OrderResponseDTO toDto(Order order) {
+    public OrderResponseDTO toDto(Order order) {//TODO поменять когда добавиться показ заказов
         OrderResponseDTO dto = new OrderResponseDTO();
 
         if (order == null) {
@@ -60,5 +59,18 @@ public class OrderMapper {
         return orders.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    public UserOrderResponse toUserOrderDto(User user) {
+        if (user == null) return null;
+
+        UserOrderResponse dto = new UserOrderResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getAddress()
+        );
+
+        return dto;
     }
 }

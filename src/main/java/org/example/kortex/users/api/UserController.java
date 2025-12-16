@@ -1,20 +1,14 @@
 package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.db.Order;
-import org.example.kortex.orders.domain.OrderService;
-import org.example.kortex.users.api.dto.UserDTOMapper;
+import org.example.kortex.users.api.dto.user.UserMapper;
 import org.example.kortex.users.db.User;
-import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.users.domain.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,20 +19,20 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
     private final OrderMapper orderMapper;
-    private final UserDTOMapper userDTOMapper;
+    private final UserMapper userMapper;
 
     @Autowired
-    public UserController(UserService userService, OrderMapper orderMapper, UserDTOMapper userDTOMapper) {
+    public UserController(UserService userService, OrderMapper orderMapper, UserMapper userMapper) {
         this.userService = userService;
         this.orderMapper = orderMapper;
-        this.userDTOMapper = userDTOMapper;
+        this.userMapper = userMapper;
     }
 
 
     @GetMapping("/me")
     public ResponseEntity<?> profile(){
         try {
-            return ResponseEntity.ok().body(userDTOMapper.toDto(userService.getCurrentUser()));
+            return ResponseEntity.ok().body(userMapper.toDto(userService.getCurrentUser()));
         }
         catch (Exception e) {
             log.error("Не удалось загрущить профиль" + e.getMessage());

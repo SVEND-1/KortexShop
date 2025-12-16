@@ -1,4 +1,4 @@
-package org.example.kortex.users.api.dto;
+package org.example.kortex.users.api.dto.courier;
 
 
 import org.example.kortex.orders.db.Order;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-public class CourierDTOMapper {
+public class CourierDTOMapper {//TODO Переделать
 
     public CourierOrderDTO toCourierOrderDTO(Order order) {
         if (order == null) {

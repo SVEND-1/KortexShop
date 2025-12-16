@@ -2,12 +2,11 @@ package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.api.dto.ProductMapper;
+import org.example.kortex.products.api.dto.ProductRequest;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -47,7 +46,7 @@ public class SellerController {
             User seller = userService.getCurrentUser();
             List<Product> products = productService.getProductsBySeller(seller.getId());
             log.info("Выданы продукты продовца");
-            return ResponseEntity.ok(productMapper.toDtoList(products));
+            return ResponseEntity.ok(productMapper.toDtoListResponse(products));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка при получении товаров: " + e.getMessage());
@@ -67,7 +66,7 @@ public class SellerController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
             }
 
-            return ResponseEntity.ok(productMapper.toDto(product));
+            return ResponseEntity.ok(productMapper.toDtoResponse(product));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Ошибка: " + e.getMessage());
@@ -79,27 +78,22 @@ public class SellerController {
 
     @PostMapping(value = "/products", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createProduct(
-            @RequestParam("name") String name,
-            @RequestParam("price") Double price,
-            @RequestParam("count") Integer count,
-            @RequestParam(value = "description", required = false) String description,
-            @RequestParam("category") Product.Category category,
-            @RequestParam(value = "imageFile") MultipartFile imageFile) {
+            @ModelAttribute ProductRequest request) {
 
         try {
             log.info("Создания товара ");
             User seller = userService.getCurrentUser();
             Product product = new Product();
 
-            product.setName(name);
-            product.setPrice(price);
-            product.setCount(count);
-            product.setDescription(description);
-            product.setCategory(category);
+            product.setName(request.name());
+            product.setPrice(request.price());
+            product.setCount(request.count());
+            product.setDescription(request.description());
+            product.setCategory(request.category());
             product.setSeller(seller);
 
-            if (imageFile != null && !imageFile.isEmpty()) {
-                String imageName = saveImage(imageFile);
+            if (request.imageFile() != null && !request.imageFile().isEmpty()) {
+                String imageName = saveImage(request.imageFile());
                 product.setImage(imageName);
             }
 
@@ -123,12 +117,7 @@ public class SellerController {
     @PutMapping(value = "/products/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProduct(
             @PathVariable Long id,
-            @RequestParam("name") String name,
-            @RequestParam("price") Double price,
-            @RequestParam("count") Integer count,
-            @RequestParam(value = "description", required = false) String description,
-            @RequestParam("category") Product.Category category,
-            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
+            @ModelAttribute  ProductRequest request) {
 
         try {
             log.info("Обновление товара с id: " + id);
@@ -140,18 +129,18 @@ public class SellerController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
             }
 
-            existingProduct.setName(name);
-            existingProduct.setPrice(price);
-            existingProduct.setCount(count);
-            existingProduct.setDescription(description);
-            existingProduct.setCategory(category);
+            existingProduct.setName(request.name());
+            existingProduct.setPrice(request.price());
+            existingProduct.setCount(request.count());
+            existingProduct.setDescription(request.description());
+            existingProduct.setCategory(request.category());
 
-            if (imageFile != null && !imageFile.isEmpty()) {
+            if (request.imageFile() != null && !request.imageFile().isEmpty()) {
                 if (existingProduct.getImage() != null) {
                     deleteImage(existingProduct.getImage());
                 }
 
-                String imageName = saveImage(imageFile);
+                String imageName = saveImage(request.imageFile());
                 existingProduct.setImage(imageName);
             }
 

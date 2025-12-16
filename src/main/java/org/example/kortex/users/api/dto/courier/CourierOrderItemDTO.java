@@ -1,4 +1,4 @@
-package org.example.kortex.users.api.dto;
+package org.example.kortex.users.api.dto.courier;
 
 
 import lombok.Data;

@@ -11,47 +11,36 @@ import java.util.stream.Collectors;
 
 @Component
 public class ProductMapper {
-    public ProductResponseDTO toDto(Product product) {
+
+    public ProductResponse toDtoResponse(Product product) {
         if (product == null) {
             return null;
         }
 
-        ProductResponseDTO dto = new ProductResponseDTO();
-        dto.setId(product.getId());
-        dto.setName(product.getName());
-        dto.setDescription(product.getDescription());
-        dto.setPrice(product.getPrice());
-        dto.setCount(product.getCount());
-        dto.setCategory(product.getCategory() != null ? product.getCategory().name() : null);
-        dto.setImage(product.getImage());
-
-        if (product.getSeller() != null) {
-            dto.setSellerId(product.getSeller().getId());
-            dto.setSellerName(product.getSeller().getName());
-            dto.setSellerEmail(product.getSeller().getEmail());
-        }
+        ProductResponse dto = new ProductResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getCount(),
+                product.getCategory() != null ? product.getCategory().name() : null,
+                product.getImage()
+        );
 
         return dto;
     }
 
-    public List<ProductResponseDTO> toDtoList(List<Product> products) {
+    public List<ProductResponse> toDtoListResponse(List<Product> products) {
         return products.stream()
-                .map(this::toDto)
+                .map(this::toDtoResponse)
                 .collect(Collectors.toList());
     }
 
-    public Page<ProductResponseDTO> toDtoPage(Page<Product> productPage) {
-        return productPage.map(this::toDto);
-    }
-
-    // Или возвращайте Map с полной информацией о пагинации
     public Map<String, Object> toPageResponse(Page<Product> productPage) {
         Map<String, Object> response = new HashMap<>();
 
-        // Контент
-        response.put("content", toDtoList(productPage.getContent()));
+        response.put("content", toDtoListResponse(productPage.getContent()));
 
-        // Информация о пагинации
         response.put("page", productPage.getNumber());
         response.put("size", productPage.getSize());
         response.put("totalElements", productPage.getTotalElements());

@@ -36,6 +36,10 @@ public class CartService {
         return cart;
     }
 
+    public Cart getCartWithUser(Long userId) {
+        return cartRepository.findByUserIdWithItemsAndUser(userId);
+    }
+
     public Cart getById(Long id)  {
         return cartRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("не найден"));
     }
@@ -49,7 +53,7 @@ public class CartService {
 
     public Cart clearCartByUserId(Long userID)  {
         log.info("Очистка корзины");
-        Cart cart = getCartByUserId(userID);
+        Cart cart = getCartWithUser(userID);
         cart.clearCart();
         Cart saveCart = cartRepository.save(cart);
         log.info("Корзина очищена");

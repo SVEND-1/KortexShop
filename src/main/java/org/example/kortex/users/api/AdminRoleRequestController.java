@@ -1,22 +1,16 @@
 package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.users.api.dto.RoleRequestMapper;
-import org.example.kortex.users.api.dto.RoleRequestRequestDTO;
+import org.example.kortex.users.api.dto.role.RoleRequestMapper;
 import org.example.kortex.users.db.RoleRequest;
-import org.example.kortex.users.db.RoleRequestRepository;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.RoleRequestService;
-import org.example.kortex.users.domain.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityNotFoundException;
-import java.util.List;
 
 @Slf4j
 @RestController

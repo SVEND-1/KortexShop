@@ -3,16 +3,13 @@ package org.example.kortex.orders.api;
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.api.dto.CartMapper;
 import org.example.kortex.carts.db.CartItem;
-import org.example.kortex.carts.domain.CartItemService;
 import org.example.kortex.carts.db.Cart;
-import org.example.kortex.carts.domain.CartService;
+import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,13 +26,15 @@ public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
     private final CartMapper cartMapper;
+    private final OrderMapper orderMapper;
     private final EmailSenderService emailSenderService;
 
     @Autowired
-    public OrderController(OrderService orderService, UserService userService,CartMapper cartMapper,EmailSenderService emailSenderService) {
+    public OrderController(OrderService orderService, UserService userService,CartMapper cartMapper,OrderMapper orderMapper,EmailSenderService emailSenderService) {
         this.orderService = orderService;
         this.userService = userService;
         this.cartMapper = cartMapper;
+        this.orderMapper = orderMapper;
         this.emailSenderService = emailSenderService;
     }
 
@@ -50,7 +49,7 @@ public class OrderController {
             response.put("cartItems", cartMapper.toListCartItemDto(cartItems));
             response.put("totalPrice", cart.totalPrice());
             response.put("totalItems", cart.getQuantity());
-            response.put("user", cartMapper.toUserCartDto(user));
+            response.put("user", orderMapper.toUserOrderDto(user));
 
             return ResponseEntity.ok().body(response);
         }catch (Exception e) {

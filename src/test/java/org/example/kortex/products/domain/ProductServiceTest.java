@@ -1,6 +1,5 @@
 package org.example.kortex.products.domain;
 
-import org.example.kortex.products.api.dto.ProductResponseDTO;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
 import org.junit.jupiter.api.Test;

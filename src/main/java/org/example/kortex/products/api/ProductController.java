@@ -51,7 +51,7 @@ public class ProductController {
     public ResponseEntity<?> productDetailPage(@PathVariable String id)  {
         try {
             Product product = productService.getById(Long.parseLong(id));
-            return ResponseEntity.ok(productMapper.toDto(product));
+            return ResponseEntity.ok(productMapper.toDtoResponse(product));
         }
         catch (Exception e) {
             log.error("Не удалось загрузить данные товара " + e.getMessage());
