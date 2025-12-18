@@ -2,14 +2,10 @@ package org.example.kortex.products.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
-import org.example.kortex.carts.db.CartItem;
-import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.users.db.User;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
 
 @Data
 @Entity

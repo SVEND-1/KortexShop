@@ -3,7 +3,6 @@ package org.example.kortex.products.domain;
 import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.products.api.dto.ProductMapper;
 import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
@@ -12,12 +11,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -28,38 +25,10 @@ public class ProductService {
     {
         this.productRepository = productRepository;
     }
-//    @Async("asyncExecutor")
-//    public CompletableFuture<Page<Product>> findProductsFilter(ProductSearchFilter filter) {
-//        log.info("Асинхронный поиск товаров в потоке: {}, фильтр: {}",
-//                Thread.currentThread().getName(), filter);
-//
-//        try {
-//            Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
-//            int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
-//            int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
-//            String query = filter.query() != null ? filter.query() : "";
-//
-//
-//            Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
-//
-//            long startTime = System.currentTimeMillis();
-//            Page<Product> productsPage = productRepository.findProductsFilter(category, query, pageable);
-//            long endTime = System.currentTimeMillis();
-//
-//            log.info("Асинхронный поиск завершен за {} мс, найдено: {} товаров",
-//                    (endTime - startTime), productsPage.getTotalElements());
-//
-//            return CompletableFuture.completedFuture(productsPage);
-//
-//        } catch (Exception e) {
-//            log.error("Ошибка при асинхронном поиске: {}", e.getMessage());
-//            return CompletableFuture.failedFuture(e);
-//        }
-//    }
 
     @Async("asyncExecutor")
     public CompletableFuture<Page<Product>> findProductsFilter(ProductSearchFilter filter){
-        log.info("Запрос на выдачу всех товаров с фильром: " + filter);
+        log.info("Запрос на выдачу всех товаров с фильром: {}", filter);
 
         Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
@@ -75,14 +44,14 @@ public class ProductService {
         log.info("Поиск завершен за {} мс, найдено: {} товаров",
                 (endTime - startTime), productsPage.getTotalElements());
 
-        log.info("Выдача всех товаров с фильтром: " + filter );
+        log.info("Выдача всех товаров с фильтром: {}", filter);
         return CompletableFuture.completedFuture(productsPage);
     }
 
 
 
     public List<Product> getProductsBySeller(Long sellerId) {
-        log.info("Запрос на товары у продавца: " + sellerId);
+        log.info("Запрос на товары у продавца: {}", sellerId);
         List<Product> products = productRepository.findBySellerId(sellerId);
         log.info("Запрос на товары у продавца успешно выполнен");
         return products;
@@ -108,12 +77,12 @@ public class ProductService {
     public Product create(Product productToCreate) {
         log.info("Создания продкута");
         Product product = productRepository.save(productToCreate);
-        log.info("Продукт создан id: " + product.getId());
+        log.info("Продукт создан id: {}", product.getId());
         return product;
     }
 
     public Product update(Long id, Product productToUpdate) {
-        log.info("Обновлние продукта с id: " + id);
+        log.info("Обновлние продукта с id: {}", id);
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
 
@@ -128,7 +97,7 @@ public class ProductService {
         }
 
         Product productUpdated = productRepository.save(existingProduct);
-        log.info("Продукт обновлени id: " + productUpdated.getId());
+        log.info("Продукт обновлени id: {}", productUpdated.getId());
         return productRepository.save(productUpdated);
     }
 
@@ -137,7 +106,7 @@ public class ProductService {
             throw new NoSuchElementException("Продукт не найден");
         }
         productRepository.deleteById(id);
-        log.info("Продукт удален id: " + id);
+        log.info("Продукт удален id: {}", id);
     }
 }
 

@@ -1,7 +1,6 @@
 package org.example.kortex.products.db;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,9 +28,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findProductsFilter(@Param("category") Product.Category category,
                                      @Param("query") String query,
                                      Pageable pageable);
-
-    @EntityGraph(attributePaths = {"seller"})
-    @Query("SELECT DISTINCT p FROM Product p")
-    List<Product> findAllWithSeller();
 
 }
