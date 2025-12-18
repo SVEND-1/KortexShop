@@ -10,28 +10,57 @@ import org.example.kortex.products.db.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Transactional
 public class ProductService {
     private final ProductRepository productRepository;
-    private final ProductMapper productMapper;
     @Autowired
-    public ProductService(ProductRepository productRepository, ProductMapper productMapper)
+    public ProductService(ProductRepository productRepository)
     {
         this.productRepository = productRepository;
-        this.productMapper = productMapper;
     }
+//    @Async("asyncExecutor")
+//    public CompletableFuture<Page<Product>> findProductsFilter(ProductSearchFilter filter) {
+//        log.info("Асинхронный поиск товаров в потоке: {}, фильтр: {}",
+//                Thread.currentThread().getName(), filter);
+//
+//        try {
+//            Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
+//            int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
+//            int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
+//            String query = filter.query() != null ? filter.query() : "";
+//
+//
+//            Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
+//
+//            long startTime = System.currentTimeMillis();
+//            Page<Product> productsPage = productRepository.findProductsFilter(category, query, pageable);
+//            long endTime = System.currentTimeMillis();
+//
+//            log.info("Асинхронный поиск завершен за {} мс, найдено: {} товаров",
+//                    (endTime - startTime), productsPage.getTotalElements());
+//
+//            return CompletableFuture.completedFuture(productsPage);
+//
+//        } catch (Exception e) {
+//            log.error("Ошибка при асинхронном поиске: {}", e.getMessage());
+//            return CompletableFuture.failedFuture(e);
+//        }
+//    }
 
-    public Page<Product> findProductsFilter(ProductSearchFilter filter){
+    @Async("asyncExecutor")
+    public CompletableFuture<Page<Product>> findProductsFilter(ProductSearchFilter filter){
         log.info("Запрос на выдачу всех товаров с фильром: " + filter);
+
         Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
         int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
@@ -39,11 +68,17 @@ public class ProductService {
 
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        Page<Product> productsPage = productRepository.findProductsFilter(category,query,pageable);
+        long startTime = System.currentTimeMillis();
+        Page<Product> productsPage = productRepository.findProductsFilter(category, query, pageable);
+        long endTime = System.currentTimeMillis();
+
+        log.info("Поиск завершен за {} мс, найдено: {} товаров",
+                (endTime - startTime), productsPage.getTotalElements());
 
         log.info("Выдача всех товаров с фильтром: " + filter );
-        return productsPage;
+        return CompletableFuture.completedFuture(productsPage);
     }
+
 
 
     public List<Product> getProductsBySeller(Long sellerId) {

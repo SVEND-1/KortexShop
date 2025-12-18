@@ -18,7 +18,6 @@ import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
-@Transactional
 public class CartService {
 
     private final CartRepository cartRepository;

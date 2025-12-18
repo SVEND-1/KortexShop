@@ -16,7 +16,6 @@ import java.util.List;
 
 @Slf4j
 @Service
-@Transactional
 public class RoleRequestService {
     private final UserService userService;
     private final RoleRequestRepository roleRequestRepository;

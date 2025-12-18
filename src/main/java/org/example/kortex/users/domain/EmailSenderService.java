@@ -14,7 +14,6 @@ import java.util.Random;
 
 @Slf4j
 @Service
-@Transactional
 public class EmailSenderService {
     private JavaMailSender javaMailSender;
 
@@ -23,7 +22,7 @@ public class EmailSenderService {
         this.javaMailSender = javaMailSender;
     }
 
-    @Async
+    @Async("asyncExecutor")
     public void sendMessage(String to, String subject, String content) {
         log.info("Отпрвавка сообщение на почту: " + to);
         SimpleMailMessage message = new SimpleMailMessage();
@@ -36,7 +35,7 @@ public class EmailSenderService {
         log.info("Сообщение отправлено на почту: " + to);
     }
 
-    @Async
+    @Async("asyncExecutor")
     public void sendPasswordResetEmail(String to, String code) {
         log.info("Отпрвавка сообщение на изменения сброс на почту: " + to + " с кодом " + code);
         SimpleMailMessage message = new SimpleMailMessage();
@@ -60,7 +59,7 @@ public class EmailSenderService {
         log.info("Сообщение отправлено на изменения сброс на почту: " + to + " с кодом " + code);
     }
 
-    @Async
+    @Async("asyncExecutor")
     public String sendVerification(String to,String code) {
         log.info("Отпрвавка сообщение на регистрацию на почту: " + to + " с кодом " + code);
         SimpleMailMessage message = new SimpleMailMessage();

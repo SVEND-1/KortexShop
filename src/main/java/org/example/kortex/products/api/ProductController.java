@@ -4,12 +4,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.api.dto.ProductMapper;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
+import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 
 @Slf4j
@@ -26,25 +32,47 @@ public class ProductController {
         this.productMapper = productMapper;
     }
 
+//    @GetMapping
+//    public CompletableFuture<ResponseEntity<?>> getProducts(@RequestParam(name = "category",required = false) String category,
+//                                                            @RequestParam(name = "query", required = false) String query,
+//                                                            @RequestParam(name = "page", defaultValue = "0") Integer page,
+//                                                            @RequestParam(name = "size", defaultValue = "12") Integer size) {
+//        log.info("Асинхронный запрос товаров");
+//        ProductSearchFilter filter = new ProductSearchFilter(category, query, size, page);
+//
+//        return productService.findProductsFilter(filter)
+//                .thenApply(productsPage -> {
+//                    Map<String, Object> response = productMapper.toPageResponse(productsPage);
+//                    return ResponseEntity.ok().body(response);
+//                });
+//    }
+
+
     @GetMapping
-    public ResponseEntity<?> getProducts(@RequestParam(name = "category",required = false) String category,
-                                         @RequestParam(name = "query", required = false) String query,
-                                         @RequestParam(name = "page", defaultValue = "0") Integer page,
-                                         @RequestParam(name = "size", defaultValue = "12") Integer size) {
-        try {
-            ProductSearchFilter filter = new ProductSearchFilter(category, query, size, page);
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> getProducts(
+            @RequestParam(name = "category", required = false) String category,
+            @RequestParam(name = "query", required = false) String query,
+            @RequestParam(name = "page", defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "12") Integer size) {
 
-            Page<Product> productsPage = productService.findProductsFilter(filter);
+        log.info("Асинхронный запрос товаров: category={}, query={}, page={}, size={}",
+                category, query, page, size);
 
-            Map<String, Object> response = productMapper.toPageResponse(productsPage);
+        ProductSearchFilter filter = new ProductSearchFilter(category, query, size, page);
 
-            return ResponseEntity.ok().body(response);
-        }
-        catch (Exception e) {
-            log.error("Не удалось загрузить товары для пользователя " + e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return productService.findProductsFilter(filter)
+                .thenApply(productsPage -> {
+                    Map<String, Object> response = productMapper.toPageResponse(productsPage);
+                    return ResponseEntity.ok(response);
+                })
+                .exceptionally(ex -> {
+                    Map<String, Object> error = new HashMap<>();
+                    error.put("error", "Ошибка при загрузке товаров");
+                    error.put("message", ex.getMessage());
+                    return ResponseEntity.badRequest().body(error);
+                });
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<?> productDetailPage(@PathVariable String id)  {
@@ -57,5 +85,7 @@ public class ProductController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+
 }
 
