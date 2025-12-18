@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @RestController
@@ -36,36 +37,63 @@ public class CourierController {
     }
 
     @GetMapping("/assignedOrders")
-    public ResponseEntity<?> getAssignedOrders(
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> getAssignedOrders(
             @RequestParam(name = "courierId") Long courierId,
             @RequestParam(name = "pageSize", required = false) Integer pageSize,
             @RequestParam(name = "pageNumber", required = false) Integer pageNumber
     ) {
-        try {
-            OrdersSearchCourierFilter filter = new OrdersSearchCourierFilter(courierId, pageSize, pageNumber);
-            Page<Order> ordersPage = orderService.assignedCourierOrdersPage(filter);
+        OrdersSearchCourierFilter filter = new OrdersSearchCourierFilter(courierId, pageSize, pageNumber);
 
-            Map<String, Object> response = courierDTOMapper.toPageResponse(ordersPage);
-            return ResponseEntity.ok().body(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Ошибка при получении назначенных заказов: " + e.getMessage());
-            log.error("Ошибка при получении назначенных заказов: " + e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        return orderService.assignedCourierOrdersPage(filter)
+                .thenApply(ordersPage ->{
+                   Map<String,Object> response = courierDTOMapper.toPageResponse(ordersPage);
+                   return ResponseEntity.ok(response);
+                })
+                .exceptionally(ex -> {
+                    Map<String,Object> error = new HashMap<>();
+                    error.put("error","Не удалось загрузить данные заказов");
+                    error.put("message",ex.getMessage());
+                    log.error("Ошибка загрузке взятых заказов: {}" ,ex.getMessage());
+                    return ResponseEntity.badRequest().body(error);
+                });
+//        try {
+//
+//            Page<Order> ordersPage = orderService.assignedCourierOrdersPage(filter);
+//
+//            Map<String, Object> response = courierDTOMapper.toPageResponse(ordersPage);
+//            return ResponseEntity.ok().body(response);
+//        } catch (Exception e) {
+//            Map<String, String> error = new HashMap<>();
+//            error.put("error", "Ошибка при получении назначенных заказов: " + e.getMessage());
+//            log.error("Ошибка при получении назначенных заказов: " + e.getMessage(), e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+//        }
     }
 
     @GetMapping("/availableOrders")//Доступные заказы
-    public ResponseEntity<?> getAvailableOrders(@RequestParam(name = "pageSize",required = false) Integer pageSize,
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> getAvailableOrders(@RequestParam(name = "pageSize",required = false) Integer pageSize,
                                                 @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
-        try {
-            return ResponseEntity.ok().body(courierDTOMapper.toPageResponse(orderService.availableCourierOrdersPage(pageSize, pageNumber)));
-        }catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Ошибка при получении доступных заказов: " + e.getMessage());
-            log.error("Ошибка при получении доступных заказов: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        return orderService.availableCourierOrdersPage(pageSize,pageNumber)
+                .thenApply(orders -> {
+                    Map<String,Object> response = courierDTOMapper.toPageResponse(orders);
+                    return ResponseEntity.ok(response);
+                })
+                .exceptionally(ex ->{
+                    Map<String,Object> error = new HashMap<>();
+                    error.put("error","Не удалось загрузить доступные заказы");
+                    error.put("message",ex.getMessage());
+                    log.error("Ошибка загрузки доступных заказов: {}",ex.getMessage());
+                    return ResponseEntity.badRequest().body(error);
+                });
+
+//        try {
+//            return ResponseEntity.ok().body(courierDTOMapper.toPageResponse(orderService.availableCourierOrdersPage(pageSize, pageNumber)));
+//        }catch (Exception e) {
+//            Map<String, String> error = new HashMap<>();
+//            error.put("error", "Ошибка при получении доступных заказов: " + e.getMessage());
+//            log.error("Ошибка при получении доступных заказов: " + e.getMessage());
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+//        }
     }
     @PostMapping("/{id}/assign")
     public ResponseEntity<?> assignOrder(@PathVariable Long id) {

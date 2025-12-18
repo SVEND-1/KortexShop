@@ -11,6 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityNotFoundException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @RestController
@@ -28,19 +31,25 @@ public class AdminRoleRequestController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAdminRoleRequest(@RequestParam(name = "role",required = false) User.Role role,
-                                                 @RequestParam(name = "status",required = false) RoleRequest.Status status,
-                                                 @RequestParam(name = "actionType",required = false) RoleRequest.TypeAction actionType,
-                                                 @RequestParam(name = "pageSize",required = false) Integer pageSize,
-                                                 @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
-        try {
-            RoleRequestFilter filter = new RoleRequestFilter(role, status, actionType, pageSize, pageNumber);
-            return ResponseEntity.ok().body(roleRequestMapper.toPageResponse(roleRequestService.getRoleRequests(filter)));
-        }
-        catch (EntityNotFoundException e) {
-            log.error("Не удалось загрузить товары с фильтром,Ошибка: " + e.getMessage());
-            return ResponseEntity.notFound().build();
-        }
+    public CompletableFuture<ResponseEntity<Map<String,Object>>> getAdminRoleRequest(@RequestParam(name = "role",required = false) User.Role role,
+                                                                                     @RequestParam(name = "status",required = false) RoleRequest.Status status,
+                                                                                     @RequestParam(name = "actionType",required = false) RoleRequest.TypeAction actionType,
+                                                                                     @RequestParam(name = "pageSize",required = false) Integer pageSize,
+                                                                                     @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
+        RoleRequestFilter filter = new RoleRequestFilter(role, status, actionType, pageSize, pageNumber);
+
+        return roleRequestService.getRoleRequestsPage(filter)
+                .thenApply(roleRequests -> {
+                   Map<String,Object> response = roleRequestMapper.toPageResponse(roleRequests);
+                   return ResponseEntity.ok(response);
+                })
+                .exceptionally(ex ->{
+                    Map<String,Object> error = new HashMap<>();
+                    error.put("error","Ошибка при загрузке всех заявок");
+                    error.put("message",ex.getMessage());
+                    log.info("Ошибка при загрузке всех заявок: {}", error);
+                    return ResponseEntity.badRequest().body(error);
+                });
     }
 
     @GetMapping("/{id}")

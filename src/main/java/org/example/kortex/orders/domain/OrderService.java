@@ -18,12 +18,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -59,20 +61,8 @@ public class OrderService {
         return orders;
     }
 
-    public Page<Order> assignedCourierOrdersPage(Long userId, Integer pageSize, Integer pageNumber) {
-        User courier = userService.getById(userId);
-        validateCourier(courier);
-
-        pageSize = pageSize != null ? pageSize : 8;
-        pageNumber = pageNumber != null ? pageNumber : 0;
-        Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
-
-        Page<Order> orders = orderRepository.assignedOrdersPage(userId, pageable);
-        log.info("Заказы курьера с пагинацией выданы id курьера: " + userId);
-        return orders;
-    }
-
-    public Page<Order> assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
+    @Async("asyncExecutor")
+    public CompletableFuture<Page<Order>> assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
         log.info("Заказы курьера с фильтром: " + filter);
         User courier = userService.getById(filter.userId());
         validateCourier(courier);
@@ -83,10 +73,11 @@ public class OrderService {
 
         var orders = orderRepository.assignedOrdersPage(filter.userId(), pageable);
         log.info("Заказы курьера с фильтром выданы");
-        return orders;
+        return CompletableFuture.completedFuture(orders);
     }
 
-    public Page<Order> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
+    @Async("asyncExecutor")
+    public CompletableFuture<Page<Order>> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
         log.info("Запрос доступный заказов для курьеров");
         pageSize = pageSize != null ? pageSize : 36;
         pageNumber = pageNumber != null ? pageNumber : 0;
@@ -95,8 +86,9 @@ public class OrderService {
                 .withPage(pageNumber);
 
         var orders = orderRepository.availableOrdersPage(pageable);
+
         log.info("Доступные заказы для курьеров выданы ");
-        return orders;
+        return CompletableFuture.completedFuture(orders);
     }
 
 

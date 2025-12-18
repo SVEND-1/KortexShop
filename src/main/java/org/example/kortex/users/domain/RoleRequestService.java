@@ -1,6 +1,7 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.products.db.Product;
 import org.example.kortex.users.api.RoleRequestFilter;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.RoleRequestRepository;
@@ -8,11 +9,12 @@ import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -47,7 +49,7 @@ public class RoleRequestService {
         roleRequest.setStatus(RoleRequest.Status.PENDING);
 
         RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
-        log.info("Заявка создана id: " + savedRoleRequest.getId());
+        log.info("Заявка создана id: {}", savedRoleRequest.getId());
         return savedRoleRequest;
     }
 
@@ -56,13 +58,16 @@ public class RoleRequestService {
         return roleRequestRepository.findById(roleRequestId).orElseThrow(() -> new EntityNotFoundException("Заявка не найдена"));
     }
 
-    public Page<RoleRequest> getRoleRequests(RoleRequestFilter filter) {
+    @Async("asyncExecutor")
+    public CompletableFuture<Page<RoleRequest>> getRoleRequestsPage(RoleRequestFilter filter) {
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
         int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
 
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        return roleRequestRepository.findSearchFilter(filter.role(),filter.status(),filter.typeAction() ,pageable);
+        Page<RoleRequest> roleRequests = roleRequestRepository.findSearchFilter(filter.role(),filter.status(),filter.typeAction() ,pageable);
+
+        return CompletableFuture.completedFuture(roleRequests);
     }
 
     public RoleRequest downgradeRole(Long roleRequestId) {
@@ -94,7 +99,6 @@ public class RoleRequestService {
 
 
     private boolean hasPendingRequestForSameAction(Long userId) {
-        // Используем репозиторий вместо обращения к коллекции пользователя
         return roleRequestRepository.existsByUserIdAndStatus(userId, RoleRequest.Status.PENDING);
     }
 }
