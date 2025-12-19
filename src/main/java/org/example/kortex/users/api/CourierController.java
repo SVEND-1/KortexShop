@@ -56,18 +56,6 @@ public class CourierController {
                     log.error("Ошибка загрузке взятых заказов: {}" ,ex.getMessage());
                     return ResponseEntity.badRequest().body(error);
                 });
-//        try {
-//
-//            Page<Order> ordersPage = orderService.assignedCourierOrdersPage(filter);
-//
-//            Map<String, Object> response = courierDTOMapper.toPageResponse(ordersPage);
-//            return ResponseEntity.ok().body(response);
-//        } catch (Exception e) {
-//            Map<String, String> error = new HashMap<>();
-//            error.put("error", "Ошибка при получении назначенных заказов: " + e.getMessage());
-//            log.error("Ошибка при получении назначенных заказов: " + e.getMessage(), e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-//        }
     }
 
     @GetMapping("/availableOrders")//Доступные заказы
@@ -85,16 +73,8 @@ public class CourierController {
                     log.error("Ошибка загрузки доступных заказов: {}",ex.getMessage());
                     return ResponseEntity.badRequest().body(error);
                 });
-
-//        try {
-//            return ResponseEntity.ok().body(courierDTOMapper.toPageResponse(orderService.availableCourierOrdersPage(pageSize, pageNumber)));
-//        }catch (Exception e) {
-//            Map<String, String> error = new HashMap<>();
-//            error.put("error", "Ошибка при получении доступных заказов: " + e.getMessage());
-//            log.error("Ошибка при получении доступных заказов: " + e.getMessage());
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-//        }
     }
+
     @PostMapping("/{id}/assign")
     public ResponseEntity<?> assignOrder(@PathVariable Long id) {
         try {

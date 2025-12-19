@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.api.dto.role.RoleRequestMapper;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.User;
-import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.RoleRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,13 +20,11 @@ import java.util.concurrent.CompletableFuture;
 public class AdminRoleRequestController {
     private final RoleRequestService roleRequestService;
     private final RoleRequestMapper roleRequestMapper;
-    private final EmailSenderService emailSenderService;
 
     @Autowired
-    public AdminRoleRequestController(RoleRequestService roleRequestService,RoleRequestMapper roleRequestMapper,EmailSenderService emailSenderService) {
+    public AdminRoleRequestController(RoleRequestService roleRequestService,RoleRequestMapper roleRequestMapper) {
         this.roleRequestService = roleRequestService;
         this.roleRequestMapper = roleRequestMapper;
-        this.emailSenderService = emailSenderService;
     }
 
     @GetMapping
@@ -67,8 +64,6 @@ public class AdminRoleRequestController {
     public ResponseEntity<?> downgradeAdminRoleRequest(@PathVariable("id") long id) {
         try{
             RoleRequest roleRequest  = roleRequestService.downgradeRole(id);
-
-            emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили понижение");
             log.info("Понижения пользователя с id: " + roleRequest.getUser().getId());
             return ResponseEntity.ok().body(roleRequest);
         }
@@ -82,7 +77,6 @@ public class AdminRoleRequestController {
     public ResponseEntity<?> approveAdminRoleRequest(@PathVariable("id") long id) {
         try{
             RoleRequest roleRequest = roleRequestService.approveRole(id);
-            emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили повышение");
             log.info("Повышение пользователя с id: " + roleRequest.getUser().getId());
             return ResponseEntity.ok().body(roleRequest);
         }
@@ -96,7 +90,6 @@ public class AdminRoleRequestController {
     public ResponseEntity<?> rejectAdminRoleRequest(@PathVariable("id") long id) {
         try{
             RoleRequest roleRequest = roleRequestService.rejectRole(id);
-            emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Ваша заявка отклонена","Можете отправить повторно позже");
             log.info("Запрос пользователя на смену роли отклонен id запроса: " + id);
             return ResponseEntity.ok().body(roleRequest);
         }

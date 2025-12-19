@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
@@ -21,11 +22,13 @@ import java.util.concurrent.CompletableFuture;
 public class RoleRequestService {
     private final UserService userService;
     private final RoleRequestRepository roleRequestRepository;
+    private final EmailSenderService emailSenderService;
 
     @Autowired
-    public RoleRequestService(UserService userService, RoleRequestRepository roleRequestRepository) {
+    public RoleRequestService(UserService userService, RoleRequestRepository roleRequestRepository,EmailSenderService emailSenderService) {
         this.userService = userService;
         this.roleRequestRepository = roleRequestRepository;
+        this.emailSenderService = emailSenderService;
     }
 
     public List<RoleRequest> getAllRoleRequestsByUserId(Long userId) {
@@ -70,6 +73,7 @@ public class RoleRequestService {
         return CompletableFuture.completedFuture(roleRequests);
     }
 
+    @Transactional
     public RoleRequest downgradeRole(Long roleRequestId) {
         RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                 .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
@@ -77,9 +81,14 @@ public class RoleRequestService {
         userService.downgrade(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
 
         roleRequest.setStatus(RoleRequest.Status.APPROVED);
-        return roleRequestRepository.save(roleRequest);
+
+        RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
+
+        emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили понижение");
+        return savedRoleRequest;
     }
 
+    @Transactional
     public RoleRequest approveRole(Long roleRequestId) {
         RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                 .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
@@ -87,14 +96,25 @@ public class RoleRequestService {
         userService.appoint(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
 
         roleRequest.setStatus(RoleRequest.Status.APPROVED);
-        return roleRequestRepository.save(roleRequest);
+
+        RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
+
+        emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили повышение");
+
+        return savedRoleRequest;
     }
+
+    @Transactional
     public RoleRequest rejectRole(Long roleRequestId) {
         RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                 .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
 
         roleRequest.setStatus(RoleRequest.Status.REJECTED);
-        return roleRequestRepository.save(roleRequest);
+
+        RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
+
+        emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Ваша заявка отклонена","Можете отправить повторно позже");
+        return savedRoleRequest;
     }
 
 

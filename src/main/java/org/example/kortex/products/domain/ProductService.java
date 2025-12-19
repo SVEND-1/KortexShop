@@ -11,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -61,12 +63,14 @@ public class ProductService {
         return productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
     }
 
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public Product productSubtractQuantity(Long productId, int quantity) {
         Product product = getById(productId);
         product.setCount(product.getCount() - quantity);
         return productRepository.save(product);
     }
 
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public Product productAddQuantity(Long productId, int quantity) {
         Product product = getById(productId);
         product.setCount(product.getCount() + quantity);
@@ -81,6 +85,7 @@ public class ProductService {
         return product;
     }
 
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public Product update(Long id, Product productToUpdate) {
         log.info("Обновлние продукта с id: {}", id);
         Product existingProduct = productRepository.findById(id)

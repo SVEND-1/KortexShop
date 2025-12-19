@@ -44,6 +44,7 @@ public class CartItemService {
         return cartItemRepository.findAllByCartId(cartId);
     }
 
+    @Transactional
     public CartItem addItemToCart(Long cartId, Long productId, Integer quantity) {
         log.info("Добавление CartItem в корзину " + cartId);
         Cart cart = cartRepository.findById(cartId)
@@ -80,6 +81,7 @@ public class CartItemService {
         }
     }
 
+    @Transactional
     public CartItem updateIncrement(Long cartItemId) {
         log.info("Увеличение количества товара в cartItem: {}", cartItemId);
 
@@ -104,7 +106,8 @@ public class CartItemService {
         }
     }
 
-    
+
+    @Transactional
     public CartItem decreaseQuantityOrRemove(Long cartItemId) {
         log.info("Уменьшение количества или удаление cartItem: {}", cartItemId);
 
@@ -124,6 +127,7 @@ public class CartItemService {
         return savedCartItem;
     }
 
+    @Transactional
     public void removeItemFromCart(Long cartItemId) {
         CartItem cartItem = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new EntityNotFoundException("CartItem не найден"));

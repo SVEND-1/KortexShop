@@ -8,7 +8,6 @@ import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.db.User;
-import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,15 +26,13 @@ public class OrderController {
     private final UserService userService;
     private final CartMapper cartMapper;
     private final OrderMapper orderMapper;
-    private final EmailSenderService emailSenderService;
 
     @Autowired
-    public OrderController(OrderService orderService, UserService userService,CartMapper cartMapper,OrderMapper orderMapper,EmailSenderService emailSenderService) {
+    public OrderController(OrderService orderService, UserService userService,CartMapper cartMapper,OrderMapper orderMapper) {
         this.orderService = orderService;
         this.userService = userService;
         this.cartMapper = cartMapper;
         this.orderMapper = orderMapper;
-        this.emailSenderService = emailSenderService;
     }
 
     @GetMapping("/me-create")//Отображение страницы заказа
@@ -66,9 +63,6 @@ public class OrderController {
             log.info("Создания заказа");
             User user = userService.getCurrentUser();
             Order order = orderService.createOrderFromCart(user.getId());
-
-            emailSenderService.sendMessage(user.getEmail(),"Заказ успешно создан!"
-                    ,"Мы отравим вам письмо когда курьер возьмет его");
 
             Map<String, Object> response = new HashMap<>();
             response.put("order", order);

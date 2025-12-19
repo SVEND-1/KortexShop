@@ -13,6 +13,7 @@ import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.users.db.User;
+import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -35,15 +37,18 @@ public class OrderService {
     private final CartService cartService;
     private final ProductService productService;
     private final OrderItemService orderItemService;
+    private final EmailSenderService emailSenderService;
 
     @Autowired
     public OrderService(OrderRepository orderRepository,@Lazy UserService userService,
-                        CartService cartService, ProductService productService,OrderItemService orderItemService) {
+                        CartService cartService, ProductService productService,OrderItemService orderItemService,
+                        EmailSenderService emailSenderService) {
         this.orderRepository = orderRepository;
         this.userService = userService;
         this.cartService = cartService;
         this.productService = productService;
         this.orderItemService = orderItemService;
+        this.emailSenderService = emailSenderService;
     }
 
     public List<Order> getAll(){
@@ -96,6 +101,7 @@ public class OrderService {
         return orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("не найден"));
     }
 
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public Order setCourier(Order order,Long courierId) {
         log.info("Назначения курьера на заказ");
         User user = userService.getById(courierId);
@@ -107,7 +113,7 @@ public class OrderService {
         return saveOrder;
     }
 
-
+    @Transactional
     public Order setStatus(Order order, Order.OrderStatus status) {
         log.info("Изменения статуса заказа " + order.getId() + " на статсус " + status.name());
         if(status == Order.OrderStatus.CANCELLED) {
@@ -135,6 +141,7 @@ public class OrderService {
         return orderRepository.findOrderByUserId(userId);
     }
 
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public Order createOrderFromCart(Long userId) {
         log.info("Создания заказа из корзины");
         User user = userService.getById(userId);
@@ -170,6 +177,8 @@ public class OrderService {
         for(OrderItem orderItem : finalOrder.getOrderItems()) {
             productService.productSubtractQuantity(orderItem.getProduct().getId(),orderItem.getQuantity());
         }
+        emailSenderService.sendMessage(user.getEmail(),"Заказ успешно создан!"
+                ,"Мы отравим вам письмо когда курьер возьмет его");
         log.info("Заказ создан с id: " + finalOrder.getId());
         return finalOrder;
     }

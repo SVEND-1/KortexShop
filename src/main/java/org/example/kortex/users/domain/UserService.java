@@ -67,6 +67,7 @@ public class UserService {
     }
 
 
+    @Transactional
     public User appoint(Long userId, User.Role role) {
         User user = getById(userId);
         log.info("Повышение пользователя id: " + user.getId() + " на роль : " + role.name());
@@ -94,6 +95,7 @@ public class UserService {
         return savedUser;
     }
 
+    @Transactional
     public User downgrade(Long userId, User.Role role) {
         User user = getById(userId);
         log.info("Понижение пользователя id: " + user.getId() + " на роль : " + role.name());
@@ -134,6 +136,7 @@ public class UserService {
         }
     }
 
+    @Transactional
     public User update(Long id, User userToUpdate) {
         log.info("Обновление пользователя с id: " + id);
         User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
