@@ -33,16 +33,16 @@ public class SecurityConfig {
 
                 .antMatchers("/","/login","/codeEmail","/forgotPassword","/recoveryPassword","/register",
                         "/api/auth/**","/error","/api/products/**","/*.html","/*.css","/*js")
-                        .permitAll()
+                .permitAll()
                 .antMatchers("/profile","/cart",
                         "/api/users/role-request/**","/api/users/**","/api/orders/**","/api/carts/**")
-                        .hasAnyRole(User.Role.USER.name(),User.Role.ADMIN.name(),User.Role.COURIER.name(),User.Role.SELLER.name())
+                .hasAnyRole(User.Role.USER.name(),User.Role.ADMIN.name(),User.Role.COURIER.name(),User.Role.SELLER.name())
                 .antMatchers("/api/couriers/**","/courier")
-                        .hasAnyRole(User.Role.ADMIN.name(),User.Role.COURIER.name())
+                .hasAnyRole(User.Role.ADMIN.name(),User.Role.COURIER.name())
                 .antMatchers("/seller","/api/sellers/**")
-                        .hasAnyRole(User.Role.ADMIN.name(),User.Role.SELLER.name())
+                .hasAnyRole(User.Role.ADMIN.name(),User.Role.SELLER.name())
                 .antMatchers("/admin","/api/admin/role-request/**")
-                        .hasRole(User.Role.ADMIN.name())
+                .hasRole(User.Role.ADMIN.name())
                 .anyRequest().permitAll()
 
                 .and().formLogin().loginPage("/login").permitAll().usernameParameter("email").defaultSuccessUrl("/")

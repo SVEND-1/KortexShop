@@ -8,175 +8,174 @@
     <title>Профиль</title>
 </head>
 <body>
-    <!--Шапка страницы-->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <a href="/" class="logo">Kortex marketplace</a>
+<!--Шапка страницы-->
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="/" class="logo">Kortex marketplace</a>
 
-                <form class="search-form" action="/search" method="GET">
-                    <div class="search-container">
-                        <input id="search-input" type="text" class="search-input" placeholder="Поиск товаров...">
-                        <button type="submit" class="search-button">
-                            <img id="findImg" src="images/findImg.png" alt="Поиск">
-                        </button>
-                    </div>
-                </form>
-
-                <nav class="nav">
-                    <a href="/cart" class="nav-link">
-                        <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
-                        Корзина
-                    </a>
-
-                    <a href="/profile" class="nav-link">
-                        <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
-                        <span class="profile-text">Профиль</span>
-                    </a>
-
-                    <a href="/login" class="nav-link">
-                        <img src="images/join-img.png" alt="Войти" class="nav-icon">
-                        Войти
-                    </a>
-                </nav>
-            </div>
-        </div>
-    </header>
-
-    <!-- Основной контент профиля -->
-    <div class="profile-container">
-        <div class="profile-header">
-            <h1>Мой профиль</h1>
-        </div>
-        
-        <div class="profile-content">
-            <!-- Боковая панель -->
-            <div class="profile-sidebar">
-                <!--<img src="images/avatar.jpg" alt="Аватар" class="profile-avatar">-->
-                <h2 class="profile-name">Иван Иванов</h2>
-                <p class="profile-email">ivan@example.com</p>
-                
-                <div class="profile-stats">
-                    <div class="stat-item">
-                        <span class="stat-value">0</span>
-                        <span class="stat-label">Заказов</span>
-                    </div>
+            <form class="search-form" action="/search" method="GET">
+                <div class="search-container">
+                    <input id="search-input" type="text" class="search-input" placeholder="Поиск товаров...">
+                    <button type="submit" class="search-button">
+                        <img id="findImg" src="images/findImg.png" alt="Поиск">
+                    </button>
                 </div>
-                
-                <!-- Кнопки для разных ролей -->
-                <div class="role-buttons">
-                    <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">
-                        🏪 Для продавца
-                    </a>
-                    <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">
-                        🚚 Для курьера
-                    </a>
-                    <a href="/admin" class="btn btn-admin" style="width: 100%;">
-                        ⚙️ Для админа
-                    </a>
+            </form>
+
+            <nav class="nav">
+                <a href="/cart" class="nav-link">
+                    <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
+                    Корзина
+                </a>
+
+                <a href="/profile" class="nav-link">
+                    <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
+                    <span class="profile-text">Профиль</span>
+                </a>
+
+                <a href="/login" class="nav-link">
+                    <img src="images/join-img.png" alt="Войти" class="nav-icon">
+                    Войти
+                </a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<!-- Основной контент профиля -->
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>Мой профиль</h1>
+    </div>
+
+    <div class="profile-content">
+        <!-- Боковая панель -->
+        <div class="profile-sidebar">
+            <!--<img src="images/avatar.jpg" alt="Аватар" class="profile-avatar">-->
+            <h2 class="profile-name">Иван Иванов</h2>
+            <p class="profile-email">ivan@example.com</p>
+
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">Заказов</span>
                 </div>
             </div>
-            
-            <!-- Основной контент -->
-            <div class="profile-main">
-                <div class="profile-tabs">
-                    <button class="tab-button active" data-tab="personal">Личная информация</button>
-                    <button class="tab-button" data-tab="settings">Настройки</button>
-                    <button class="tab-button" data-tab="requests">Заявки на роли</button>
+
+            <!-- Кнопки для разных ролей -->
+            <div class="role-buttons">
+                <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">
+                    🏪 Для продавца
+                </a>
+                <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">
+                    🚚 Для курьера
+                </a>
+                <a href="/admin" class="btn btn-admin" style="width: 100%;">
+                    ⚙️ Для админа
+                </a>
+            </div>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="profile-main">
+            <div class="profile-tabs">
+                <button class="tab-button active" data-tab="personal">Личная информация</button>
+                <button class="tab-button" data-tab="settings">Настройки</button>
+                <button class="tab-button" data-tab="requests">Заявки на роли</button>
+            </div>
+
+            <!-- Контент вкладок -->
+            <div class="tab-content">
+                <!-- Вкладка личной информации -->
+                <div id="personal-tab" class="tab-pane active">
+                    <form class="profile-form" id="personalForm">
+                        <div class="form-group">
+                            <label>Имя</label>
+                            <input type="text" name="name" id="profileName" placeholder="Иван" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" id="profileEmail" placeholder="ivan@example.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Адрес</label>
+                            <input type="text" name="address" id="profileAddress" placeholder="Введите адрес" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                    </form>
                 </div>
-                
-                <!-- Контент вкладок -->
-                <div class="tab-content">
-                    <!-- Вкладка личной информации -->
-                    <div id="personal-tab" class="tab-pane active">
-                        <form class="profile-form" id="personalForm">
-                            <div class="form-group">
-                                <label>Имя</label>
-                                <input type="text" name="name" id="profileName" placeholder="Иван" required>
+
+                <!-- Вкладка настроек -->
+                <div id="settings-tab" class="tab-pane">
+                    <form class="profile-form" id="settingsForm">
+                        <div class="form-group">
+                            <!--
+                            <label>Смена аватарки</label>
+                            <div class="avatar-upload">
+                                <div class="avatar-preview">
+                                    <img src="images/avatar.jpg" alt="Аватар" id="avatarPreview" class="avatar-preview-img">
+                                </div>
+                                <div class="avatar-controls">
+                                    <input type="file" id="avatarInput" accept="image/*" class="file-input">
+                                    <label for="avatarInput" class="btn btn-choose-image">Выбрать изображение</label>
+                                    <button type="button" id="removeAvatar" class="btn btn-remove">Удалить аватар</button>
+                                </div>
                             </div>
-                            
-                            <div class="form-group">
-                                <label>Email</label>
-                                <input type="email" name="email" id="profileEmail" placeholder="ivan@example.com" required>
+                            -->
+                        </div>
+
+
+
+                        <!--<button type="submit" class="btn btn-primary">Сохранить настройки</button>-->
+                    </form>
+                </div>
+
+                <!-- Вкладка заявок на роли -->
+                <div id="requests-tab" class="tab-pane">
+                    <div class="requests-section">
+                        <h2 class="requests-title">Подать заявку на изменение роли</h2>
+                        <p class="requests-subtitle">Выберите тип заявки и заполните форму</p>
+
+                        <div class="requests-buttons-grid">
+                            <div class="request-card">
+                                <div class="request-icon">🚀</div>
+                                <h3>Стать продавцом</h3>
+                                <p>Получите возможность продавать товары на нашей платформе</p>
+                                <button class="btn btn-primary" onclick="openRequestModal('seller')">
+                                    📝 Подать заявку
+                                </button>
                             </div>
 
-                            <div class="form-group">
-                                <label>Адрес</label>
-                                <input type="text" name="address" id="profileAddress" placeholder="Введите адрес" required>
+                            <div class="request-card">
+                                <div class="request-icon">🚚</div>
+                                <h3>Стать курьером</h3>
+                                <p>Начните зарабатывать на доставке товаров</p>
+                                <button class="btn btn-primary" onclick="openRequestModal('courier')">
+                                    📝 Подать заявку
+                                </button>
                             </div>
-                            
-                            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
-                        </form>
-                    </div>
-                    
-                    <!-- Вкладка настроек -->
-                    <div id="settings-tab" class="tab-pane">
-                        <form class="profile-form" id="settingsForm">
-                            <div class="form-group">
-                                <!--
-                                <label>Смена аватарки</label>
-                                <div class="avatar-upload">
-                                    <div class="avatar-preview">
-                                        <img src="images/avatar.jpg" alt="Аватар" id="avatarPreview" class="avatar-preview-img">
-                                    </div>
-                                    <div class="avatar-controls">
-                                        <input type="file" id="avatarInput" accept="image/*" class="file-input">
-                                        <label for="avatarInput" class="btn btn-choose-image">Выбрать изображение</label>
-                                        <button type="button" id="removeAvatar" class="btn btn-remove">Удалить аватар</button>
-                                    </div>
-                                </div>
-                                -->
+
+                            <div class="request-card">
+                                <div class="request-icon">⬇️</div>
+                                <h3>Сняться с роли</h3>
+                                <p>Вернуться к роли обычного покупателя</p>
+                                <button class="btn btn-secondary" onclick="openDowngradeModal()">
+                                    📝 Подать заявку
+                                </button>
                             </div>
-                            
-                           
-                            
-                            <!--<button type="submit" class="btn btn-primary">Сохранить настройки</button>-->
-                        </form>
-                    </div>
-                    
-                    <!-- Вкладка заявок на роли -->
-                    <div id="requests-tab" class="tab-pane">
-                        <div class="requests-section">
-                            <h2 class="requests-title">Подать заявку на изменение роли</h2>
-                            <p class="requests-subtitle">Выберите тип заявки и заполните форму</p>
-                            
-                            <div class="requests-buttons-grid">
-                                <div class="request-card">
-                                    <div class="request-icon">🚀</div>
-                                    <h3>Стать продавцом</h3>
-                                    <p>Получите возможность продавать товары на нашей платформе</p>
-                                    <button class="btn btn-primary" onclick="openRequestModal('seller')">
-                                        📝 Подать заявку
-                                    </button>
-                                </div>
-                                
-                                <div class="request-card">
-                                    <div class="request-icon">🚚</div>
-                                    <h3>Стать курьером</h3>
-                                    <p>Начните зарабатывать на доставке товаров</p>
-                                    <button class="btn btn-primary" onclick="openRequestModal('courier')">
-                                        📝 Подать заявку
-                                    </button>
-                                </div>
-                                
-                                <div class="request-card">
-                                    <div class="request-icon">⬇️</div>
-                                    <h3>Сняться с роли</h3>
-                                    <p>Вернуться к роли обычного покупателя</p>
-                                    <button class="btn btn-secondary" onclick="openDowngradeModal()">
-                                        📝 Подать заявку
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- История заявок -->
-                            <div class="requests-history" id="requestsHistory">
-                                <h3>Мои заявки</h3>
-                                <div class="requests-list" id="requestsList">
-                                    <!-- Заявки будут загружаться через JavaScript -->
-                                    <div class="no-requests">
-                                        <p>У вас еще нет отправленных заявок</p>
-                                    </div>
+                        </div>
+
+                        <!-- История заявок -->
+                        <div class="requests-history" id="requestsHistory">
+                            <h3>Мои заявки</h3>
+                            <div class="requests-list" id="requestsList">
+                                <!-- Заявки будут загружаться через JavaScript -->
+                                <div class="no-requests">
+                                    <p>У вас еще нет отправленных заявок</p>
                                 </div>
                             </div>
                         </div>
@@ -184,108 +183,109 @@
                 </div>
             </div>
         </div>
-        
-        <!-- История заказов -->
-        <div class="orders-history">
-            <h2>История заказов</h2>
-        
-            <div class="orders-grid" id="ordersGrid">
-                <!-- История заказов будет загружаться через JavaScript -->
-            </div>
-        </div>
     </div>
 
-    <!-- Модальное окно для подачи заявки -->
-    <div class="modal" id="requestModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="requestModalTitle">Подача заявки</h3>
-                <button class="modal-close" onclick="closeRequestModal()">×</button>
-            </div>
-            
-            <div class="modal-body">
-                <form id="requestForm">
-                    <div class="form-group">
-                        <label>Выберите роль</label>
-                        <select id="requestRole" class="form-select" required>
-                            <option value="" disabled selected>Выберите роль</option>
-                            <option value="SELLER">Продавец</option>
-                            <option value="COURIER">Курьер</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="requestMessage">Опишите, почему вы хотите стать <span id="roleName">...</span></label>
-                        <textarea id="requestMessage" 
-                                  class="form-textarea" 
-                                  placeholder="Расскажите о вашем опыте, мотивации и планах..."
-                                  maxlength="500"
-                                  required></textarea>
-                        <div class="char-counter">
-                            <span id="charCount">0</span> / 500 символов
-                        </div>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeRequestModal()">
-                            Отмена
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            Отправить заявку
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <!-- История заказов -->
+    <div class="orders-history">
+        <h2>История заказов</h2>
+
+        <div class="orders-grid" id="ordersGrid">
+            <!-- История заказов будет загружаться через JavaScript -->
         </div>
     </div>
+</div>
 
-    <!-- Модальное окно для снятия роли -->
-    <div class="modal" id="downgradeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Заявка на снятие с роли</h3>
-                <button class="modal-close" onclick="closeDowngradeModal()">×</button>
-            </div>
-            
-            <div class="modal-body">
-                <form id="downgradeForm">
-                    <div class="form-group">
-                        <label>Текущая роль</label>
-                        <select id="currentRole" class="form-select" required>
-                            <option value="" disabled selected>Выберите текущую роль</option>
-                            <option value="SELLER">Продавец</option>
-                            <option value="COURIER">Курьер</option>
-                        </select>
+<!-- Модальное окно для подачи заявки -->
+<div class="modal" id="requestModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="requestModalTitle">Подача заявки</h3>
+            <button class="modal-close" onclick="closeRequestModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+            <form id="requestForm">
+                <div class="form-group">
+                    <label>Выберите роль</label>
+                    <select id="requestRole" class="form-select" required>
+                        <option value="" disabled selected>Выберите роль</option>
+                        <option value="SELLER">Продавец</option>
+                        <option value="COURIER">Курьер</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="requestMessage">Опишите, почему вы хотите стать <span id="roleName">...</span></label>
+                    <textarea id="requestMessage"
+                              class="form-textarea"
+                              placeholder="Расскажите о вашем опыте, мотивации и планах..."
+                              maxlength="500"
+                              required></textarea>
+                    <div class="char-counter">
+                        <span id="charCount">0</span> / 500 символов
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="downgradeMessage">Опишите причину снятия с роли</label>
-                        <textarea id="downgradeMessage" 
-                                  class="form-textarea" 
-                                  placeholder="Пожалуйста, объясните, почему вы хотите вернуться к роли покупателя..."
-                                  maxlength="500"
-                                  required></textarea>
-                        <div class="char-counter">
-                            <span id="downgradeCharCount">0</span> / 500 символов
-                        </div>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeDowngradeModal()">
-                            Отмена
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            Отправить заявку
-                        </button>
-                    </div>
-                </form>
-            </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRequestModal()">
+                        Отмена
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Отправить заявку
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <script src="javascript/productManager.js"></script>
-    <script src="javascript/imageUploader.js"></script>
-    <script src="javascript/cartManager.js"></script>
-    <script src="javascript/profileScript.js"></script>
+<!-- Модальное окно для снятия роли -->
+<div class="modal" id="downgradeModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Заявка на снятие с роли</h3>
+            <button class="modal-close" onclick="closeDowngradeModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+            <form id="downgradeForm">
+                <div class="form-group">
+                    <label>Текущая роль</label>
+                    <select id="currentRole" class="form-select" required>
+                        <option value="" disabled selected>Выберите текущую роль</option>
+                        <option value="SELLER">Продавец</option>
+                        <option value="COURIER">Курьер</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="downgradeMessage">Опишите причину снятия с роли</label>
+                    <textarea id="downgradeMessage"
+                              class="form-textarea"
+                              placeholder="Пожалуйста, объясните, почему вы хотите вернуться к роли покупателя..."
+                              maxlength="500"
+                              required></textarea>
+                    <div class="char-counter">
+                        <span id="downgradeCharCount">0</span> / 500 символов
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeDowngradeModal()">
+                        Отмена
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Отправить заявку
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="javascript/productManager.js"></script>
+<script src="javascript/imageUploader.js"></script>
+<script src="javascript/cartManager.js"></script>
+<script src="javascript/profileScript.js"></script>
 </body>
 </html>
