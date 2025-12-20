@@ -6,8 +6,7 @@ import org.example.kortex.users.db.User;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.example.kortex.config.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +18,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -31,6 +33,8 @@ public class AuthController {
     private final CartService cartService;
     private final EmailSenderService emailSenderService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationManager authenticationManager;
 
     // Хранилища в памяти чтобы передавать между страницами
     private static final Map<String, RegistrationData> pendingRegistrations = new ConcurrentHashMap<>();
@@ -40,13 +44,127 @@ public class AuthController {
     public AuthController(UserService userService,
                           CartService cartService,
                           EmailSenderService emailSenderService,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          JwtTokenProvider jwtTokenProvider,
+                          AuthenticationManager authenticationManager) {
         this.userService = userService;
         this.cartService = cartService;
         this.emailSenderService = emailSenderService;
         this.passwordEncoder = passwordEncoder;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.authenticationManager = authenticationManager;
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestParam String email,
+                                   @RequestParam String password,
+                                   HttpServletRequest request,
+                                   HttpServletResponse response) {
+        try {
+            log.info("Попытка входа для email: " + email);
+
+            // 1. Аутентификация через Spring Security
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
+
+            // 2. Получаем пользователя из базы
+            User user = userService.getByEmail(email);
+            if (user == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("message", "Пользователь не найден");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+
+            // 3. Создаем JWT токен
+            String token = jwtTokenProvider.createToken(user.getEmail(), user.getRole().name());
+
+            // 4. Устанавливаем HTTP-only cookie
+            Cookie cookie = new Cookie("jwtToken", token);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge( 60); // 1 день
+            response.addCookie(cookie);
+
+            // 5. ВАЖНО: Устанавливаем аутентификацию в SecurityContext
+            Set<SimpleGrantedAuthority> roles = Collections.singleton(user.getRole().toAuthority());
+            Authentication authToken = new UsernamePasswordAuthenticationToken(
+                    user.getEmail(),
+                    null, // credentials не нужны для JWT
+                    roles
+            );
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("success", true);
+            responseBody.put("message", "Успешный вход");
+            responseBody.put("redirectUrl", "/");
+
+            log.info("Пользователь вошел: " + email + ", ID: " + user.getId());
+            return ResponseEntity.ok(responseBody);
+
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Неверный email или пароль");
+            log.error("Ошибка входа для " + email + ": " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+    }
+
+    // Метод для выхода
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        // Очищаем аутентификацию
+        SecurityContextHolder.clearContext();
+
+        // Удаляем JWT cookie
+        Cookie cookie = new Cookie("jwtToken", null);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+
+        Map<String, Object> responseBody = new HashMap<>();
+        responseBody.put("success", true);
+        responseBody.put("message", "Вы успешно вышли");
+        responseBody.put("redirectUrl", "/");
+
+        return ResponseEntity.ok(responseBody);
+    }
+
+    // Метод для проверки авторизации
+    @GetMapping("/check")
+    public ResponseEntity<?> checkAuth(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        String token = null;
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("jwtToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (token != null && jwtTokenProvider.isValidToken(token)) {
+            String email = jwtTokenProvider.getEmailFromToken(token);
+            User user = userService.getByEmail(email);
+
+            if (user != null) {
+                response.put("authenticated", true);
+                response.put("user", user);
+                return ResponseEntity.ok(response);
+            }
+        }
+
+        response.put("authenticated", false);
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/register/send-code")
     public ResponseEntity<?> sendRegistrationCode(@RequestBody Map<String, String> request) {
@@ -104,7 +222,8 @@ public class AuthController {
     @PostMapping("/register/verify")
     public ResponseEntity<?> verifyRegistration(
             @RequestParam String registrationId,
-            @RequestParam String code) {
+            @RequestParam String code,
+            HttpServletResponse response) {
 
         try {
             log.info("verify пользователя " + code);
@@ -145,17 +264,29 @@ public class AuthController {
             cart.setUser(savedUser);
             cartService.create(cart);
 
-            forceAutoLogin(savedUser.getEmail(), savedUser.getPassword());
+            // Создаем JWT токен и устанавливаем cookie
+            String token = jwtTokenProvider.createToken(savedUser.getEmail(), savedUser.getRole().name());
+
+            Cookie cookie = new Cookie("jwtToken", token);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge( 60);
+            response.addCookie(cookie);
+
+            // Устанавливаем аутентификацию в SecurityContext
+            Set<SimpleGrantedAuthority> roles = Collections.singleton(User.Role.USER.toAuthority());
+            Authentication authentication = new UsernamePasswordAuthenticationToken(savedUser.getEmail(), null, roles);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
             pendingRegistrations.remove(registrationId);
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Регистрация успешно завершена");
-            response.put("user", savedUser);
-            response.put("redirectUrl", "/");
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("success", true);
+            responseBody.put("message", "Регистрация успешно завершена");
+            responseBody.put("user", savedUser);
+            responseBody.put("redirectUrl", "/");
             log.info("Пользователь создан id: " + savedUser.getId());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(responseBody);
 
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
@@ -280,7 +411,8 @@ public class AuthController {
     public ResponseEntity<?> resetPassword(
             @RequestParam String resetId,
             @RequestParam String newPassword,
-            @RequestParam String confirmPassword) {
+            @RequestParam String confirmPassword,
+            HttpServletResponse response) {
 
         try {
             ResetData data = passwordResets.get(resetId);
@@ -314,17 +446,29 @@ public class AuthController {
             user.setPassword(passwordEncoder.encode(newPassword));
             userService.update(user.getId(), user);
 
-            forceAutoLogin(user.getEmail(), user.getPassword());
+            // Создаем JWT токен и устанавливаем cookie
+            String token = jwtTokenProvider.createToken(user.getEmail(), user.getRole().name());
+
+            Cookie cookie = new Cookie("jwtToken", token);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(24 * 60 * 60);
+            response.addCookie(cookie);
+
+            // Устанавливаем аутентификацию
+            Set<SimpleGrantedAuthority> roles = Collections.singleton(user.getRole().toAuthority());
+            Authentication authentication = new UsernamePasswordAuthenticationToken(user.getEmail(), null, roles);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
             passwordResets.remove(resetId);
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Пароль успешно изменен");
-            response.put("redirectUrl", "/");
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("success", true);
+            responseBody.put("message", "Пароль успешно изменен");
+            responseBody.put("redirectUrl", "/");
             log.info("Пароль успешно изменен");
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(responseBody);
 
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
@@ -370,11 +514,5 @@ public class AuthController {
     private void cleanupExpiredData() {
         pendingRegistrations.entrySet().removeIf(entry -> entry.getValue().isExpired());
         passwordResets.entrySet().removeIf(entry -> entry.getValue().isExpired());
-    }
-
-    private void forceAutoLogin(String email, String password) {
-        Set<SimpleGrantedAuthority> roles = Collections.singleton(User.Role.USER.toAuthority());
-        Authentication authentication = new UsernamePasswordAuthenticationToken(email, password, roles);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

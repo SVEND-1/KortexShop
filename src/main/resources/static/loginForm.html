@@ -45,17 +45,19 @@
 </header>
 
 
-<!-- Форма входа -->
 <main class="auth-container">
     <div class="auth-form">
         <h2 class="registerH2">Вход в аккаунт</h2>
 
-        <form class="loginForm" action="/login" method="POST">
+        <!-- Сообщение об ошибке -->
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+        <form id="loginForm" class="loginForm">
             <label>Email</label>
-            <input type="email" name="email" placeholder="Почта" required>
+            <input type="email" id="email" name="email" placeholder="Почта" required>
 
             <label>Пароль</label>
-            <input type="password" name="password" placeholder="Пароль" required>
+            <input type="password" id="password" name="password" placeholder="Пароль" required>
 
             <button type="submit" class="loginBtn">Войти</button>
         </form>
@@ -67,6 +69,65 @@
         </div>
     </div>
 </main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Показываем загрузку
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Вход...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Успешный вход - редирект на главную
+                    window.location.href = result.redirectUrl || '/';
+                } else {
+                    // Ошибка входа
+                    errorMessage.textContent = result.message || 'Ошибка входа';
+                    errorMessage.style.display = 'block';
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Ошибка соединения с сервером';
+                errorMessage.style.display = 'block';
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    });
+</script>
+
+<style>
+    .error-message {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        border: 1px solid #f5c6cb;
+    }
+</style>
 
 <script src="javascript/authScript.js"></script>
 <script src="javascript/api-integration.js"></script>

@@ -4,14 +4,19 @@ import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.util.Collections;
 import java.util.Set;
@@ -20,39 +25,64 @@ import java.util.Set;
 @EnableWebSecurity
 public class SecurityConfig {
     private final UserService userService;
+    private final JwtFilter jwtFilter;
 
-    public SecurityConfig(UserService userService) {
+    public SecurityConfig(UserService userService,@Lazy JwtFilter jwtFilter) {
         this.userService = userService;
+        this.jwtFilter = jwtFilter;
     }
 
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
         return http.csrf()
-                .disable()//Отключить защиту от кибер атак
+                .disable()
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+
                 .authorizeRequests()
-
-                .antMatchers("/","/login","/codeEmail","/forgotPassword","/recoveryPassword","/register",
-                        "/api/auth/**","/error","/api/products/**","/*.html","/*.css","/*js")
+                .antMatchers("/", "/login", "/codeEmail", "/forgotPassword",
+                        "/recoveryPassword", "/register", "/api/auth/**",
+                        "/error", "/api/products/**", "/*.html", "/*.css", "/*.js")
                 .permitAll()
-                .antMatchers("/profile","/cart",
-                        "/api/users/role-request/**","/api/users/**","/api/orders/**","/api/carts/**")
-                .hasAnyRole(User.Role.USER.name(),User.Role.ADMIN.name(),User.Role.COURIER.name(),User.Role.SELLER.name())
-                .antMatchers("/api/couriers/**","/courier")
-                .hasAnyRole(User.Role.ADMIN.name(),User.Role.COURIER.name())
-                .antMatchers("/seller","/api/sellers/**")
-                .hasAnyRole(User.Role.ADMIN.name(),User.Role.SELLER.name())
-                .antMatchers("/admin","/api/admin/role-request/**")
-                .hasRole(User.Role.ADMIN.name())
-                .anyRequest().permitAll()
 
-                .and().formLogin().loginPage("/login").permitAll().usernameParameter("email").defaultSuccessUrl("/")
-                .and().logout().logoutUrl("/logout").permitAll().logoutSuccessUrl("/")
-                .and().build();
+                .antMatchers("/profile", "/cart", "/api/users/role-request/**",
+                        "/api/users/**", "/api/orders/**", "/api/carts/**")
+                .hasAnyRole("USER", "ADMIN", "COURIER", "SELLER")
+                .antMatchers("/api/couriers/**", "/courier")
+                .hasAnyRole("ADMIN", "COURIER")
+                .antMatchers("/seller", "/api/sellers/**")
+                .hasAnyRole("ADMIN", "SELLER")
+                .antMatchers("/admin", "/api/admin/role-request/**")
+                .hasRole("ADMIN")
+                .anyRequest().permitAll()
+                .and()
+
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.sendRedirect("/login");
+                        })
+                )
+
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout")
+                        .logoutSuccessUrl("/")
+                        .deleteCookies("jwtToken")
+                        .permitAll()
+                )
+                .build();
     }
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
     }
 
     @Bean
