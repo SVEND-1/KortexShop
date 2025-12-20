@@ -63,12 +63,10 @@ public class AuthController {
         try {
             log.info("Попытка входа для email: " + email);
 
-            // 1. Аутентификация через Spring Security
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, password)
             );
 
-            // 2. Получаем пользователя из базы
             User user = userService.getByEmail(email);
             if (user == null) {
                 Map<String, Object> error = new HashMap<>();
@@ -77,21 +75,18 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
 
-            // 3. Создаем JWT токен
             String token = jwtTokenProvider.createToken(user.getEmail(), user.getRole().name());
 
-            // 4. Устанавливаем HTTP-only cookie
             Cookie cookie = new Cookie("jwtToken", token);
             cookie.setHttpOnly(true);
             cookie.setPath("/");
-            cookie.setMaxAge( 60); // 1 день
+            cookie.setMaxAge(24 * 60 * 60); // 1 день
             response.addCookie(cookie);
 
-            // 5. ВАЖНО: Устанавливаем аутентификацию в SecurityContext
             Set<SimpleGrantedAuthority> roles = Collections.singleton(user.getRole().toAuthority());
             Authentication authToken = new UsernamePasswordAuthenticationToken(
                     user.getEmail(),
-                    null, // credentials не нужны для JWT
+                    null,
                     roles
             );
             SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -113,13 +108,10 @@ public class AuthController {
         }
     }
 
-    // Метод для выхода
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
-        // Очищаем аутентификацию
         SecurityContextHolder.clearContext();
 
-        // Удаляем JWT cookie
         Cookie cookie = new Cookie("jwtToken", null);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
@@ -134,37 +126,6 @@ public class AuthController {
         return ResponseEntity.ok(responseBody);
     }
 
-    // Метод для проверки авторизации
-    @GetMapping("/check")
-    public ResponseEntity<?> checkAuth(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        String token = null;
-
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if ("jwtToken".equals(cookie.getName())) {
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
-
-        Map<String, Object> response = new HashMap<>();
-
-        if (token != null && jwtTokenProvider.isValidToken(token)) {
-            String email = jwtTokenProvider.getEmailFromToken(token);
-            User user = userService.getByEmail(email);
-
-            if (user != null) {
-                response.put("authenticated", true);
-                response.put("user", user);
-                return ResponseEntity.ok(response);
-            }
-        }
-
-        response.put("authenticated", false);
-        return ResponseEntity.ok(response);
-    }
 
     @PostMapping("/register/send-code")
     public ResponseEntity<?> sendRegistrationCode(@RequestBody Map<String, String> request) {
@@ -264,16 +225,14 @@ public class AuthController {
             cart.setUser(savedUser);
             cartService.create(cart);
 
-            // Создаем JWT токен и устанавливаем cookie
             String token = jwtTokenProvider.createToken(savedUser.getEmail(), savedUser.getRole().name());
 
             Cookie cookie = new Cookie("jwtToken", token);
             cookie.setHttpOnly(true);
             cookie.setPath("/");
-            cookie.setMaxAge( 60);
+            cookie.setMaxAge(24 * 60 * 60);
             response.addCookie(cookie);
 
-            // Устанавливаем аутентификацию в SecurityContext
             Set<SimpleGrantedAuthority> roles = Collections.singleton(User.Role.USER.toAuthority());
             Authentication authentication = new UsernamePasswordAuthenticationToken(savedUser.getEmail(), null, roles);
             SecurityContextHolder.getContext().setAuthentication(authentication);
