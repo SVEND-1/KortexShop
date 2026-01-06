@@ -31,7 +31,7 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        // Не применяем фильтр к публичным эндпоинтам и статическим ресурсам
+        
         return path.startsWith("/api/auth/") ||
                 path.equals("/login") ||
                 path.equals("/register") ||
@@ -49,13 +49,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = null;
 
-        // 1. Проверяем Authorization header
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             logger.info("JWT найден в заголовке Authorization");
         }
-        // 2. Проверяем cookies
+
         else {
             Cookie[] cookies = request.getCookies();
             if (cookies != null) {
@@ -92,7 +91,6 @@ public class JwtFilter extends OncePerRequestFilter {
                     logger.info("Аутентификация установлена для: " + email);
                 } else {
                     logger.warn("Невалидный JWT токен");
-                    // Удаляем невалидный cookie
                     Cookie cookie = new Cookie("jwtToken", null);
                     cookie.setPath("/");
                     cookie.setMaxAge(0);
