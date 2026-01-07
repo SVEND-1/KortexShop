@@ -5,6 +5,7 @@ import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.config.JwtTokenProvider;
 import org.example.kortex.users.api.dto.auth.*;
+import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -157,7 +158,7 @@ public class AuthService {
             }
 
             User user = data.user;
-            user.setRole(User.Role.USER);
+            user.setRole(Role.USER);
             User savedUser = userService.create(user);
 
             Cart cart = new Cart();
@@ -171,7 +172,7 @@ public class AuthService {
             cookie.setMaxAge(24 * 60 * 60);
             response.addCookie(cookie);
 
-            Set<SimpleGrantedAuthority> roles = Collections.singleton(User.Role.USER.toAuthority());
+            Set<SimpleGrantedAuthority> roles = Collections.singleton(Role.USER.toAuthority());
             Authentication authentication = new UsernamePasswordAuthenticationToken(
                     savedUser.getEmail(), null, roles);
             SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -25,7 +25,7 @@ public class OrderMapper {
         dto.setStatus(order.getStatus());
 
         if (order.getOrderItems() != null) {
-            List<OrderItemDTO> itemDTOs = order.getOrderItems().stream()
+            List<OrderItemDTOO> itemDTOs = order.getOrderItems().stream()
                     .map(this::toItemDto)
                     .collect(Collectors.toList());
             dto.setItems(itemDTOs);
@@ -34,8 +34,8 @@ public class OrderMapper {
         return dto;
     }
 
-    private OrderItemDTO toItemDto(OrderItem item) {
-        OrderItemDTO dto = new OrderItemDTO();
+    private OrderItemDTOO toItemDto(OrderItem item) {
+        OrderItemDTOO dto = new OrderItemDTOO();
 
         if (item.getProduct() != null) {
             dto.setNameProduct(item.getProduct().getName());

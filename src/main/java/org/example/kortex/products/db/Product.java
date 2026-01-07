@@ -3,9 +3,9 @@ package org.example.kortex.products.db;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.example.kortex.users.db.User;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 
 @Data
 @Entity
@@ -25,7 +25,7 @@ public class Product {
     private String name;
 
     @Column(name = "price", nullable = false)
-    private Double price;
+    private Double price;//BigDecimal сделать
 
     @Column(name = "count", nullable = false)
     private int count;
@@ -55,22 +55,4 @@ public class Product {
 
     }
 
-    public enum Category {
-        ELECTRONICS("Электроника"), CLOTHING("Одежда"), BOOKS("Книги"), FOOD("Еда"),
-        SPORTS("Спорт товары"), HOME("Товары для дома"), BEAUTY("Красота"), OTHER("Другое");
-
-        private final String displayName;
-
-        Category(String displayName) {
-            this.displayName = displayName;
-        }
-
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        public SimpleGrantedAuthority toAuthority() {
-            return new SimpleGrantedAuthority("ROLE_" + this.name());
-        }
-    }
 }

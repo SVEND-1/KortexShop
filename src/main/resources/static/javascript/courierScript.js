@@ -3,7 +3,7 @@ const API_BASE = '/api';
 let currentUser = null;
 let currentFilter = 'assigned';
 let currentPage = 0;
-const pageSize = 3; // Количество заказов на странице
+const pageSize = 3;
 let totalPages = 0;
 let totalElements = 0;
 
@@ -14,31 +14,48 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         // Получаем данные текущего пользователя
         const userResponse = await fetch(`${API_BASE}/users/me`);
-        if (userResponse.ok) {
-            currentUser = await userResponse.json();
 
-            // Проверяем, что пользователь - курьер ИЛИ админ
-            if (currentUser.role !== 'COURIER' && currentUser.role !== 'ADMIN') {
-                alert('Доступ только для курьеров и администраторов!');
-                window.location.href = '/';
+        if (!userResponse.ok) {
+            if (userResponse.status === 401) {
+                alert('Требуется авторизация!');
+                window.location.href = '/login';
                 return;
             }
+            const errorText = await userResponse.text();
+            throw new Error(`HTTP ${userResponse.status}: ${errorText}`);
+        }
 
-            // Обновляем UI
-            updateUserInfo();
+        const userData = await userResponse.json();
+        console.log('Данные пользователя:', userData);
 
-            // Загружаем данные
-            await loadData();
+        // Проверяем структуру ответа
+        if (userData.error) {
+            throw new Error(userData.error);
+        }
 
-        } else {
-            console.warn('Не удалось получить данные пользователя');
-            window.location.href = '/login';
+        currentUser = userData;
+
+        // Проверяем, что пользователь - курьер ИЛИ админ
+        if (currentUser.role !== 'COURIER' && currentUser.role !== 'ADMIN') {
+            alert('Доступ только для курьеров и администраторов!');
+            window.location.href = '/';
             return;
         }
 
+        // Обновляем UI
+        updateUserInfo();
+
+        // Загружаем данные
+        await loadData();
+
     } catch (error) {
         console.error('Ошибка инициализации:', error);
-        showError('Ошибка загрузки данных');
+        showError(`Ошибка загрузки данных: ${error.message}`);
+
+        // Если ошибка авторизации, перенаправляем на логин
+        if (error.message.includes('401') || error.message.includes('авторизация')) {
+            setTimeout(() => window.location.href = '/login', 2000);
+        }
     }
 });
 
@@ -67,7 +84,7 @@ async function loadData() {
 
     } catch (error) {
         console.error('Ошибка загрузки данных:', error);
-        showError('Ошибка загрузки данных');
+        showError(`Ошибка загрузки данных: ${error.message}`);
     }
 }
 
@@ -85,26 +102,30 @@ async function loadStats() {
         if (currentUser.role === 'COURIER') {
             // Для курьера: получаем его заказы
             try {
-                const assignedResponse = await fetch(`${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}&pageSize=${pageSize}&pageNumber=0`);
+                const assignedResponse = await fetch(`${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}&pageSize=100&pageNumber=0`);
                 if (assignedResponse.ok) {
-                    const assignedData = await assignedResponse.json();
-                    myOrders = getOrdersFromResponse(assignedData);
-                    updatePaginationInfo(assignedData);
+                    const result = await assignedResponse.json();
+                    console.log('Статистика - назначенные заказы:', result);
+
+                    // Обработка разных форматов ответа
+                    myOrders = extractOrdersFromResponse(result);
                 }
             } catch (error) {
-                console.warn('Ошибка загрузки назначенных заказов:', error);
+                console.warn('Ошибка загрузки назначенных заказов для статистики:', error);
             }
         }
 
         // Получаем доступные заказы для всех
         try {
-            const availableResponse = await fetch(`${API_BASE}/couriers/availableOrders?pageSize=${pageSize}&pageNumber=0`);
+            const availableResponse = await fetch(`${API_BASE}/couriers/availableOrders?pageSize=100&pageNumber=0`);
             if (availableResponse.ok) {
-                const availableData = await availableResponse.json();
-                availableOrders = getOrdersFromResponse(availableData);
+                const result = await availableResponse.json();
+                console.log('Статистика - доступные заказы:', result);
+
+                availableOrders = extractOrdersFromResponse(result);
             }
         } catch (error) {
-            console.warn('Ошибка загрузки доступных заказов:', error);
+            console.warn('Ошибка загрузки доступных заказов для статистики:', error);
         }
 
         // Считаем статистику
@@ -124,26 +145,57 @@ async function loadStats() {
     }
 }
 
+// Извлечение заказов из ответа API (универсальная функция)
+function extractOrdersFromResponse(response) {
+    if (!response) return [];
+
+    console.log('Извлекаем заказы из ответа:', response);
+
+    // Ваш API возвращает Map с ключами: content, totalPages, totalElements и т.д.
+    if (response.content && Array.isArray(response.content)) {
+        return response.content;
+    }
+
+    // Если API возвращает напрямую массив
+    if (Array.isArray(response)) {
+        return response;
+    }
+
+    // Если это один объект заказа
+    if (response.id && response.status) {
+        return [response];
+    }
+
+    // Пытаемся найти заказы в других возможных полях
+    for (const key in response) {
+        if (Array.isArray(response[key]) && response[key].length > 0 && response[key][0].id) {
+            return response[key];
+        }
+    }
+
+    return [];
+}
+
 // Обновление информации о пагинации
 function updatePaginationInfo(response) {
-    if (response && typeof response === 'object') {
-        // Проверяем разные возможные форматы ответа
-        totalPages = response.totalPages || response.totalPages || 0;
-        totalElements = response.totalElements || response.totalElements || 0;
-        currentPage = response.number !== undefined ? response.number :
-            (response.pageNumber !== undefined ? response.pageNumber : 0);
-
-        console.log('Пагинация:', {
-            totalPages,
-            totalElements,
-            currentPage,
-            responseFormat: Object.keys(response)
-        });
-    } else {
+    if (!response || typeof response !== 'object') {
         totalPages = 0;
         totalElements = 0;
         currentPage = 0;
+        return;
     }
+
+    // Ваш API использует эти поля (из Spring Data Page)
+    totalPages = response.totalPages || 0;
+    totalElements = response.totalElements || 0;
+    currentPage = response.number !== undefined ? response.number : 0;
+
+    console.log('Пагинация обновлена:', {
+        totalPages,
+        totalElements,
+        currentPage,
+        responseKeys: Object.keys(response)
+    });
 }
 
 // Обновление UI статистики
@@ -180,25 +232,25 @@ async function loadOrdersData(filter = 'assigned', page = 0) {
     }
 
     try {
-        let orders = [];
-        let title = '';
         let apiUrl = '';
+        let title = '';
 
         if (filter === 'assigned') {
             if (currentUser.role === 'COURIER') {
-                // Мои заказы для курьера
                 apiUrl = `${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}&pageSize=${pageSize}&pageNumber=${page}`;
                 title = 'Мои заказы';
             } else if (currentUser.role === 'ADMIN') {
-                // Для админа пока пустой список
-                orders = [];
-                title = 'Все заказы';
-                displayOrders(orders, filter);
+                ordersContainer.innerHTML = `
+                    <div class="no-orders">
+                        <div class="no-orders-icon">📦</div>
+                        <h4>Заказов нет</h4>
+                        <p>Используйте фильтр "Доступные заказы"</p>
+                    </div>
+                `;
+                if (ordersTitle) ordersTitle.textContent = 'Все заказы';
                 return;
             }
-
         } else if (filter === 'available') {
-            // Доступные заказы для всех
             apiUrl = `${API_BASE}/couriers/availableOrders?pageSize=${pageSize}&pageNumber=${page}`;
             title = currentUser.role === 'ADMIN' ? 'Заказы без курьера' : 'Доступные заказы';
         }
@@ -206,21 +258,32 @@ async function loadOrdersData(filter = 'assigned', page = 0) {
         console.log('Запрос к API:', apiUrl);
 
         const response = await fetch(apiUrl);
-        console.log('Статус ответа:', response.status);
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            const errorText = await response.text();
+            console.error('Текст ошибки:', errorText);
+            throw new Error(`Ошибка сервера: ${response.status}`);
         }
 
-        const data = await response.json();
-        console.log('Данные от сервера:', data);
+        const result = await response.json();
+        console.log('Полный ответ от API:', result);
 
-        orders = getOrdersFromResponse(data);
-        console.log('Распарсенные заказы:', orders);
+        // Проверяем успешность операции
+        if (result.success === false) {
+            throw new Error(result.message || result.error || 'Ошибка сервера');
+        }
 
-        updatePaginationInfo(data);
+        // Извлекаем заказы из ответа
+        const orders = extractOrdersFromResponse(result);
+        console.log('Извлеченные заказы:', orders);
 
+        // Обновляем информацию о пагинации
+        updatePaginationInfo(result);
+
+        // Обновляем заголовок
         if (ordersTitle) ordersTitle.textContent = title;
+
+        // Отображаем заказы
         displayOrders(orders, filter);
 
     } catch (error) {
@@ -245,6 +308,8 @@ async function loadOrdersData(filter = 'assigned', page = 0) {
 // Отображение заказов
 function displayOrders(orders, filter) {
     const ordersContainer = document.getElementById('ordersContainer');
+    const paginationContainer = document.getElementById('paginationContainer');
+
     if (!ordersContainer) return;
 
     if (!Array.isArray(orders) || orders.length === 0) {
@@ -262,6 +327,11 @@ function displayOrders(orders, filter) {
                 <p>${message}</p>
             </div>
         `;
+
+        // Скрываем пагинацию
+        if (paginationContainer) {
+            paginationContainer.style.display = 'none';
+        }
         return;
     }
 
@@ -278,67 +348,12 @@ function displayOrders(orders, filter) {
         }
     });
 
-    // Добавляем пагинацию
-    if (totalPages > 1) {
-        addPaginationControls(ordersContainer, filter);
-    }
-}
-
-// Добавление элементов пагинации
-function addPaginationControls(container, filter) {
-    const paginationContainer = document.getElementById('paginationContainer');
-    if (!paginationContainer) return;
-
-    // Очищаем контейнер
-    paginationContainer.innerHTML = '';
-
-    // Если только одна страница или нет страниц - скрываем пагинацию
-    if (totalPages <= 1) {
+    // Добавляем пагинацию если нужно
+    if (totalPages > 1 && paginationContainer) {
+        addPaginationControls(paginationContainer, filter);
+    } else if (paginationContainer) {
         paginationContainer.style.display = 'none';
-        return;
     }
-
-    // Показываем контейнер
-    paginationContainer.style.display = 'block';
-
-    // Создаем контейнер для кнопок
-    const paginationDiv = document.createElement('div');
-    paginationDiv.className = 'pagination';
-
-    // Информация о странице
-    const pageInfo = document.createElement('span');
-    pageInfo.className = 'page-info';
-    pageInfo.textContent = `Страница ${currentPage + 1} из ${totalPages}`;
-
-    // Кнопка "Назад"
-    const prevButton = document.createElement('button');
-    prevButton.className = 'btn btn-outline pagination-btn';
-    prevButton.innerHTML = '&larr; Назад';
-    prevButton.disabled = currentPage === 0;
-    prevButton.onclick = function() {
-        if (currentPage > 0) {
-            loadOrdersData(filter, currentPage - 1);
-        }
-    };
-
-    // Кнопка "Вперед"
-    const nextButton = document.createElement('button');
-    nextButton.className = 'btn btn-outline pagination-btn';
-    nextButton.innerHTML = 'Вперед &rarr;';
-    nextButton.disabled = currentPage >= totalPages - 1;
-    nextButton.onclick = function() {
-        if (currentPage < totalPages - 1) {
-            loadOrdersData(filter, currentPage + 1);
-        }
-    };
-
-    // Добавляем элементы
-    paginationDiv.appendChild(prevButton);
-    paginationDiv.appendChild(pageInfo);
-    paginationDiv.appendChild(nextButton);
-
-    // Добавляем в контейнер
-    paginationContainer.appendChild(paginationDiv);
 }
 
 // Создание элемента заказа
@@ -354,87 +369,93 @@ function createOrderElement(order, filter) {
         throw new Error('Элемент .order-card не найден в шаблоне');
     }
 
-    // Заполняем данные
     const orderId = order.id || 'N/A';
     orderCard.setAttribute('data-order-id', orderId);
 
-    // Находим элементы
-    const orderIdEl = orderCard.querySelector('.order-id');
-    const customerNameEl = orderCard.querySelector('.customer-name');
-    const customerPhoneEl = orderCard.querySelector('.customer-phone');
-    const customerAddressEl = orderCard.querySelector('.customer-address');
-    const priceValueEl = orderCard.querySelector('.price-value');
-    const dateElement = orderCard.querySelector('.order-date');
-    const courierInfoEl = orderCard.querySelector('.courier-info');
-    const courierNameEl = orderCard.querySelector('.courier-name');
-    const statusElement = orderCard.querySelector('.order-status');
+    // Находим все элементы
+    const elements = {
+        orderId: orderCard.querySelector('.order-id'),
+        customerName: orderCard.querySelector('.customer-name'),
+        customerPhone: orderCard.querySelector('.customer-phone'),
+        customerAddress: orderCard.querySelector('.customer-address'),
+        priceValue: orderCard.querySelector('.price-value'),
+        orderDate: orderCard.querySelector('.order-date'),
+        courierInfo: orderCard.querySelector('.courier-info'),
+        courierName: orderCard.querySelector('.courier-name'),
+        orderStatus: orderCard.querySelector('.order-status'),
+        acceptBtn: orderCard.querySelector('.accept-btn'),
+        startBtn: orderCard.querySelector('.start-btn'),
+        completeBtn: orderCard.querySelector('.complete-btn'),
+        detailsBtn: orderCard.querySelector('.details-btn'),
+        cancelBtn: orderCard.querySelector('.cancel-btn'),
+        returnBtn: orderCard.querySelector('.return-btn')
+    };
 
-    // Заполняем данные
-    if (orderIdEl) orderIdEl.textContent = orderId;
+    // Заполняем основные данные
+    if (elements.orderId) elements.orderId.textContent = `Заказ #${orderId}`;
 
-    // Информация о пользователе
+    // Информация о клиенте
     const user = order.user || {};
-    if (customerNameEl) customerNameEl.textContent = user.name || 'Не указан';
-    if (customerPhoneEl) customerPhoneEl.textContent = user.phone || 'Не указан';
-    if (customerAddressEl) customerAddressEl.textContent = order.shippingAddress || user.address || 'Не указан';
+    if (elements.customerName) elements.customerName.textContent = user.name || 'Не указано';
+    if (elements.customerPhone) elements.customerPhone.textContent = user.phone || 'Не указано';
+    if (elements.customerAddress) {
+        elements.customerAddress.textContent = order.shippingAddress || user.address || 'Не указано';
+    }
 
     // Информация о курьере
     const courier = order.courier || {};
-    if (courierInfoEl && courierNameEl) {
+    if (elements.courierInfo) {
         if (courier.name) {
-            courierInfoEl.innerHTML = `<strong>Курьер:</strong> <span class="courier-name">${courier.name}</span>`;
+            elements.courierInfo.innerHTML = `<strong>Курьер:</strong> <span class="courier-name">${courier.name}</span>`;
         } else {
-            courierInfoEl.innerHTML = '<strong>Курьер:</strong> <span class="courier-name">Не назначен</span>';
+            elements.courierInfo.innerHTML = '<strong>Курьер:</strong> <span class="courier-name">Не назначен</span>';
         }
     }
 
-    // Цена заказа
-    if (priceValueEl && order.totalAmount) {
-        priceValueEl.textContent = `${formatPrice(order.totalAmount)} ₽`;
+    // Цена и дата
+    if (elements.priceValue) {
+        const price = order.totalAmount || 0;
+        elements.priceValue.textContent = `${formatPrice(price)} ₽`;
     }
 
-    // Дата заказа
-    if (dateElement && order.orderDate) {
-        dateElement.textContent = formatDate(order.orderDate);
+    if (elements.orderDate && order.orderDate) {
+        elements.orderDate.textContent = formatDate(order.orderDate);
     }
 
     // Статус
     const status = order.status || 'PENDING';
-    if (statusElement) {
-        statusElement.textContent = getStatusText(status);
-        statusElement.className = `order-status ${status}`;
+    if (elements.orderStatus) {
+        elements.orderStatus.textContent = getStatusText(status);
+        elements.orderStatus.className = `order-status status-${status.toLowerCase()}`;
     }
 
     // Настраиваем кнопки
-    setupOrderButtons(orderCard, status, order.id, filter);
+    setupOrderButtons(elements, status, orderId, filter);
 
     return orderCard;
 }
 
-// Настройка кнопок заказа - обновленная версия
-function setupOrderButtons(orderCard, status, orderId, filter) {
-    const acceptBtn = orderCard.querySelector('.accept-btn');
-    const startBtn = orderCard.querySelector('.start-btn');
-    const completeBtn = orderCard.querySelector('.complete-btn');
-    const detailsBtn = orderCard.querySelector('.details-btn');
-    const cancelBtn = orderCard.querySelector('.cancel-btn');
-    const returnBtn = orderCard.querySelector('.return-btn');
-
+// Настройка кнопок заказа
+function setupOrderButtons(elements, status, orderId, filter) {
     // Сначала скрываем все кнопки
-    if (acceptBtn) acceptBtn.style.display = 'none';
-    if (startBtn) startBtn.style.display = 'none';
-    if (completeBtn) completeBtn.style.display = 'none';
-    if (cancelBtn) cancelBtn.style.display = 'none';
-    if (returnBtn) returnBtn.style.display = 'none';
-    if (detailsBtn) detailsBtn.style.display = 'none';
+    Object.values(elements).forEach(el => {
+        if (el && el.classList && el.classList.contains('btn')) {
+            el.style.display = 'none';
+        }
+    });
 
-    // Логика для разных фильтров и ролей
+    // Показываем кнопку подробностей всегда
+    if (elements.detailsBtn) {
+        elements.detailsBtn.style.display = 'inline-block';
+        elements.detailsBtn.onclick = () => showOrderDetails(orderId);
+    }
+
+    // Логика для доступных заказов
     if (filter === 'available') {
-        // Фильтр "Доступные заказы"
-        if (acceptBtn) {
-            acceptBtn.style.display = 'block';
-            acceptBtn.textContent = currentUser.role === 'ADMIN' ? 'Назначить курьера' : 'Принять заказ';
-            acceptBtn.onclick = () => {
+        if (elements.acceptBtn) {
+            elements.acceptBtn.style.display = 'inline-block';
+            elements.acceptBtn.textContent = currentUser.role === 'ADMIN' ? 'Назначить курьера' : 'Принять заказ';
+            elements.acceptBtn.onclick = () => {
                 if (currentUser.role === 'ADMIN') {
                     assignOrderAsAdmin(orderId);
                 } else {
@@ -442,87 +463,53 @@ function setupOrderButtons(orderCard, status, orderId, filter) {
                 }
             };
         }
-        if (detailsBtn) {
-            detailsBtn.style.display = 'block';
-            detailsBtn.textContent = 'Подробнее';
-            detailsBtn.onclick = () => showOrderDetails(orderCard);
-        }
-    } else {
-        // Фильтр "Мои заказы" (или аналогичный)
-        switch(status) {
-            case 'PENDING':
-                // Статус 1: PENDING
-                if (startBtn) {
-                    startBtn.style.display = 'block';
-                    startBtn.textContent = 'Начать доставку';
-                    startBtn.onclick = () => updateOrderStatus(orderId, 'DISPATCHED');
-                }
-                if (cancelBtn) {
-                    cancelBtn.style.display = 'block';
-                    cancelBtn.textContent = 'Отмена';
-                    cancelBtn.onclick = () => updateOrderStatus(orderId, 'CANCELLED');
-                }
-                if (detailsBtn) {
-                    detailsBtn.style.display = 'block';
-                    detailsBtn.textContent = 'Подробнее';
-                    detailsBtn.onclick = () => showOrderDetails(orderCard);
-                }
-                break;
+        return;
+    }
 
-            case 'DISPATCHED':
-                // Статус 2: DISPATCHED (после нажатия "Начать доставку")
-                if (completeBtn) {
-                    completeBtn.style.display = 'block';
-                    completeBtn.textContent = 'Доставил';
-                    completeBtn.onclick = () => updateOrderStatus(orderId, 'DELIVERED_TO_DESTINATION');
-                }
-                if (detailsBtn) {
-                    detailsBtn.style.display = 'block';
-                    detailsBtn.textContent = 'Подробнее';
-                    detailsBtn.onclick = () => showOrderDetails(orderCard);
-                }
-                break;
+    // Логика для назначенных заказов
+    const upperStatus = status.toUpperCase();
 
-            case 'DELIVERED_TO_DESTINATION':
-                // Статус 3: DELIVERED_TO_DESTINATION (после "Доставил")
-                // Кнопка "Завершить заказ" (переход в COMPLETED)
-                if (completeBtn) {
-                    completeBtn.style.display = 'block';
-                    completeBtn.textContent = 'Завершить заказ';
-                    completeBtn.className = 'btn btn-success btn-small complete-btn';
-                    completeBtn.onclick = () => updateOrderStatus(orderId, 'COMPLETED');
-                }
-                // Кнопка "Вернуть"
-                if (returnBtn) {
-                    returnBtn.style.display = 'block';
-                    returnBtn.onclick = () => updateOrderStatus(orderId, 'RETURNED');
-                }
-                if (detailsBtn) {
-                    detailsBtn.style.display = 'block';
-                    detailsBtn.textContent = 'Подробнее';
-                    detailsBtn.onclick = () => showOrderDetails(orderCard);
-                }
-                break;
+    switch(upperStatus) {
+        case 'PENDING':
+            if (elements.startBtn) {
+                elements.startBtn.style.display = 'inline-block';
+                elements.startBtn.textContent = 'Начать доставку';
+                elements.startBtn.onclick = () => updateOrderStatus(orderId, 'DISPATCHED');
+            }
+            if (elements.cancelBtn) {
+                elements.cancelBtn.style.display = 'inline-block';
+                elements.cancelBtn.textContent = 'Отменить';
+                elements.cancelBtn.onclick = () => updateOrderStatus(orderId, 'CANCELLED');
+            }
+            break;
 
-            case 'COMPLETED':
-            case 'CANCELLED':
-            case 'RETURNED':
-                // Финальные статусы - только детали
-                if (detailsBtn) {
-                    detailsBtn.style.display = 'block';
-                    detailsBtn.textContent = 'Подробнее';
-                    detailsBtn.onclick = () => showOrderDetails(orderCard);
-                }
-                break;
+        case 'DISPATCHED':
+            if (elements.completeBtn) {
+                elements.completeBtn.style.display = 'inline-block';
+                elements.completeBtn.textContent = 'Доставлен';
+                elements.completeBtn.onclick = () => updateOrderStatus(orderId, 'DELIVERED_TO_DESTINATION');
+            }
+            break;
 
-            default:
-                // Для остальных статусов показываем только детали
-                if (detailsBtn) {
-                    detailsBtn.style.display = 'block';
-                    detailsBtn.textContent = 'Подробнее';
-                    detailsBtn.onclick = () => showOrderDetails(orderCard);
-                }
-        }
+        case 'DELIVERED_TO_DESTINATION':
+            if (elements.completeBtn) {
+                elements.completeBtn.style.display = 'inline-block';
+                elements.completeBtn.textContent = 'Завершить';
+                elements.completeBtn.className = 'btn btn-success btn-small complete-btn';
+                elements.completeBtn.onclick = () => updateOrderStatus(orderId, 'COMPLETED');
+            }
+            if (elements.returnBtn) {
+                elements.returnBtn.style.display = 'inline-block';
+                elements.returnBtn.textContent = 'Вернуть';
+                elements.returnBtn.onclick = () => updateOrderStatus(orderId, 'RETURNED');
+            }
+            break;
+
+        case 'COMPLETED':
+        case 'CANCELLED':
+        case 'RETURNED':
+            // Только кнопка подробностей
+            break;
     }
 }
 
@@ -533,18 +520,17 @@ async function assignOrder(orderId) {
     try {
         const response = await fetch(`${API_BASE}/couriers/${orderId}/assign`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Ошибка при принятии заказа');
+        const result = await handleApiResponse(response, `Принятие заказа #${orderId}`);
+        if (result.success) {
+            alert(`Заказ #${orderId} успешно принят!`);
+            await refreshData();
         }
-
-        const data = await response.json();
-        alert(`Заказ #${orderId} успешно принят!`);
-        await loadOrdersData(currentFilter, currentPage);
-        await loadStats();
 
     } catch (error) {
         console.error('Ошибка при принятии заказа:', error);
@@ -559,18 +545,17 @@ async function assignOrderAsAdmin(orderId) {
     try {
         const response = await fetch(`${API_BASE}/couriers/${orderId}/assign`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Ошибка при назначении заказа');
+        const result = await handleApiResponse(response, `Назначение заказа #${orderId}`);
+        if (result.success) {
+            alert(`Вы назначены курьером для заказа #${orderId}!`);
+            await refreshData();
         }
-
-        const data = await response.json();
-        alert(`Вы назначены курьером для заказа #${orderId}!`);
-        await loadOrdersData(currentFilter, currentPage);
-        await loadStats();
 
     } catch (error) {
         console.error('Ошибка при назначении заказа:', error);
@@ -588,18 +573,17 @@ async function updateOrderStatus(orderId, status) {
     try {
         const response = await fetch(`${API_BASE}/couriers/orders/${orderId}/status?status=${status}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Ошибка при обновлении статуса');
+        const result = await handleApiResponse(response, `Обновление статуса заказа #${orderId}`);
+        if (result.success) {
+            alert(`Статус заказа #${orderId} обновлен на "${statusText}"!`);
+            await refreshData();
         }
-
-        const data = await response.json();
-        alert(`Статус заказа #${orderId} обновлен на "${statusText}"!`);
-        await loadOrdersData(currentFilter, currentPage);
-        await loadStats();
 
     } catch (error) {
         console.error('Ошибка при обновлении статуса:', error);
@@ -607,102 +591,79 @@ async function updateOrderStatus(orderId, status) {
     }
 }
 
-// Отменить заказ
-async function cancelOrder(orderId) {
-    if (!confirm(`Отменить заказ #${orderId}?`)) return;
+// Обработка ответа API
+async function handleApiResponse(response, action) {
+    if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Ошибка при ${action}`;
 
-    try {
-        const response = await fetch(`${API_BASE}/couriers/orders/${orderId}/status?status=CANCELLED`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Ошибка при отмене заказа');
+        try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (e) {
+            errorMessage = errorText || errorMessage;
         }
 
-        const data = await response.json();
-        alert(`Заказ #${orderId} отменен!`);
-        await loadOrdersData(currentFilter, currentPage);
-        await loadStats();
+        throw new Error(errorMessage);
+    }
 
+    const result = await response.json();
+    console.log(`Ответ ${action}:`, result);
+
+    // Проверяем формат ответа
+    if (result.success !== undefined) {
+        return result;
+    }
+
+    // Если в ответе нет поля success, считаем успешным
+    return { success: true, data: result };
+}
+
+// Обновление всех данных
+async function refreshData() {
+    try {
+        await Promise.all([
+            loadStats(),
+            loadOrdersData(currentFilter, currentPage)
+        ]);
     } catch (error) {
-        console.error('Ошибка при отмене заказа:', error);
-        alert(`Ошибка: ${error.message}`);
+        console.error('Ошибка при обновлении данных:', error);
     }
 }
 
 // Показать детали заказа
-function showOrderDetails(orderCard) {
-    const orderId = orderCard.querySelector('.order-id')?.textContent || 'N/A';
-    const customerName = orderCard.querySelector('.customer-name')?.textContent || 'Не указан';
-    const customerPhone = orderCard.querySelector('.customer-phone')?.textContent || 'Не указан';
-    const customerAddress = orderCard.querySelector('.customer-address')?.textContent || 'Не указан';
-    const status = orderCard.querySelector('.order-status')?.textContent || 'Неизвестно';
-    const price = orderCard.querySelector('.price-value')?.textContent || '0 ₽';
-    const orderDate = orderCard.querySelector('.order-date')?.textContent || 'Не указана';
-    const courierName = orderCard.querySelector('.courier-name')?.textContent || 'Не назначен';
-
-    let details = `
-        Детали заказа #${orderId}:
-
-        Клиент: ${customerName}
-        Телефон: ${customerPhone}
-        Адрес доставки: ${customerAddress}
-        Курьер: ${courierName}
-        Сумма: ${price}
-        Статус: ${status}
-        Дата заказа: ${orderDate}
-    `;
-
-    alert(details);
+async function showOrderDetails(orderId) {
+    try {
+        // Здесь можно добавить запрос на получение детальной информации о заказе
+        alert(`Детали заказа #${orderId}\n\nФункция в разработке`);
+    } catch (error) {
+        console.error('Ошибка при получении деталей заказа:', error);
+        alert(`Ошибка при получении деталей заказа: ${error.message}`);
+    }
 }
 
 // Вспомогательные функции
-function getOrdersFromResponse(response) {
-    if (!response) return [];
-
-    console.log('Ответ от сервера:', response);
-
-    // 1. Если response уже массив
-    if (Array.isArray(response)) return response;
-
-    // 2. Если это объект с полем content (Page format)
-    if (response.content && Array.isArray(response.content)) {
-        return response.content;
-    }
-
-    // 3. Если это объект с данными заказа (один заказ)
-    if (typeof response === 'object' && response.id) {
-        return [response];
-    }
-
-    // 4. Если это пустой объект или неожиданный формат
-    return [];
-}
-
 function getStatusText(status) {
     const statusMap = {
         'PENDING': 'Ожидает',
         'DISPATCHED': 'В доставке',
-        'DELIVERED_TO_DESTINATION': 'Доставлен в пункт назначения',
+        'DELIVERED_TO_DESTINATION': 'Доставлен',
         'COMPLETED': 'Завершен',
         'CANCELLED': 'Отменен',
         'RETURNED': 'Возвращен'
     };
-    return statusMap[status] || status || 'Неизвестно';
+    return statusMap[status.toUpperCase()] || status || 'Неизвестно';
 }
 
 function getActionText(status, role) {
     const actionMap = {
-        'DISPATCHED': role === 'ADMIN' ? 'отправить в доставку' : 'начать доставку',
+        'DISPATCHED': 'начать доставку',
         'DELIVERED_TO_DESTINATION': 'отметить как доставленный',
         'COMPLETED': 'завершить заказ',
         'CANCELLED': 'отменить заказ',
         'RETURNED': 'вернуть заказ'
     };
-    return actionMap[status] || 'выполнить действие';
+    return actionMap[status.toUpperCase()] || 'выполнить действие';
 }
 
 function getRoleText(role) {
@@ -777,6 +738,49 @@ function showError(message) {
     `;
 }
 
+// Пагинация
+function addPaginationControls(container, filter) {
+    container.innerHTML = '';
+    container.style.display = 'block';
+
+    const paginationDiv = document.createElement('div');
+    paginationDiv.className = 'pagination';
+
+    // Информация о странице
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'page-info';
+    pageInfo.textContent = `Страница ${currentPage + 1} из ${totalPages}`;
+
+    // Кнопка "Назад"
+    const prevButton = document.createElement('button');
+    prevButton.className = 'btn btn-outline pagination-btn';
+    prevButton.innerHTML = '&larr; Назад';
+    prevButton.disabled = currentPage === 0;
+    prevButton.onclick = function() {
+        if (currentPage > 0) {
+            loadOrdersData(filter, currentPage - 1);
+        }
+    };
+
+    // Кнопка "Вперед"
+    const nextButton = document.createElement('button');
+    nextButton.className = 'btn btn-outline pagination-btn';
+    nextButton.innerHTML = 'Вперед &rarr;';
+    nextButton.disabled = currentPage >= totalPages - 1;
+    nextButton.onclick = function() {
+        if (currentPage < totalPages - 1) {
+            loadOrdersData(filter, currentPage + 1);
+        }
+    };
+
+    // Добавляем элементы
+    paginationDiv.appendChild(prevButton);
+    paginationDiv.appendChild(pageInfo);
+    paginationDiv.appendChild(nextButton);
+
+    container.appendChild(paginationDiv);
+}
+
 // Глобальные функции для HTML
 window.setFilter = function(filter) {
     setActiveFilter(filter);
@@ -788,14 +792,5 @@ window.setFilter = function(filter) {
 };
 
 window.refreshOrders = function() {
-    loadOrdersData(currentFilter, currentPage).catch(console.error);
-    loadStats().catch(console.error);
+    refreshData().catch(console.error);
 };
-
-// Удаляем старые глобальные функции которые могут конфликтовать
-delete window.loadOrders;
-delete window.loadCourierData;
-delete window.acceptOrder;
-delete window.startDelivery;
-delete window.completeOrder;
-delete window.showOrderDetails;

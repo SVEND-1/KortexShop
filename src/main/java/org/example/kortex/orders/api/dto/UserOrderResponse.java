@@ -4,6 +4,7 @@ public record UserOrderResponse(
         Long id,
         String email,
         String name,
-        String address) {
+        String address
+) {
 }
 

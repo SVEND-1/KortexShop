@@ -72,11 +72,4 @@ public class User {
     public User() {
     }
 
-    public enum Role {
-        USER, ADMIN, COURIER, SELLER;
-
-        public SimpleGrantedAuthority toAuthority() {
-            return new SimpleGrantedAuthority("ROLE_" + this.name());
-        }
-    }
 }

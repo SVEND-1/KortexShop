@@ -2,6 +2,7 @@ package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.api.dto.role.RoleRequestMapper;
+import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.RoleRequestService;
@@ -36,19 +37,19 @@ public class UserRoleRequestController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestParam User.Role requestedRole,
+    public ResponseEntity<?> create(@RequestParam Role requestedRole,
                                       @RequestParam RoleRequest.TypeAction typeAction,
                                       @RequestParam(required = false) String message
                                     ) {
         User currentUser = userService.getCurrentUser();
-        log.info("Создания запроса на изменение роли у пользователя id:" + currentUser.getId());
+        log.info("Создания запроса на изменение роли у пользователя id={}",currentUser.getId());
         try {
             RoleRequest request = roleRequestService.createRoleRequest(
                     currentUser, requestedRole, typeAction, message);
-            log.info("Заявка создана id: " + request.getId());
+            log.info("Заявка создана id={}", request.getId());
             return ResponseEntity.ok(roleRequestMapper.toDto(request));
         } catch (IllegalArgumentException | IllegalStateException e) {
-            log.error("Не удалось создать заявку: " + e.getMessage());
+            log.error("Не удалось создать заявку, ex={} ", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

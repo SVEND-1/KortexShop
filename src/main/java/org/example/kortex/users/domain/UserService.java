@@ -1,6 +1,7 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,40 +26,21 @@ public class UserService {
     public User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user =  userRepository.findByEmailEqualsIgnoreCase(email);
-        if(user == null) {
-            log.error("Авторизованный пользователь не найдет");
-            throw new IllegalArgumentException("Не найден пользователь");
-        }
+        notFoundUser(user);
         return user;
     }
 
     public User getCurrentUserCart() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user =  userRepository.findByIdWithCart(email);
-        if(user == null) {
-            log.error("Авторизованный пользователь не найдет");
-            throw new IllegalArgumentException("Не найден пользователь");
-        }
+        notFoundUser(user);
         return user;
     }
 
     public User getCurrentUserOrders() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user =  userRepository.findByIdWithOrders(email);
-        if(user == null) {
-            log.error("Авторизованный пользователь не найдет");
-            throw new IllegalArgumentException("Не найден пользователь");
-        }
-        return user;
-    }
-
-    public User getCurrentUserFull() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user =  userRepository.findByIdWithEverything(email);
-        if(user == null) {
-            log.error("Авторизованный пользователь не найдет");
-            throw new IllegalArgumentException("Не найден пользователь");
-        }
+        notFoundUser(user);
         return user;
     }
 
@@ -66,61 +48,15 @@ public class UserService {
         return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
     }
 
-
-    @Transactional
-    public User appoint(Long userId, User.Role role) {
-        User user = getById(userId);
-        log.info("Повышение пользователя id: " + user.getId() + " на роль : " + role.name());
-        if(User.Role.COURIER.equals(role)) {
-            if(user.getRole().equals(User.Role.ADMIN) ||
-                    user.getRole().equals(User.Role.SELLER)) {
-                log.warn( "Нельзя назначить курьером пользователя с ролью: " + user.getRole());
-                throw new IllegalArgumentException(
-                        "Нельзя назначить курьером пользователя с ролью: " + user.getRole()
-                );
-            }
-        }
-        if(User.Role.SELLER.equals(role)) {
-            if(user.getRole().equals(User.Role.ADMIN) ||
-                    user.getRole().equals(User.Role.COURIER)) {
-                log.warn("Нельзя назначить продавцом пользователя с ролью: " + user.getRole());
-                throw new IllegalArgumentException(
-                        "Нельзя назначить продавцом пользователя с ролью: " + user.getRole()
-                );
-            }
-        }
-        user.setRole(role);
-        User savedUser = userRepository.save(user);
-        log.info("Пользователь повышен успешно");
-        return savedUser;
-    }
-
-    @Transactional
-    public User downgrade(Long userId, User.Role role) {
-        User user = getById(userId);
-        log.info("Понижение пользователя id: " + user.getId() + " на роль : " + role.name());
-        if (user.getRole().equals(role)) {
-            log.warn("Нельзя забрать роль " + role + " у пользователя с ролью: " + user.getRole());
-            throw new IllegalArgumentException(
-                    "Нельзя забрать роль " + role + " у пользователя с ролью: " + user.getRole()
-            );
-        }
-
-        user.setRole(User.Role.USER);
-        User saveUser = userRepository.save(user);
-        log.info("Пользователь успешно понижен");
-        return saveUser;
-    }
-
     public User getByEmail(String email) {
-        log.info("Поиск пользователя с email: " + email);
+        log.info("Поиск пользователя с email={}", email);
 
         User user = userRepository.findByEmailEqualsIgnoreCase(email);
 
         if (user == null) {
-            log.debug("Пользователь не найден с email:" + email);
+            log.debug("Пользователь не найден с email={}", email);
         } else {
-            log.debug("Пользователь найден с email:" + user.getEmail());
+            log.debug("Пользователь найден с email={}", user.getEmail());
         }
         return user;
     }
@@ -129,7 +65,7 @@ public class UserService {
         try {
             log.info("Создания пользователя");
             User createdUser = userRepository.save(userToCreate);
-            log.info("Пользователь создан его id: " + createdUser.getId());
+            log.info("Пользователь создан его id={}", createdUser.getId());
             return createdUser;
         } catch (DataIntegrityViolationException e) {
             throw new RuntimeException("Пользователь с email " + userToCreate.getEmail() + " уже существует");
@@ -138,7 +74,7 @@ public class UserService {
 
     @Transactional
     public User update(Long id, User userToUpdate) {
-        log.info("Обновление пользователя с id: " + id);
+        log.info("Обновление пользователя с id={}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
         User updatedUser = new User(
@@ -153,8 +89,15 @@ public class UserService {
                 userToUpdate.getRoleRequests());
 
         User savedUser = userRepository.save(updatedUser);
-        log.info("Пользователь обновлен с id: " + savedUser.getId());
+        log.info("Пользователь обновлен с id={}", savedUser.getId());
         return userRepository.save(savedUser);
     }
 
+
+    private static void notFoundUser(User user) {
+        if(user == null) {
+            log.error("Авторизованный пользователь не найдет");
+            throw new IllegalArgumentException("Не найден пользователь");
+        }
+    }
 }

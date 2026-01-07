@@ -2,6 +2,7 @@ package org.example.kortex.users.api;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.api.dto.role.RoleRequestMapper;
+import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.RoleRequestService;
@@ -28,7 +29,7 @@ public class AdminRoleRequestController {
     }
 
     @GetMapping
-    public CompletableFuture<ResponseEntity<Map<String,Object>>> getAdminRoleRequest(@RequestParam(name = "role",required = false) User.Role role,
+    public CompletableFuture<ResponseEntity<Map<String,Object>>> getAdminRoleRequest(@RequestParam(name = "role",required = false) Role role,
                                                                                      @RequestParam(name = "status",required = false) RoleRequest.Status status,
                                                                                      @RequestParam(name = "actionType",required = false) RoleRequest.TypeAction actionType,
                                                                                      @RequestParam(name = "pageSize",required = false) Integer pageSize,

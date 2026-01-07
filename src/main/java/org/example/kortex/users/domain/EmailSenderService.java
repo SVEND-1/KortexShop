@@ -1,14 +1,11 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Random;
 
@@ -84,7 +81,7 @@ public class EmailSenderService {
         message.setText(content);
 
         javaMailSender.send(message);
-        log.info("Сообщение отправлено на регистрацию на почту: " + to + " с кодом " + code);
+        log.info("Сообщение отправлено на регистрацию на почту: {} с кодом {}", to, code);
         return code;
     }
 

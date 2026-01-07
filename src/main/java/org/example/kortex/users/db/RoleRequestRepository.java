@@ -38,7 +38,7 @@ public interface RoleRequestRepository  extends JpaRepository<RoleRequest, Long>
     AND (:type IS NULL OR r.typeAction = :type)
     ORDER BY r.createdAt DESC
 """)
-    Page<RoleRequest> findSearchFilter(@Param("role")User.Role role,
+    Page<RoleRequest> findSearchFilter(@Param("role")Role role,
                                    @Param("status")RoleRequest.Status status,
                                    @Param("type") RoleRequest.TypeAction type,
                                    Pageable pageable);

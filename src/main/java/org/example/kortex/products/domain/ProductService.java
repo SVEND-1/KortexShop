@@ -4,6 +4,7 @@ import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.api.ProductSearchFilter;
+import org.example.kortex.products.db.Category;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +33,7 @@ public class ProductService {
     public CompletableFuture<Page<Product>> findProductsFilter(ProductSearchFilter filter){
         log.info("Запрос на выдачу всех товаров с фильром: {}", filter);
 
-        Product.Category category = filter.category() != null ? Product.Category.valueOf(filter.category()) : null;
+        Category category = filter.category() != null ? Category.valueOf(filter.category()) : null;
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
         int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
         String query = filter.query() != null ? filter.query() : "";

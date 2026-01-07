@@ -1,8 +1,8 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.products.db.Product;
 import org.example.kortex.users.api.RoleRequestFilter;
+import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.RoleRequest;
 import org.example.kortex.users.db.RoleRequestRepository;
 import org.example.kortex.users.db.User;
@@ -20,22 +20,23 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 @Service
 public class RoleRequestService {
-    private final UserService userService;
     private final RoleRequestRepository roleRequestRepository;
     private final EmailSenderService emailSenderService;
+    private final AdminService adminService;
 
     @Autowired
-    public RoleRequestService(UserService userService, RoleRequestRepository roleRequestRepository,EmailSenderService emailSenderService) {
-        this.userService = userService;
+    public RoleRequestService(RoleRequestRepository roleRequestRepository,
+                              EmailSenderService emailSenderService,AdminService adminService) {
         this.roleRequestRepository = roleRequestRepository;
         this.emailSenderService = emailSenderService;
+        this.adminService = adminService;
     }
 
     public List<RoleRequest> getAllRoleRequestsByUserId(Long userId) {
         return roleRequestRepository.getAllByUserId(userId);
     }
 
-    public RoleRequest createRoleRequest(User currentUser, User.Role requestedRole,
+    public RoleRequest createRoleRequest(User currentUser, Role requestedRole,
                                          RoleRequest.TypeAction typeAction, String message) {
         log.info("Создания подачи заявки на роль");
 
@@ -78,7 +79,7 @@ public class RoleRequestService {
         RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                 .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
 
-        userService.downgrade(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
+        adminService.downgrade(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
 
         roleRequest.setStatus(RoleRequest.Status.APPROVED);
 
@@ -93,7 +94,7 @@ public class RoleRequestService {
         RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                 .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
 
-        userService.appoint(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
+        adminService.appoint(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
 
         roleRequest.setStatus(RoleRequest.Status.APPROVED);
 

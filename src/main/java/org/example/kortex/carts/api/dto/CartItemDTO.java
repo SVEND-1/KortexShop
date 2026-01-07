@@ -1,12 +1,12 @@
-package org.example.kortex.orders.api.dto;
+package org.example.kortex.carts.api.dto;
 
 import org.example.kortex.products.api.dto.ProductDTO;
 
 import java.math.BigDecimal;
 
-public record OrderItemDTO(
+public record CartItemDTO(
         Long id,
-        OrderDTO order,
+        CartDTO cart,
         ProductDTO product,
         Integer quantity,
         BigDecimal price

@@ -2,14 +2,16 @@ package org.example.kortex.products.api.dto;
 
 import org.example.kortex.products.db.Category;
 import org.example.kortex.products.db.Product;
-import org.springframework.web.multipart.MultipartFile;
+import org.example.kortex.users.api.dto.user.UserDTO;
 
-public record ProductRequest(
+public record ProductDTO(
+        Long id,
+        UserDTO seller,
         String name,
         Double price,
         Integer count,
         String description,
-        Category category,
-        MultipartFile imageFile
+        String image,
+        Category category
 ) {
 }

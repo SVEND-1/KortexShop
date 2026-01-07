@@ -68,7 +68,7 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessUrl("/")
-                        .deleteCookies("jwtToken")
+                        .deleteCookies("jwtToken")//TODO может это есть уже в authService
                         .permitAll()
                 )
                 .build();

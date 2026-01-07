@@ -40,9 +40,6 @@ public class ProductController {
             @RequestParam(name = "page", defaultValue = "0") Integer page,
             @RequestParam(name = "size", defaultValue = "12") Integer size) {
 
-        log.info("Асинхронный запрос товаров: category={}, query={}, page={}, size={}",
-                category, query, page, size);
-
         ProductSearchFilter filter = new ProductSearchFilter(category, query, size, page);
 
         return productService.findProductsFilter(filter)

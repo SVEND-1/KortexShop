@@ -12,6 +12,7 @@ import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.carts.domain.CartService;
+import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
@@ -184,7 +185,7 @@ public class OrderService {
     }
 
     private void validateCourier(User user) {
-        if (user.getRole() != User.Role.COURIER) {
+        if (user.getRole() != Role.COURIER) {
             log.error("Пользователь с ID " + user.getId() + " не является курьером");
             throw new IllegalArgumentException(
                     String.format("Пользователь с ID %d не является курьером", user.getId())
