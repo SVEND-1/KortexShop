@@ -3,17 +3,26 @@ package org.example.kortex.carts.domain;
 import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.carts.api.dto.CartMapper;
+import org.example.kortex.carts.api.dto.CartResponse;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.CartRepository;
+import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 @Slf4j
@@ -22,25 +31,20 @@ public class CartService {
 
     private final CartRepository cartRepository;
     private final CartItemService cartItemService;
+    private final UserService userService;
+    private final CartMapper cartMapper;
 
     @Autowired
-    public CartService(CartRepository cartRepository, CartItemService cartItemService) {
+    public CartService(CartRepository cartRepository, CartItemService cartItemService,
+                       UserService userService,CartMapper cartMapper) {
         this.cartRepository = cartRepository;
         this.cartItemService = cartItemService;
-    }
-
-
-    public Cart getCartByUserId(Long userId) {
-        Cart cart = cartRepository.findByUserIdWithItems(userId);
-        return cart;
+        this.userService = userService;
+        this.cartMapper = cartMapper;
     }
 
     public Cart getCartWithUser(Long userId) {
         return cartRepository.findByUserIdWithItemsAndUser(userId);
-    }
-
-    public Cart getById(Long id)  {
-        return cartRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("не найден"));
     }
 
     public Cart create(Cart cartToCreate) {
@@ -59,12 +63,96 @@ public class CartService {
         return saveCart;
     }
 
-    @Transactional
-    public Cart cartAddProduct(Cart cart, Long productId) {
+    private Cart cartAddProduct(Cart cart, Long productId) {
         log.info("Добавление продукта " + productId + " в корзину " + cart.getId());
-        cartItemService.addItemToCart(cart.getId(),productId,1);
+        cartItemService.addItemToCart(cart.getId(),productId);
         Cart saveCart = cartRepository.save(cart);
         log.info("Продукт добавлен успешно");
         return saveCart;
+    }
+
+
+    public CartResponse getCartPage() {
+        try {
+            User user = userService.getCurrentUserCart();
+            Cart cart = user.getCart();
+            return cartMapper.toCartResponse(cart);
+        }catch (Exception e) {
+            log.error("Ошибка при получении данных корзины: " + e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Ошибка сервера при получении корзины"
+            );
+        }
+    }
+
+    @Transactional
+    public Cart addItemToCart( Long productId) {
+        try {
+            log.info("Добавление товара в корзину");
+            User user = userService.getCurrentUserCart();
+            Cart cart = cartAddProduct(user.getCart(), productId);
+            log.info("Продукт с id: " + productId + " добавлен в корзину с id: " + cart.getId());
+            return cart;
+        }
+        catch (Exception e) {
+            log.error("Ошибка при добавлении товара в корзину: " + e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Ошибка при добавлении товара в корзину"
+            );
+        }
+    }
+
+    public String increaseQuantity( Long itemId) {
+        try {
+            log.info("Инкремент товара");
+            CartItem updated = cartItemService.updateIncrement(itemId);
+            log.info("Успешно инкремент товара id cartItem: " + updated.getId());
+            return "Успешно";
+        }
+        catch (Exception e) {
+            log.error("Ошибка инкремента: " + e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Ошибка при увеличении количества"
+            );
+        }
+    }
+
+    public String  decreaseQuantity( Long itemId) {
+        try {
+            log.info("Декрменет товара");
+
+            CartItem updated = cartItemService.decreaseQuantityOrRemove(itemId);
+
+            if (updated == null) {
+                return "Товар удален из корзины";
+            }
+
+            log.info("Успешно декремент товара id cartItem: " + updated.getId());
+            return "Успешно";
+        }
+        catch (Exception e) {
+            log.error("Ошибка декремента: " + e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Ошибка при уменьшении количества"
+            );
+        }
+    }
+
+    public void removeItemFromCart( Long itemId) {
+        try {
+            log.info("Удаление товара из корзины id cartItem: " + itemId);
+            cartItemService.removeItemFromCart(itemId);
+        }
+        catch (Exception e) {
+            log.error("Не удалось удалить товар: " + e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Ошибка при удалении товара из корзины"
+            );
+        }
     }
 }

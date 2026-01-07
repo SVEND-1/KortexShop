@@ -15,7 +15,6 @@ public record OrderDTO(
         LocalDateTime orderDate,
         String shippingAddress,
         String message,
-        BigDecimal totalAmount,
-        List<OrderItemDTOO> orderItems
+        BigDecimal totalAmount
 ) {
 }

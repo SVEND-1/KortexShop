@@ -45,7 +45,7 @@ public class CartItemService {
     }
 
     @Transactional
-    public CartItem addItemToCart(Long cartId, Long productId, Integer quantity) {
+    public CartItem addItemToCart(Long cartId, Long productId) {
         log.info("Добавление CartItem в корзину " + cartId);
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new EntityNotFoundException("Корзина не найдена"));
@@ -53,16 +53,12 @@ public class CartItemService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
 
-        if (quantity == null || quantity <= 0) {
-            log.error("Количество должно быть больше 0");
-            throw new IllegalArgumentException("Количество должно быть больше 0");
-        }
 
         Optional<CartItem> existingCartItem = cartItemRepository.findByCartIdAndProductId(cartId, productId);
 
         if (existingCartItem.isPresent()) {
             CartItem cartItem = existingCartItem.get();
-            cartItem.setQuantity(cartItem.getQuantity() + quantity);
+            cartItem.setQuantity(cartItem.getQuantity() + 1);
             cartItem.calculatePrice();
 
             CartItem savedCartItem = cartItemRepository.save(cartItem);
@@ -72,7 +68,7 @@ public class CartItemService {
             CartItem cartItem = new CartItem();
             cartItem.setCart(cart);
             cartItem.setProduct(product);
-            cartItem.setQuantity(quantity);
+            cartItem.setQuantity(1);
             cartItem.calculatePrice();
 
             CartItem savedCartItem = cartItemRepository.save(cartItem);

@@ -1,24 +1,16 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.api.dto.courier.CourierAssignResponse;
-import org.example.kortex.users.api.dto.courier.CourierDTOMapper;
 import org.example.kortex.users.api.dto.courier.SetStatusOrderResponse;
 import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 
 @Slf4j
@@ -46,8 +38,11 @@ public class CourierService {
                 );
             }
 
-            Order updateOrder = orderService.setCourier( orderService.getById(id), courier.getId());
-            emailSenderService.sendMessage(updateOrder.getUser().getEmail(),"Курьер взял ваш заказ ","Курьер ведет идет к вам," + courier.getName());
+            Order updateOrder = orderService.setCourier(orderService.getById(id), courier.getId());
+            emailSenderService.sendMessage(
+                    updateOrder.getUser().getEmail(),
+                    "Курьер взял ваш заказ ",
+                    "Курьер ведет идет к вам," + courier.getName());
             log.info("Курьер с id: " + courier.getId() + " взял заказ с id:" + updateOrder.getId());
 
 
@@ -94,7 +89,8 @@ public class CourierService {
     private boolean isValidAssignOrder(Long courierId) {
         for (Order order : orderService.assignedCourierOrders(courierId)) {
             if(order.getStatus() == Order.OrderStatus.PENDING || order.getStatus() == Order.OrderStatus.DISPATCHED) {
-                log.error( "Невозможно взять новый заказ: у курьера уже есть активный заказ в доставке.ID активного заказа={}", order.getId());
+                log.error("Невозможно взять новый заказ: у курьера уже есть активный заказ в доставке." +
+                        "ID активного заказа={}", order.getId());
                 return true;
             }
         }

@@ -1,11 +1,11 @@
-package org.example.kortex.users.api;
+package org.example.kortex.roleRequest.api;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.users.api.dto.role.RoleRequestMapper;
+import org.example.kortex.users.api.RoleRequestFilter;
+import org.example.kortex.roleRequest.api.dto.RoleRequestMapper;
 import org.example.kortex.users.db.Role;
-import org.example.kortex.users.db.RoleRequest;
-import org.example.kortex.users.db.User;
-import org.example.kortex.users.domain.RoleRequestService;
+import org.example.kortex.roleRequest.db.RoleRequest;
+import org.example.kortex.roleRequest.domain.RoleRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 @RestController
 @RequestMapping("/api/admin/role-request")
-public class AdminRoleRequestController {
+public class AdminRoleRequestController {//Перенести в другую
     private final RoleRequestService roleRequestService;
     private final RoleRequestMapper roleRequestMapper;
 
@@ -52,52 +52,22 @@ public class AdminRoleRequestController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getAdminRoleRequest(@PathVariable("id") long id){
-        try{
-            return ResponseEntity.ok().body(roleRequestMapper.toDto(roleRequestService.getRoleRequest(id)));
-        }
-        catch(EntityNotFoundException e){
-            log.error("Заявка на смену роли не найдена с id: " + id + ", Ошибка: " + e.getMessage());
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok().body(roleRequestMapper.toDto(roleRequestService.getRoleRequest(id)));
     }
 
     @PostMapping("/{id}/downgrade")
     public ResponseEntity<?> downgradeAdminRoleRequest(@PathVariable("id") long id) {
-        try{
-            RoleRequest roleRequest  = roleRequestService.downgradeRole(id);
-            log.info("Понижения пользователя с id: " + roleRequest.getUser().getId());
-            return ResponseEntity.ok().body(roleRequest);
-        }
-        catch(Exception e){
-            log.error("Не удалось понизить пользователя id запроса: " + id + ", Ошибка: " + e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok().body(roleRequestService.downgradeRole(id));
     }
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<?> approveAdminRoleRequest(@PathVariable("id") long id) {
-        try{
-            RoleRequest roleRequest = roleRequestService.approveRole(id);
-            log.info("Повышение пользователя с id: " + roleRequest.getUser().getId());
-            return ResponseEntity.ok().body(roleRequest);
-        }
-        catch(Exception e){
-            log.error("Не удалось повысить пользователя id запроса: " + id + ", Ошибка: " + e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok().body(roleRequestService.approveRole(id));
     }
 
     @PostMapping("/{id}/reject")
     public ResponseEntity<?> rejectAdminRoleRequest(@PathVariable("id") long id) {
-        try{
-            RoleRequest roleRequest = roleRequestService.rejectRole(id);
-            log.info("Запрос пользователя на смену роли отклонен id запроса: " + id);
-            return ResponseEntity.ok().body(roleRequest);
-        }
-        catch(Exception e){
-            log.error("Запрос пользователя на смену роли не получилось отклонить id: " + id + ",Ошибка: " + e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        return ResponseEntity.ok().body(roleRequestService.rejectRole(id));
     }
 }
 

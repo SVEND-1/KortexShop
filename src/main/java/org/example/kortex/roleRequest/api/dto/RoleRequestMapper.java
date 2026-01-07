@@ -1,6 +1,6 @@
-package org.example.kortex.users.api.dto.role;
+package org.example.kortex.roleRequest.api.dto;
 
-import org.example.kortex.users.db.RoleRequest;
+import org.example.kortex.roleRequest.db.RoleRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 

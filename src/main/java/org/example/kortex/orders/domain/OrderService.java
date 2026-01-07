@@ -3,8 +3,10 @@ package org.example.kortex.orders.domain;
 import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.carts.api.dto.CartMapper;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.Cart;
+import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
@@ -20,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -27,7 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
@@ -39,17 +45,24 @@ public class OrderService {
     private final ProductService productService;
     private final OrderItemService orderItemService;
     private final EmailSenderService emailSenderService;
+    private final OrderCourierManager manager;
+    private final CartMapper cartMapper;
+    private final OrderMapper orderMapper;
 
     @Autowired
-    public OrderService(OrderRepository orderRepository,@Lazy UserService userService,
-                        CartService cartService, ProductService productService,OrderItemService orderItemService,
-                        EmailSenderService emailSenderService) {
+    public OrderService(OrderRepository orderRepository, @Lazy UserService userService,
+                        CartService cartService, ProductService productService, OrderItemService orderItemService,
+                        EmailSenderService emailSenderService, OrderCourierManager manager,
+                        CartMapper cartMapper, OrderMapper orderMapper) {
         this.orderRepository = orderRepository;
         this.userService = userService;
         this.cartService = cartService;
         this.productService = productService;
         this.orderItemService = orderItemService;
         this.emailSenderService = emailSenderService;
+        this.manager = manager;
+        this.cartMapper = cartMapper;
+        this.orderMapper = orderMapper;
     }
 
     public List<Order> getAll(){
@@ -58,92 +71,78 @@ public class OrderService {
     public Order getByIdWithItems(Long id) {
         return orderRepository.findByIdWithItems(id);
     }
-
-    public List<Order> assignedCourierOrders(Long userId) {
-        User courier = userService.getById(userId);
-        validateCourier(courier);
-        List<Order> orders = orderRepository.assignedOrders(userId);
-        log.info("Заказы курьера выданы id курьера: " + userId);
-        return orders;
-    }
-
-    @Async("asyncExecutor")
-    public CompletableFuture<Page<Order>> assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
-        log.info("Заказы курьера с фильтром: " + filter);
-        User courier = userService.getById(filter.userId());
-        validateCourier(courier);
-
-        int pageSize = filter.pageSize() != null ? filter.pageSize() : 8;
-        int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
-        Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
-
-        var orders = orderRepository.assignedOrdersPage(filter.userId(), pageable);
-        log.info("Заказы курьера с фильтром выданы");
-        return CompletableFuture.completedFuture(orders);
-    }
-
-    @Async("asyncExecutor")
-    public CompletableFuture<Page<Order>> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
-        log.info("Запрос доступный заказов для курьеров");
-        pageSize = pageSize != null ? pageSize : 36;
-        pageNumber = pageNumber != null ? pageNumber : 0;
-        Pageable pageable = Pageable
-                .ofSize(pageSize)
-                .withPage(pageNumber);
-
-        var orders = orderRepository.availableOrdersPage(pageable);
-
-        log.info("Доступные заказы для курьеров выданы ");
-        return CompletableFuture.completedFuture(orders);
-    }
-
-
     public Order getById(Long id) {
         return orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("не найден"));
     }
 
-    @Transactional(isolation = Isolation.SERIALIZABLE)
+
+    public List<Order> assignedCourierOrders(Long userId) {
+        return manager.assignedCourierOrders(userId);
+    }
+
+    @Async("asyncExecutor")
+    public CompletableFuture<Page<Order>> assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
+        return CompletableFuture.completedFuture(manager.assignedCourierOrdersPage(filter));
+    }
+
+    @Async("asyncExecutor")
+    public CompletableFuture<Page<Order>> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
+        return CompletableFuture.completedFuture(manager.availableCourierOrdersPage(pageSize,pageNumber));
+    }
+
     public Order setCourier(Order order,Long courierId) {
-        log.info("Назначения курьера на заказ");
-        User user = userService.getById(courierId);
-        validateCourier(user);
-
-        order.setCourier(user);
-        Order saveOrder = orderRepository.save(order);
-        log.info("На заказ " +  saveOrder.getId() + " назначен курьер: " + saveOrder.getCourier().getId());
-        return saveOrder;
+        return manager.setCourier(order,courierId);
     }
 
-    @Transactional
     public Order setStatus(Order order, Order.OrderStatus status) {
-        log.info("Изменения статуса заказа " + order.getId() + " на статсус " + status.name());
-        if(status == Order.OrderStatus.CANCELLED) {
-            log.info("Запрос курьера на отказ от заказа");
-            order.setCourier(null);
-            status = Order.OrderStatus.PENDING;
-            log.info("Курьер отказался от заказа");
-        }
-        if(status == Order.OrderStatus.RETURNED) {
-            log.info("Вернуть заказ");
-            List<OrderItem> orderItems = order.getOrderItems();
-            Order orderWithItems = getByIdWithItems(order.getId());
-            for (OrderItem orderItem : orderWithItems.getOrderItems()) {
-                productService.productAddQuantity(orderItem.getProduct().getId(), orderItem.getQuantity());
-            }
-            log.info("Заказ был возвращен");
-        }
-        order.setStatus(status);
-        Order saveOrder = orderRepository.save(order);
-        log.info("Статус заказа изменен");
-        return saveOrder;
+        return manager.setStatus(order,status);
     }
 
-    public List<Order> getOrdersByUserId(Long userId) {
-        return orderRepository.findOrderByUserId(userId);
+    public Map<String,Object> getMeCreateOrders(){
+        try {
+            User user = userService.getCurrentUserCart();
+            Cart cart = user.getCart();
+            List<CartItem> cartItems = cart.getCartItems();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("cartItems", cartMapper.toListCartItemDto(cartItems));
+            response.put("totalPrice", cart.totalPrice());
+            response.put("totalItems", cart.getQuantity());
+            response.put("user", orderMapper.toUserOrderDto(user));
+
+            return response;
+        }catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Ошибка при получении данных заказов: " + e.getMessage());
+            log.error("Ошибка при получении данных заказов: " + e.getMessage());
+            return error;
+        }
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public Order createOrderFromCart(Long userId) {
+    public Map<String,Object> createOrder(){//TODO Переписать
+        try {
+            log.info("Создания заказа");
+            User user = userService.getCurrentUser();
+            Order order = createOrderFromCart(user.getId());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("order", orderMapper.toDto(order));
+            response.put("redirect","/");
+
+            log.info("Заказ создан id: " + order.getId());
+
+            return response;
+        }
+        catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Ошибка при получении данных корзины: " + e.getMessage());
+            log.error("Ошибка при получении данных корзины: " + e.getMessage());
+            return error;
+        }
+    }
+
+    private Order createOrderFromCart(Long userId) {
         log.info("Создания заказа из корзины");
         User user = userService.getById(userId);
 
@@ -184,14 +183,6 @@ public class OrderService {
         return finalOrder;
     }
 
-    private void validateCourier(User user) {
-        if (user.getRole() != Role.COURIER) {
-            log.error("Пользователь с ID " + user.getId() + " не является курьером");
-            throw new IllegalArgumentException(
-                    String.format("Пользователь с ID %d не является курьером", user.getId())
-            );
-        }
-    }
 
     private void validateCartItems(Cart cart) {
 

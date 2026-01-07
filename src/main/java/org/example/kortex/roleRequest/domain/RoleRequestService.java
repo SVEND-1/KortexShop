@@ -1,17 +1,25 @@
-package org.example.kortex.users.domain;
+package org.example.kortex.roleRequest.domain;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.roleRequest.api.dto.RoleRequestMapper;
+import org.example.kortex.roleRequest.api.dto.RoleRequestResponse;
 import org.example.kortex.users.api.RoleRequestFilter;
 import org.example.kortex.users.db.Role;
-import org.example.kortex.users.db.RoleRequest;
-import org.example.kortex.users.db.RoleRequestRepository;
+import org.example.kortex.roleRequest.db.RoleRequest;
+import org.example.kortex.roleRequest.db.RoleRequestRepository;
 import org.example.kortex.users.db.User;
+import org.example.kortex.users.domain.AdminService;
+import org.example.kortex.users.domain.EmailSenderService;
+import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
@@ -23,20 +31,41 @@ public class RoleRequestService {
     private final RoleRequestRepository roleRequestRepository;
     private final EmailSenderService emailSenderService;
     private final AdminService adminService;
+    private final RoleRequestMapper roleRequestMapper;
+    private final UserService userService;
 
     @Autowired
-    public RoleRequestService(RoleRequestRepository roleRequestRepository,
-                              EmailSenderService emailSenderService,AdminService adminService) {
+    public RoleRequestService(RoleRequestRepository roleRequestRepository, EmailSenderService emailSenderService,
+                              AdminService adminService, RoleRequestMapper roleRequestMapper, UserService userService) {
         this.roleRequestRepository = roleRequestRepository;
         this.emailSenderService = emailSenderService;
         this.adminService = adminService;
+        this.roleRequestMapper = roleRequestMapper;
+        this.userService = userService;
     }
 
-    public List<RoleRequest> getAllRoleRequestsByUserId(Long userId) {
-        return roleRequestRepository.getAllByUserId(userId);
+    public List<RoleRequestResponse> getAllRoleRequestsByUserId() {
+        return roleRequestMapper.toDtoList(roleRequestRepository.getAllByUserId(userService.getCurrentUser().getId()));
     }
 
-    public RoleRequest createRoleRequest(User currentUser, Role requestedRole,
+    public RoleRequestResponse create(Role requestedRole,
+                                      RoleRequest.TypeAction typeAction,
+                                      String message
+    ) {
+        User currentUser = userService.getCurrentUser();
+        log.info("Создания запроса на изменение роли у пользователя id={}",currentUser.getId());
+        try {
+            RoleRequest request = createRoleRequest(
+                    currentUser, requestedRole, typeAction, message);
+            log.info("Заявка создана id={}", request.getId());
+            return roleRequestMapper.toDto(request);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            log.error("Не удалось создать заявку, ex={} ", e.getMessage());
+            throw new IllegalArgumentException("Ошибка в заявке на создания role",e);
+        }
+    }
+
+    private RoleRequest createRoleRequest(User currentUser, Role requestedRole,
                                          RoleRequest.TypeAction typeAction, String message) {
         log.info("Создания подачи заявки на роль");
 
@@ -56,6 +85,7 @@ public class RoleRequestService {
         log.info("Заявка создана id: {}", savedRoleRequest.getId());
         return savedRoleRequest;
     }
+
 
 
     public RoleRequest getRoleRequest(Long roleRequestId) {
@@ -85,6 +115,8 @@ public class RoleRequestService {
 
         RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
 
+        log.info("Понижения пользователя с id: " + roleRequest.getUser().getId());
+
         emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили понижение");
         return savedRoleRequest;
     }
@@ -100,6 +132,8 @@ public class RoleRequestService {
 
         RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
 
+        log.info("Повышение пользователя с id: " + roleRequest.getUser().getId());
+
         emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили повышение");
 
         return savedRoleRequest;
@@ -113,6 +147,8 @@ public class RoleRequestService {
         roleRequest.setStatus(RoleRequest.Status.REJECTED);
 
         RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
+
+        log.info("Запрос пользователя на смену роли отклонен id запроса: " + roleRequestId);
 
         emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Ваша заявка отклонена","Можете отправить повторно позже");
         return savedRoleRequest;

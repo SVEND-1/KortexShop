@@ -59,14 +59,8 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> productDetailPage(@PathVariable String id)  {
-        try {
-            Product product = productService.getById(Long.parseLong(id));
-            return ResponseEntity.ok(productMapper.toDtoResponse(product));
-        }
-        catch (Exception e) {
-            log.error("Не удалось загрузить данные товара {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        Product product = productService.getById(Long.parseLong(id));//TODO Сделать сразу DTO
+        return ResponseEntity.ok(productMapper.toDtoResponse(product));
     }
 
 

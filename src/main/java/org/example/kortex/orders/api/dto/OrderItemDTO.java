@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 
 public record OrderItemDTO(
         Long id,
-        OrderDTO order,
         ProductDTO product,
         Integer quantity,
         BigDecimal price

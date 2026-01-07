@@ -6,12 +6,12 @@ import org.example.kortex.users.api.dto.user.UserDTO;
 
 public record ProductDTO(
         Long id,
-        UserDTO seller,
         String name,
         Double price,
         Integer count,
         String description,
         String image,
-        Category category
+        Category category,
+        Long sellerId
 ) {
 }

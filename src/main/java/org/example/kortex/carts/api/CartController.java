@@ -35,79 +35,27 @@ public class CartController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getCartPage() {
-        try {
-            User user = userService.getCurrentUserCart();
-            Cart cart = user.getCart();
-            return ResponseEntity.ok(cartMapper.toCartResponse(cart));
-        }catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Ошибка при получении данных корзины: " + e.getMessage());
-            log.error("Ошибка при получении данных корзины: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        return ResponseEntity.ok(cartService.getCartPage());
     }
 
     @PostMapping("/items")
     public ResponseEntity<?> addItemToCart(@RequestParam Long productId) {
-        try {
-            log.info("Добавление товара в корзину");
-            User user = userService.getCurrentUserCart();
-            Cart cart = cartService.cartAddProduct(user.getCart(), productId);
-            log.info("Продукт с id: " + productId + " добавлен в корзину с id: " + cart.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(cart);
-        }
-        catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Ошибка при добавлении товара в корзину: " + e.getMessage());
-            log.error("Ошибка при добавлении товара в корзину: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
+        return ResponseEntity.ok(cartService.addItemToCart(productId));
     }
 
     @PatchMapping("/items/{itemId}/increase")
     public ResponseEntity<?> increaseQuantity(@PathVariable Long itemId) {
-        try {
-            log.info("Инкремент товара");
-            CartItem updated = cartItemService.updateIncrement(itemId);
-            log.info("Успешно инкремент товара id cartItem: " + updated.getId());
-            return ResponseEntity.ok("Успешно");
-        } catch (Exception e) {
-            log.error("Ошибка инкремента: " + e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(cartService.increaseQuantity(itemId));
     }
 
     @PatchMapping("/items/{itemId}/decrease")
     public ResponseEntity<?> decreaseQuantity(@PathVariable Long itemId) {
-        try {
-            log.info("Декрменет товара");
-
-            CartItem updated = cartItemService.decreaseQuantityOrRemove(itemId);
-
-            if (updated == null) {
-                return ResponseEntity.ok(Map.of("message", "Товар удален из корзины"));
-            }
-
-            log.info("Успешно декремент товара id cartItem: " + updated.getId());
-            return ResponseEntity.ok("Успешно");
-        } catch (Exception e) {
-            log.error("Ошибка декремента: " + e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(cartService.decreaseQuantity(itemId));
     }
 
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<?> removeItemFromCart(@PathVariable Long itemId) {
-        try {
-            log.info("Удаление товара из корзины id cartItem: " + itemId);
-            cartItemService.removeItemFromCart(itemId);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            log.error("Не удалось удалить товар: " + e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        }
+        cartService.removeItemFromCart(itemId);
+        return ResponseEntity.ok().build();
     }
 }

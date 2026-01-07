@@ -1,7 +1,9 @@
-package org.example.kortex.users.db;
+package org.example.kortex.roleRequest.db;
 
 
 import lombok.Data;
+import org.example.kortex.users.db.Role;
+import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;

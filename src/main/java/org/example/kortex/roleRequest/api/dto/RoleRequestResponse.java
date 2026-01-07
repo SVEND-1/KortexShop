@@ -1,7 +1,7 @@
-package org.example.kortex.users.api.dto.role;
+package org.example.kortex.roleRequest.api.dto;
 
 
-import org.example.kortex.users.db.RoleRequest;
+import org.example.kortex.roleRequest.db.RoleRequest;
 
 import java.time.LocalDateTime;
 

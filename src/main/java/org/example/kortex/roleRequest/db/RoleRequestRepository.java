@@ -1,7 +1,6 @@
-package org.example.kortex.users.db;
+package org.example.kortex.roleRequest.db;
 
-import org.example.kortex.products.db.Product;
-import org.example.kortex.users.api.RoleRequestFilter;
+import org.example.kortex.users.db.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -38,7 +37,7 @@ public interface RoleRequestRepository  extends JpaRepository<RoleRequest, Long>
     AND (:type IS NULL OR r.typeAction = :type)
     ORDER BY r.createdAt DESC
 """)
-    Page<RoleRequest> findSearchFilter(@Param("role")Role role,
+    Page<RoleRequest> findSearchFilter(@Param("role") Role role,
                                    @Param("status")RoleRequest.Status status,
                                    @Param("type") RoleRequest.TypeAction type,
                                    Pageable pageable);

@@ -18,58 +18,29 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
-    private final OrderMapper orderMapper;
     private final UserMapper userMapper;
 
     @Autowired
-    public UserController(UserService userService, OrderMapper orderMapper, UserMapper userMapper) {
+    public UserController(UserService userService, UserMapper userMapper) {
         this.userService = userService;
-        this.orderMapper = orderMapper;
         this.userMapper = userMapper;
     }
 
 
     @GetMapping("/me")
     public ResponseEntity<?> profile(){
-        try {
-            return ResponseEntity.ok().body(userMapper.toDto(userService.getCurrentUser()));
-        }
-        catch (Exception e) {
-            log.error("Не удалось загрущить профиль" + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return ResponseEntity.ok().body(userMapper.toDto(userService.getCurrentUser()));
     }
 
     @GetMapping("/me-orders")
     public ResponseEntity<?> orders(){
-        try {
-            User user = userService.getCurrentUserOrders();
-            List<Order> userOrders = user.getOrders();
-            return ResponseEntity.ok().body(orderMapper.toDtoList(userOrders));
-        }
-        catch (Exception e) {
-            log.error("Не удалось загрузить заказы пользователя " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return ResponseEntity.ok(userService.meOrders());
     }
 
     @PostMapping("/address")
     public ResponseEntity<?> changeAddress(
             @RequestParam String newAddress) {
-
-        try {
-            User user = userService.getCurrentUser();
-            log.info("Обновление адреса у пользователя с id: " + user.getId());
-
-            user.setAddress(newAddress);
-            userService.update(user.getId(), user);
-            log.info("Адрес изменен");
-            return ResponseEntity.ok("адрес изменен");
-        } catch (Exception e) {
-            log.error("Ошибка изменения адреса: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Ошибка изменения адреса: " + e.getMessage());
-        }
+        return ResponseEntity.ok().body(userService.changeAddress(newAddress));
     }
 }
 

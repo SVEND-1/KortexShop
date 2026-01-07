@@ -1,26 +1,36 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.users.db.Role;
+import org.example.kortex.orders.api.dto.OrderItemDTOO;
+import org.example.kortex.orders.api.dto.OrderMapper;
+import org.example.kortex.orders.api.dto.OrderResponseDTO;
+import org.example.kortex.orders.db.Order;
+import org.example.kortex.orders.db.OrderItem;
+import org.example.kortex.users.api.dto.user.UserDTO;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
+import java.util.List;
 
 
 @Slf4j
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final OrderMapper orderMapper;
 
     @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,OrderMapper orderMapper) {
         this.userRepository = userRepository;
+        this.orderMapper = orderMapper;
     }
 
     public User getCurrentUser() {
@@ -29,6 +39,7 @@ public class UserService {
         notFoundUser(user);
         return user;
     }
+
 
     public User getCurrentUserCart() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -91,6 +102,30 @@ public class UserService {
         User savedUser = userRepository.save(updatedUser);
         log.info("Пользователь обновлен с id={}", savedUser.getId());
         return userRepository.save(savedUser);
+    }
+
+    public User changeAddress(String newAddress) {
+        try {
+            User user = getCurrentUser();
+            log.info("Обновление адреса у пользователя id={}", user.getId());
+            user.setAddress(newAddress);
+            return userRepository.save(user);
+        }catch (Exception  e){
+            log.error("Ошибка при обновление адреса, ex={}", e.getMessage());
+            throw new RuntimeException("Не удалось обновить пароль", e);
+        }
+    }
+
+    public List<OrderResponseDTO> meOrders() {
+        try {
+            User user = getCurrentUserOrders();
+            List<Order> userOrders = user.getOrders();
+            return orderMapper.toDtoList(userOrders);
+        }
+        catch (Exception e) {
+            log.error("Не удалось загрузить заказы пользователя, ex={}", e.getMessage());
+            throw new IllegalStateException("Не удалось загрузить заказы пользователя", e);
+        }
     }
 
 

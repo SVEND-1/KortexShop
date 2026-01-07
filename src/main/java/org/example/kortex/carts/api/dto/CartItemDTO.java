@@ -1,14 +1,16 @@
 package org.example.kortex.carts.api.dto;
 
-import org.example.kortex.products.api.dto.ProductDTO;
+import org.example.kortex.orders.db.Order;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public record CartItemDTO(
         Long id,
-        CartDTO cart,
-        ProductDTO product,
-        Integer quantity,
-        BigDecimal price
+        Order.OrderStatus status,
+        BigDecimal totalAmount,
+        LocalDateTime orderDate,
+        String shippingAddress,
+        Long productId
 ) {
 }

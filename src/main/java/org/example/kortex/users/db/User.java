@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.db.Order;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.example.kortex.roleRequest.db.RoleRequest;
 
 import javax.persistence.*;
 import java.util.ArrayList;
