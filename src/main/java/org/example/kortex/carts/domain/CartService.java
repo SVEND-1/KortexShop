@@ -47,31 +47,6 @@ public class CartService {
         return cartRepository.findByUserIdWithItemsAndUser(userId);
     }
 
-    public Cart create(Cart cartToCreate) {
-        log.info("Создания корзины у пользователя " + cartToCreate.getUser().getId());
-        Cart cart = cartRepository.save(cartToCreate);
-        log.info("Корзина создана id корзины: " + cart.getId());
-        return cart;
-    }
-
-    public Cart clearCartByUserId(Long userID)  {
-        log.info("Очистка корзины");
-        Cart cart = getCartWithUser(userID);
-        cart.clearCart();
-        Cart saveCart = cartRepository.save(cart);
-        log.info("Корзина очищена");
-        return saveCart;
-    }
-
-    private Cart cartAddProduct(Cart cart, Long productId) {
-        log.info("Добавление продукта " + productId + " в корзину " + cart.getId());
-        cartItemService.addItemToCart(cart.getId(),productId);
-        Cart saveCart = cartRepository.save(cart);
-        log.info("Продукт добавлен успешно");
-        return saveCart;
-    }
-
-
     public CartResponse getCartPage() {
         try {
             User user = userService.getCurrentUserCart();
@@ -86,14 +61,31 @@ public class CartService {
         }
     }
 
+    public Cart create(Cart cartToCreate) {
+        try {
+            log.info("Создания корзины у пользователя " + cartToCreate.getUser().getId());
+            Cart cart = cartRepository.save(cartToCreate);
+            log.info("Корзина создана id корзины: " + cart.getId());
+            return cart;
+        }
+        catch (Exception e){
+            log.error("Не удалось создать корзину, ex={}", e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Внутренняя ошибка сервера при создании корзины"
+            );
+        }
+    }
+
     @Transactional
-    public Cart addItemToCart( Long productId) {
+    public Cart addItemToCart(Long productId) {
         try {
             log.info("Добавление товара в корзину");
             User user = userService.getCurrentUserCart();
-            Cart cart = cartAddProduct(user.getCart(), productId);
-            log.info("Продукт с id: " + productId + " добавлен в корзину с id: " + cart.getId());
-            return cart;
+            cartItemService.addItemToCart(user.getCart().getId(),productId);
+            Cart saveCart = cartRepository.save(user.getCart());
+            log.info("Продукт с id: " + productId + " добавлен в корзину с id: " + saveCart.getId());
+            return saveCart;
         }
         catch (Exception e) {
             log.error("Ошибка при добавлении товара в корзину: " + e.getMessage());
@@ -104,7 +96,7 @@ public class CartService {
         }
     }
 
-    public String increaseQuantity( Long itemId) {
+    public String increaseQuantity(Long itemId) {
         try {
             log.info("Инкремент товара");
             CartItem updated = cartItemService.updateIncrement(itemId);
@@ -120,7 +112,7 @@ public class CartService {
         }
     }
 
-    public String  decreaseQuantity( Long itemId) {
+    public String decreaseQuantity( Long itemId) {
         try {
             log.info("Декрменет товара");
 
@@ -155,4 +147,13 @@ public class CartService {
             );
         }
     }
+
+    public void clearCartByUserId(Long userID)  {
+        log.info("Очистка корзины");
+        Cart cart = getCartWithUser(userID);
+        cart.clearCart();
+        Cart saveCart = cartRepository.save(cart);
+        log.info("Корзина очищена");
+    }
+
 }

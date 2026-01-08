@@ -31,12 +31,12 @@ public class OrderController {
 
     @GetMapping("/me-create")//Отображение страницы заказа
     public ResponseEntity<?> getMeCreateOrders() {
-        return ResponseEntity.ok(orderService.getMeCreateOrders());
+        return ResponseEntity.ok(orderService.getPageCreateOrder());
     }
 
     @PostMapping()
     public ResponseEntity<?> createOrder() {
-        return ResponseEntity.ok(orderService.createOrder());
+        return ResponseEntity.ok(orderService.createOrderFromCart());
     }
 }
 

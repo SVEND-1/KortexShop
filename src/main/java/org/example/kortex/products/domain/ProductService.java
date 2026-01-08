@@ -51,8 +51,6 @@ public class ProductService {
         return CompletableFuture.completedFuture(productsPage);
     }
 
-
-
     public List<Product> getProductsBySeller(Long sellerId) {
         log.info("Запрос на товары у продавца: {}", sellerId);
         List<Product> products = productRepository.findBySellerId(sellerId);

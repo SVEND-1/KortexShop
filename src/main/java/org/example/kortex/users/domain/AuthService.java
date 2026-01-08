@@ -287,8 +287,7 @@ public class AuthService {
                 return new SimpleResponse(false, "Пользователь не найден");
             }
 
-            user.setPassword(passwordEncoder.encode(request.newPassword()));
-            userService.update(user.getId(), user);
+            userService.changePassword(user.getId(), passwordEncoder.encode(request.newPassword()));
 
             String token = jwtTokenProvider.createToken(user.getEmail(), user.getRole().name());
             Cookie cookie = new Cookie("jwtToken", token);

@@ -1,18 +1,13 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.orders.api.dto.OrderItemDTOO;
 import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
-import org.example.kortex.orders.db.OrderItem;
-import org.example.kortex.users.api.dto.user.UserDTO;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,6 +98,19 @@ public class UserService {
         log.info("Пользователь обновлен с id={}", savedUser.getId());
         return userRepository.save(savedUser);
     }
+
+    @Transactional
+    public User changePassword(Long id, String newPassword) {
+        log.info("Обновление пароля у пользователя с id={}", id);
+        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
+
+        user.setPassword(newPassword);
+
+        User savedUser = userRepository.save(user);
+        log.info("Пароль пользователя обновлен с id={}", savedUser.getId());
+        return userRepository.save(savedUser);
+    }
+
 
     public User changeAddress(String newAddress) {
         try {

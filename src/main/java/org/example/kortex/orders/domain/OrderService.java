@@ -20,6 +20,7 @@ import org.example.kortex.users.domain.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -98,7 +100,7 @@ public class OrderService {
         return manager.setStatus(order,status);
     }
 
-    public Map<String,Object> getMeCreateOrders(){
+    public Map<String,Object> getPageCreateOrder(){//TODO DTO
         try {
             User user = userService.getCurrentUserCart();
             Cart cart = user.getCart();
@@ -120,72 +122,69 @@ public class OrderService {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public Map<String,Object> createOrder(){//TODO Переписать
+    public Map<String, Object> createOrderFromCart() {//TODO Можно добавить менеджер создания заказа
+        log.info("Создания заказа из корзины");
         try {
-            log.info("Создания заказа");
             User user = userService.getCurrentUser();
-            Order order = createOrderFromCart(user.getId());
+
+            Cart cart = user.getCart();
+            if (cart == null) {
+                log.error("Корзина не найдена для пользователя с ID: " + user.getId());
+                throw new RuntimeException("Корзина не найдена для пользователя с ID: " + user.getId());
+            }
+
+            if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
+                log.error("Корзина пуста, невозможно создать заказ");
+                throw new RuntimeException("Корзина пуста, невозможно создать заказ");
+            }
+
+            validateCartItems(cart);
+
+            Order order = new Order();
+            order.setUser(user);
+            order.setStatus(Order.OrderStatus.PENDING);
+
+            BigDecimal totalAmount = calculateTotalAmount(cart);
+            order.setTotalAmount(totalAmount);
+
+            Order savedOrder = orderRepository.save(order);
+
+            List<OrderItem> orderItems = createOrderItemsFromCart(cart, savedOrder);
+            savedOrder.setOrderItems(orderItems);
+
+            cartService.clearCartByUserId(user.getId());
+
+            Order finalOrder = orderRepository.save(savedOrder);
+            for (OrderItem orderItem : finalOrder.getOrderItems()) {
+                productService.productSubtractQuantity(orderItem.getProduct().getId(), orderItem.getQuantity());
+            }
+            emailSenderService.sendMessage(user.getEmail(), "Заказ успешно создан!"
+                    , "Мы отравим вам письмо когда курьер возьмет его");
+            log.info("Заказ создан с id: " + finalOrder.getId());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("order", orderMapper.toDto(order));
+            response.put("order", orderMapper.toDto(finalOrder));
             response.put("redirect","/");
-
-            log.info("Заказ создан id: " + order.getId());
-
             return response;
         }
-        catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("error", "Ошибка при получении данных корзины: " + e.getMessage());
-            log.error("Ошибка при получении данных корзины: " + e.getMessage());
-            return error;
+        catch (DataIntegrityViolationException e) {
+            log.error("Нарушение целостности данных при создании заказа: " + e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Конфликт данных. Возможно, недостаточно товара на складе"
+            );
+        }
+        catch (Exception e){
+            log.error("Ошибка при создании заказа: " + e.getMessage());
+                throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Внутренняя ошибка сервера при создании заказа"
+                );
         }
     }
 
-    private Order createOrderFromCart(Long userId) {
-        log.info("Создания заказа из корзины");
-        User user = userService.getById(userId);
 
-        Cart cart = user.getCart();
-        if (cart == null) {
-            log.error("Корзина не найдена для пользователя с ID: " + userId);
-            throw new RuntimeException("Корзина не найдена для пользователя с ID: " + userId);
-        }
-
-        if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
-            log.error("Корзина пуста, невозможно создать заказ");
-            throw new RuntimeException("Корзина пуста, невозможно создать заказ");
-        }
-
-        validateCartItems(cart);
-
-        Order order = new Order();
-        order.setUser(user);
-        order.setStatus(Order.OrderStatus.PENDING);
-
-        BigDecimal totalAmount = calculateTotalAmount(cart);
-        order.setTotalAmount(totalAmount);
-
-        Order savedOrder = orderRepository.save(order);
-
-        List<OrderItem> orderItems = createOrderItemsFromCart(cart, savedOrder);
-        savedOrder.setOrderItems(orderItems);
-
-        cartService.clearCartByUserId(userId);
-
-        Order finalOrder = orderRepository.save(savedOrder);
-        for(OrderItem orderItem : finalOrder.getOrderItems()) {
-            productService.productSubtractQuantity(orderItem.getProduct().getId(),orderItem.getQuantity());
-        }
-        emailSenderService.sendMessage(user.getEmail(),"Заказ успешно создан!"
-                ,"Мы отравим вам письмо когда курьер возьмет его");
-        log.info("Заказ создан с id: " + finalOrder.getId());
-        return finalOrder;
-    }
-
-
-    private void validateCartItems(Cart cart) {
-
+    private void validateCartItems(Cart cart) {//TODO полностью логи переделать
         for (CartItem cartItem : cart.getCartItems()) {
             Product product = cartItem.getProduct();
             if (product == null) {

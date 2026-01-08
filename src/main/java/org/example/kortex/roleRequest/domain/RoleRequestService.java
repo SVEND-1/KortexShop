@@ -14,12 +14,9 @@ import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
@@ -48,45 +45,6 @@ public class RoleRequestService {
         return roleRequestMapper.toDtoList(roleRequestRepository.getAllByUserId(userService.getCurrentUser().getId()));
     }
 
-    public RoleRequestResponse create(Role requestedRole,
-                                      RoleRequest.TypeAction typeAction,
-                                      String message
-    ) {
-        User currentUser = userService.getCurrentUser();
-        log.info("Создания запроса на изменение роли у пользователя id={}",currentUser.getId());
-        try {
-            RoleRequest request = createRoleRequest(
-                    currentUser, requestedRole, typeAction, message);
-            log.info("Заявка создана id={}", request.getId());
-            return roleRequestMapper.toDto(request);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            log.error("Не удалось создать заявку, ex={} ", e.getMessage());
-            throw new IllegalArgumentException("Ошибка в заявке на создания role",e);
-        }
-    }
-
-    private RoleRequest createRoleRequest(User currentUser, Role requestedRole,
-                                         RoleRequest.TypeAction typeAction, String message) {
-        log.info("Создания подачи заявки на роль");
-
-        if (hasPendingRequestForSameAction(currentUser.getId())) {
-            log.warn("У вас уже есть активная заявка на это действие");
-            throw new IllegalStateException("У вас уже есть активная заявка на это действие");
-        }
-
-        RoleRequest roleRequest = new RoleRequest();
-        roleRequest.setUser(currentUser);
-        roleRequest.setRequestedRole(requestedRole);
-        roleRequest.setTypeAction(typeAction);
-        roleRequest.setMessage(message);
-        roleRequest.setStatus(RoleRequest.Status.PENDING);
-
-        RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
-        log.info("Заявка создана id: {}", savedRoleRequest.getId());
-        return savedRoleRequest;
-    }
-
-
 
     public RoleRequest getRoleRequest(Long roleRequestId) {
         return roleRequestRepository.findById(roleRequestId).orElseThrow(() -> new EntityNotFoundException("Заявка не найдена"));
@@ -103,6 +61,35 @@ public class RoleRequestService {
 
         return CompletableFuture.completedFuture(roleRequests);
     }
+
+    public RoleRequestResponse create(Role requestedRole,
+                                         RoleRequest.TypeAction typeAction, String message) {
+        log.info("Создания подачи заявки на роль");
+
+        try {
+            User currentUser = userService.getCurrentUser();
+
+            if (hasPendingRequestForSameAction(currentUser.getId())) {
+                log.warn("У вас уже есть активная заявка на это действие");
+                throw new IllegalStateException("У вас уже есть активная заявка на это действие");
+            }
+
+            RoleRequest roleRequest = new RoleRequest();
+            roleRequest.setUser(currentUser);
+            roleRequest.setRequestedRole(requestedRole);
+            roleRequest.setTypeAction(typeAction);
+            roleRequest.setMessage(message);
+            roleRequest.setStatus(RoleRequest.Status.PENDING);
+
+            RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
+            log.info("Заявка создана id: {}", savedRoleRequest.getId());
+            return roleRequestMapper.toDto(savedRoleRequest);
+        }catch (Exception ex){
+            log.error("Не удалось создать заявку, ex={} ", ex.getMessage());
+            throw new IllegalArgumentException("Ошибка в заявке на создания role",ex);
+        }
+    }
+
 
     @Transactional
     public RoleRequest downgradeRole(Long roleRequestId) {
