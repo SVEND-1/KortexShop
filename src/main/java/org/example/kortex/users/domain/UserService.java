@@ -8,9 +8,11 @@ import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
@@ -74,41 +76,56 @@ public class UserService {
             log.info("Пользователь создан его id={}", createdUser.getId());
             return createdUser;
         } catch (DataIntegrityViolationException e) {
+            log.error("Ошибка создание пользователя, ex={}", e.getMessage());
             throw new RuntimeException("Пользователь с email " + userToCreate.getEmail() + " уже существует");
         }
     }
 
     @Transactional
     public User update(Long id, User userToUpdate) {
-        log.info("Обновление пользователя с id={}", id);
-        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
+        try {
+            log.info("Обновление пользователя с id={}", id);
+            User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
-        User updatedUser = new User(
-                user.getId(),
-                userToUpdate.getEmail(),
-                userToUpdate.getName(),
-                userToUpdate.getPassword(),
-                userToUpdate.getRole(),
-                userToUpdate.getAddress(),
-                user.getOrders(),
-                user.getCart(),
-                userToUpdate.getRoleRequests());
+            User updatedUser = new User(
+                    user.getId(),
+                    userToUpdate.getEmail(),
+                    userToUpdate.getName(),
+                    userToUpdate.getPassword(),
+                    userToUpdate.getRole(),
+                    userToUpdate.getAddress(),
+                    user.getOrders(),
+                    user.getCart(),
+                    userToUpdate.getRoleRequests());
 
-        User savedUser = userRepository.save(updatedUser);
-        log.info("Пользователь обновлен с id={}", savedUser.getId());
-        return userRepository.save(savedUser);
+            User savedUser = userRepository.save(updatedUser);
+            log.info("Пользователь обновлен с id={}", savedUser.getId());
+            return userRepository.save(savedUser);
+        }
+        catch (DataIntegrityViolationException e) {
+            log.error("Ошибка обновление пользователя id={}, ex={}",id ,e.getMessage());
+            throw new RuntimeException("Ошибка обновление пользователя",e);
+        }
     }
 
     @Transactional
     public User changePassword(Long id, String newPassword) {
-        log.info("Обновление пароля у пользователя с id={}", id);
-        User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
+        try {
+            log.info("Обновление пароля у пользователя с id={}", id);
+            User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
-        user.setPassword(newPassword);
+            user.setPassword(newPassword);
 
-        User savedUser = userRepository.save(user);
-        log.info("Пароль пользователя обновлен с id={}", savedUser.getId());
-        return userRepository.save(savedUser);
+            User savedUser = userRepository.save(user);
+            log.info("Пароль пользователя обновлен с id={}", savedUser.getId());
+            return userRepository.save(savedUser);
+        }catch (Exception e) {
+            log.error("Ошибка смена пароля пользователя id={}, ex={}", id ,e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Не удалось изменить пароль"
+            );
+        }
     }
 
 

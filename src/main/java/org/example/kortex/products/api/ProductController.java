@@ -4,16 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.api.dto.ProductMapper;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
-import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 

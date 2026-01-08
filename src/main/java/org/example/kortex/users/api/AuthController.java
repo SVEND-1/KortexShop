@@ -1,6 +1,5 @@
 package org.example.kortex.users.api;
 
-import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.users.api.dto.auth.LoginRequest;
 import org.example.kortex.users.api.dto.auth.RegisterCodeRequest;
 import org.example.kortex.users.api.dto.auth.ResetPasswordRequest;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

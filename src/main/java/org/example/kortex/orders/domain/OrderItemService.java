@@ -34,7 +34,7 @@ public class OrderItemService {
             log.info("Успешно сохранения всех orderItem");
             return savedItems;
         } catch (Exception e) {
-            log.error("Не удалось сохранить элементы заказа" + e.getMessage());
+            log.error("Не удалось сохранить элементы заказа, ex={}",e.getMessage());
             throw new RuntimeException("Не удалось сохранить элементы заказа", e);
         }
     }

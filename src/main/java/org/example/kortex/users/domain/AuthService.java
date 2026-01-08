@@ -58,13 +58,13 @@ public class AuthService {
             );
 
             User user = userService.getByEmail(loginRequest.email());
-            String token = jwtTokenProvider.createToken(user.getEmail(), user.getRole().name());
 
-            Cookie cookie = new Cookie("jwtToken", token);
+            Cookie cookie = new Cookie("jwtToken", jwtTokenProvider.createToken(user.getEmail(), user.getRole().name()));
             cookie.setHttpOnly(true);
             cookie.setPath("/");
             cookie.setMaxAge(24 * 60 * 60);
             response.addCookie(cookie);
+            log.debug("Куки сохранены");
 
             Set<SimpleGrantedAuthority> roles = Collections.singleton(user.getRole().toAuthority());
             Authentication authToken = new UsernamePasswordAuthenticationToken(
@@ -289,8 +289,7 @@ public class AuthService {
 
             userService.changePassword(user.getId(), passwordEncoder.encode(request.newPassword()));
 
-            String token = jwtTokenProvider.createToken(user.getEmail(), user.getRole().name());
-            Cookie cookie = new Cookie("jwtToken", token);
+            Cookie cookie = new Cookie("jwtToken", jwtTokenProvider.createToken(user.getEmail(), user.getRole().name()));
             cookie.setHttpOnly(true);
             cookie.setPath("/");
             cookie.setMaxAge(24 * 60 * 60);

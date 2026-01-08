@@ -40,7 +40,7 @@ public class SellerService {
             log.info("Выданы продукты продовца");
             return productMapper.toDtoListResponse(products);
         } catch (Exception e) {
-            log.error("Ошибка при получении товаров: " + e.getMessage());
+            log.error("Ошибка при получении товаров, ex={}", e.getMessage());
             return new ArrayList<>();
         }
     }
@@ -50,7 +50,7 @@ public class SellerService {
             Product product = productService.getById(id);
             return productMapper.toDtoResponse(product);
         } catch (Exception e) {
-            log.error("Ошибка поиска продукта: " + e.getMessage());
+            log.error("Ошибка поиска продукта, ex={}", e.getMessage());
             return null;
         }
     }
@@ -72,15 +72,16 @@ public class SellerService {
             if (request.imageFile() != null && !request.imageFile().isEmpty()) {
                 String imageName = saveImage(request.imageFile());
                 product.setImage(imageName);
+                log.debug("Картинка продукта сохранена");
             }
 
             Product createdProduct = productService.create(product);
 
-            log.info("Товар создан успешно id:" + createdProduct.getId());
+            log.info("Товар создан успешно id={}", createdProduct.getId());
 
             return productMapper.toDtoResponse(createdProduct);
         } catch (Exception e) {
-            log.error("Ошибка при создании товара: " + e.getMessage());
+            log.error("Ошибка при создании товара, ex={} ", e.getMessage());
             return null;
         }
     }
@@ -89,7 +90,7 @@ public class SellerService {
     public ProductResponse updateProduct(Long id, ProductRequest request) {
 
         try {
-            log.info("Обновление товара с id: " + id);
+            log.info("Обновление товара с id={}", id);
             Product existingProduct = productService.getById(id);
 
             existingProduct.setName(request.name());
@@ -101,6 +102,7 @@ public class SellerService {
             if (request.imageFile() != null && !request.imageFile().isEmpty()) {
                 if (existingProduct.getImage() != null) {
                     deleteImage(existingProduct.getImage());
+                    log.debug("Старая картинка удалена");
                 }
 
                 String imageName = saveImage(request.imageFile());
@@ -112,7 +114,7 @@ public class SellerService {
             log.info("Товар успешно обновлен");
             return productMapper.toDtoResponse(updatedProduct);
         } catch (Exception e) {
-            log.error("Ошибка при обновлении товара: " + e.getMessage());
+            log.error("Ошибка при обновлении товара, ex={}", e.getMessage());
             return null;
         }
     }
@@ -120,7 +122,7 @@ public class SellerService {
 
     public boolean deleteProduct(Long id) {//TODO Поменять Return
         try {
-            log.info("Удаление товара с id: " + id);
+            log.info("Удаление товара с id, ex={}", id);
             Product product = productService.getById(id);
 
             if (product.getImage() != null && !product.getImage().isEmpty()) {
@@ -131,27 +133,33 @@ public class SellerService {
             log.info("Товар успешно удален");
             return true;
         } catch (Exception e) {
-            log.error("Ошибка при удалении товара: " + e.getMessage());
+            log.error("Ошибка при удалении товара, ex={}",e.getMessage());
             return false;
         }
     }
 
 
-    private String saveImage(MultipartFile imageFile) throws IOException {
-        String fileName = UUID.randomUUID() + "_" + imageFile.getOriginalFilename();
-        Path uploadPath = Paths.get("uploads/images");
+    private String saveImage(MultipartFile imageFile)  {
+        try {
+            String fileName = UUID.randomUUID() + "_" + imageFile.getOriginalFilename();
+            Path uploadPath = Paths.get("uploads/images");
 
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            Path filePath = uploadPath.resolve(fileName);
+
+            try (InputStream inputStream = imageFile.getInputStream()) {
+                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            return fileName;
         }
-
-        Path filePath = uploadPath.resolve(fileName);
-
-        try (InputStream inputStream = imageFile.getInputStream()) {
-            Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+        catch (IOException e) {
+            log.error("Не удалось сохранить картинку товара");
+            return null;
         }
-
-        return fileName;
     }
 
     private void deleteImage(String imageName) {
@@ -160,7 +168,7 @@ public class SellerService {
             Path filePath = uploadPath.resolve(imageName);
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            System.err.println("Не удалось удалить изображение: " + imageName);
+            log.error("Не удалось удалить изображение image={} ", imageName);
         }
     }
 }

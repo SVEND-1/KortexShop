@@ -46,8 +46,6 @@ public class ProductService {
 
         log.info("Поиск завершен за {} мс, найдено: {} товаров",
                 (endTime - startTime), productsPage.getTotalElements());
-
-        log.info("Выдача всех товаров с фильтром: {}", filter);
         return CompletableFuture.completedFuture(productsPage);
     }
 
@@ -64,53 +62,80 @@ public class ProductService {
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Product productSubtractQuantity(Long productId, int quantity) {
-        Product product = getById(productId);
-        product.setCount(product.getCount() - quantity);
-        return productRepository.save(product);
+        try {
+            Product product = getById(productId);
+            product.setCount(product.getCount() - quantity);
+            return productRepository.save(product);
+        }catch (Exception e){
+            log.error("Ошибка уменьшение количество продукта productId: {}, ex={}", productId, e.getMessage());
+            return null;
+        }
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Product productAddQuantity(Long productId, int quantity) {
-        Product product = getById(productId);
-        product.setCount(product.getCount() + quantity);
-        return productRepository.save(product);
+        try {
+            Product product = getById(productId);
+            product.setCount(product.getCount() + quantity);
+            return productRepository.save(product);
+        }catch (Exception e){
+            log.error("Ошибка добавление количество продукта productId: {}, ex={}", productId, e.getMessage());
+            return null;
+        }
     }
 
 
     public Product create(Product productToCreate) {
-        log.info("Создания продкута");
-        Product product = productRepository.save(productToCreate);
-        log.info("Продукт создан id: {}", product.getId());
-        return product;
+        try {
+            log.info("Создания продкута");
+            Product product = productRepository.save(productToCreate);
+            log.info("Продукт создан id: {}", product.getId());
+            return product;
+        }catch (Exception e){
+            log.error("Ошибка сохранение продукта");
+            return null;
+        }
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Product update(Long id, Product productToUpdate) {
-        log.info("Обновлние продукта с id: {}", id);
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
+        try {
+            log.info("Обновлние продукта с id: {}", id);
+            Product existingProduct = productRepository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
 
-        existingProduct.setName(productToUpdate.getName());
-        existingProduct.setPrice(productToUpdate.getPrice());
-        existingProduct.setCount(productToUpdate.getCount());
-        existingProduct.setDescription(productToUpdate.getDescription());
-        existingProduct.setCategory(productToUpdate.getCategory());
+            existingProduct.setName(productToUpdate.getName());
+            existingProduct.setPrice(productToUpdate.getPrice());
+            existingProduct.setCount(productToUpdate.getCount());
+            existingProduct.setDescription(productToUpdate.getDescription());
+            existingProduct.setCategory(productToUpdate.getCategory());
 
-        if (productToUpdate.getImage() != null && !productToUpdate.getImage().isEmpty()) {
-            existingProduct.setImage(productToUpdate.getImage());
+            if (productToUpdate.getImage() != null && !productToUpdate.getImage().isEmpty()) {
+                existingProduct.setImage(productToUpdate.getImage());
+            }
+
+            Product productUpdated = productRepository.save(existingProduct);
+            log.info("Продукт обновлени id: {}", productUpdated.getId());
+            return productRepository.save(productUpdated);
         }
-
-        Product productUpdated = productRepository.save(existingProduct);
-        log.info("Продукт обновлени id: {}", productUpdated.getId());
-        return productRepository.save(productUpdated);
+        catch (Exception e){
+            log.error("Ошибка обновление продукта с id: {}, ex={}", id, e.getMessage());
+            return null;
+        }
     }
 
     public void deleted(Long id) {
-        if(!productRepository.existsById(id)){
-            throw new NoSuchElementException("Продукт не найден");
+        try {
+            if (!productRepository.existsById(id)) {
+                log.warn("Продукт не найден id={}",id);
+                throw new NoSuchElementException("Продукт не найден");
+            }
+            productRepository.deleteById(id);
+            log.info("Продукт удален id: {}", id);
         }
-        productRepository.deleteById(id);
-        log.info("Продукт удален id: {}", id);
+        catch (Exception e){
+            log.error("Ошибка удаление продукта с id: {}, ex={}", id, e.getMessage());
+        }
     }
 }
 

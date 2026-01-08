@@ -5,15 +5,8 @@ import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.api.dto.courier.CourierDTOMapper;
-import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.CourierService;
-import org.example.kortex.users.domain.EmailSenderService;
-import org.example.kortex.users.domain.SellerService;
-import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,18 +19,13 @@ import java.util.concurrent.CompletableFuture;
 @RequestMapping("/api/couriers")
 public class CourierController {
     private final OrderService orderService;
-    private final UserService userService;
     private final CourierService courierService;
-    private final EmailSenderService emailSenderService;
     private final CourierDTOMapper courierDTOMapper;
 
     @Autowired
-    public CourierController(OrderService orderService, UserService userService,
-                             EmailSenderService emailSenderService,CourierDTOMapper courierDTOMapper,
+    public CourierController(OrderService orderService,CourierDTOMapper courierDTOMapper,
                              CourierService courierService) {
         this.orderService = orderService;
-        this.userService = userService;
-        this.emailSenderService = emailSenderService;
         this.courierDTOMapper = courierDTOMapper;
         this.courierService = courierService;
     }

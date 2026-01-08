@@ -1,7 +1,5 @@
 package org.example.kortex.carts.domain;
 
-import javax.persistence.EntityNotFoundException;
-
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.api.dto.CartMapper;
 import org.example.kortex.carts.api.dto.CartResponse;
@@ -10,20 +8,11 @@ import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.CartRepository;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
-import org.hibernate.Hibernate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
@@ -53,7 +42,7 @@ public class CartService {
             Cart cart = user.getCart();
             return cartMapper.toCartResponse(cart);
         }catch (Exception e) {
-            log.error("Ошибка при получении данных корзины: " + e.getMessage());
+            log.error("Ошибка при получении данных корзины, ex={}", e.getMessage());
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Ошибка сервера при получении корзины"
@@ -63,9 +52,9 @@ public class CartService {
 
     public Cart create(Cart cartToCreate) {
         try {
-            log.info("Создания корзины у пользователя " + cartToCreate.getUser().getId());
+            log.info("Создания корзины у пользователя id={}", cartToCreate.getUser().getId());
             Cart cart = cartRepository.save(cartToCreate);
-            log.info("Корзина создана id корзины: " + cart.getId());
+            log.info("Корзина создана id={}", cart.getId());
             return cart;
         }
         catch (Exception e){
@@ -84,11 +73,11 @@ public class CartService {
             User user = userService.getCurrentUserCart();
             cartItemService.addItemToCart(user.getCart().getId(),productId);
             Cart saveCart = cartRepository.save(user.getCart());
-            log.info("Продукт с id: " + productId + " добавлен в корзину с id: " + saveCart.getId());
+            log.info("Продукт с id={} добавлен в корзину с id={}" ,productId, saveCart.getId());
             return saveCart;
         }
         catch (Exception e) {
-            log.error("Ошибка при добавлении товара в корзину: " + e.getMessage());
+            log.error("Ошибка при добавлении товара в корзину, ex={}", e.getMessage());
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Ошибка при добавлении товара в корзину"
@@ -98,13 +87,11 @@ public class CartService {
 
     public String increaseQuantity(Long itemId) {
         try {
-            log.info("Инкремент товара");
-            CartItem updated = cartItemService.updateIncrement(itemId);
-            log.info("Успешно инкремент товара id cartItem: " + updated.getId());
+            cartItemService.updateIncrement(itemId);
             return "Успешно";
         }
         catch (Exception e) {
-            log.error("Ошибка инкремента: " + e.getMessage());
+            log.error("Ошибка инкремента элемента корзины id={},ex={} ",itemId, e.getMessage());
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Ошибка при увеличении количества"
@@ -114,19 +101,16 @@ public class CartService {
 
     public String decreaseQuantity( Long itemId) {
         try {
-            log.info("Декрменет товара");
-
             CartItem updated = cartItemService.decreaseQuantityOrRemove(itemId);
 
             if (updated == null) {
+                log.info("Элемент корзины id={} удален из корзины", itemId);
                 return "Товар удален из корзины";
             }
-
-            log.info("Успешно декремент товара id cartItem: " + updated.getId());
             return "Успешно";
         }
         catch (Exception e) {
-            log.error("Ошибка декремента: " + e.getMessage());
+            log.error("Ошибка декремента элемента корзины id={},ex={}",itemId, e.getMessage());
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Ошибка при уменьшении количества"
@@ -136,11 +120,11 @@ public class CartService {
 
     public void removeItemFromCart( Long itemId) {
         try {
-            log.info("Удаление товара из корзины id cartItem: " + itemId);
+            log.info("Удаление товара из корзины cartItemId={}", itemId);
             cartItemService.removeItemFromCart(itemId);
         }
         catch (Exception e) {
-            log.error("Не удалось удалить товар: " + e.getMessage());
+            log.error("Не удалось удалить товар, ex={}", e.getMessage());
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Ошибка при удалении товара из корзины"
@@ -150,10 +134,14 @@ public class CartService {
 
     public void clearCartByUserId(Long userID)  {
         log.info("Очистка корзины");
-        Cart cart = getCartWithUser(userID);
-        cart.clearCart();
-        Cart saveCart = cartRepository.save(cart);
-        log.info("Корзина очищена");
+        try {
+            Cart cart = getCartWithUser(userID);
+            cart.clearCart();
+            cartRepository.save(cart);
+            log.info("Корзина очищена");
+        }catch (Exception e) {
+            log.error("Не удалось очистить корзину пользователя id={},ex={}", userID, e.getMessage());
+        }
     }
 
 }

@@ -93,52 +93,68 @@ public class RoleRequestService {
 
     @Transactional
     public RoleRequest downgradeRole(Long roleRequestId) {
-        RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
-                .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
+        try {
+            RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
+                    .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
 
-        adminService.downgrade(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
+            adminService.downgrade(roleRequest.getUser().getId(), roleRequest.getRequestedRole());
 
-        roleRequest.setStatus(RoleRequest.Status.APPROVED);
+            roleRequest.setStatus(RoleRequest.Status.APPROVED);
 
-        RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
+            RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
 
-        log.info("Понижения пользователя с id: " + roleRequest.getUser().getId());
+            log.info("Понижения пользователя с id={}", roleRequest.getUser().getId());
 
-        emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили понижение");
-        return savedRoleRequest;
+            emailSenderService.sendMessage(roleRequest.getUser().getEmail(), "Заявка одобрена", "Вы получили понижение");
+            return savedRoleRequest;
+        }
+        catch (Exception ex){
+            log.error("Ошибка понижения пользователя, ex={} ", ex.getMessage());
+            return null;
+        }
     }
 
     @Transactional
     public RoleRequest approveRole(Long roleRequestId) {
-        RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
-                .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
+        try {
+            RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
+                    .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
 
-        adminService.appoint(roleRequest.getUser().getId(),roleRequest.getRequestedRole());
+            adminService.appoint(roleRequest.getUser().getId(), roleRequest.getRequestedRole());
 
-        roleRequest.setStatus(RoleRequest.Status.APPROVED);
+            roleRequest.setStatus(RoleRequest.Status.APPROVED);
 
-        RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
+            RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
 
-        log.info("Повышение пользователя с id: " + roleRequest.getUser().getId());
+            log.info("Повышение пользователя с id={}", roleRequest.getUser().getId());
 
-        emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Заявка одобрена","Вы получили повышение");
+            emailSenderService.sendMessage(roleRequest.getUser().getEmail(), "Заявка одобрена", "Вы получили повышение");
 
-        return savedRoleRequest;
+            return savedRoleRequest;
+        }catch (Exception ex){
+            log.error("Ошибка повышение пользователя, ex={} ", ex.getMessage());
+            return null;
+        }
     }
 
     @Transactional
     public RoleRequest rejectRole(Long roleRequestId) {
-        RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
-                .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
+        try {
+            RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
+                    .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
 
-        roleRequest.setStatus(RoleRequest.Status.REJECTED);
+            roleRequest.setStatus(RoleRequest.Status.REJECTED);
 
-        RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
+            RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
 
-        log.info("Запрос пользователя на смену роли отклонен id запроса: " + roleRequestId);
+            log.info("Запрос пользователя на смену роли отклонен id={}", roleRequestId);
 
-        emailSenderService.sendMessage(roleRequest.getUser().getEmail(),"Ваша заявка отклонена","Можете отправить повторно позже");
-        return savedRoleRequest;
+            emailSenderService.sendMessage(roleRequest.getUser().getEmail(), "Ваша заявка отклонена", "Можете отправить повторно позже");
+            return savedRoleRequest;
+        }catch (Exception ex){
+            log.error("Ошибка отмены заявки пользователя, ex={} ", ex.getMessage());
+            return null;
+        }
     }
 
 

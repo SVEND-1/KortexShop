@@ -1,19 +1,11 @@
 package org.example.kortex.users.api;
 
-import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.orders.api.dto.OrderMapper;
-import org.example.kortex.orders.db.Order;
 import org.example.kortex.users.api.dto.user.UserMapper;
-import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@Slf4j
 @RestController
 @RequestMapping("/api/users")
 public class UserController {

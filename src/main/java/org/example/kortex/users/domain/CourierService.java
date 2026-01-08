@@ -43,7 +43,7 @@ public class CourierService {
                     updateOrder.getUser().getEmail(),
                     "Курьер взял ваш заказ ",
                     "Курьер ведет идет к вам," + courier.getName());
-            log.info("Курьер с id: " + courier.getId() + " взял заказ с id:" + updateOrder.getId());
+            log.info("Курьер с id={} взял заказ с id={}" , courier.getId(), updateOrder.getId());
 
 
             return new CourierAssignResponse(//TODO Переделать возможно DTO
@@ -71,7 +71,7 @@ public class CourierService {
                         "Курьер привез заказ",
                         "Курьер уже приехал к вам заберите заказ");
             }
-            log.info("У заказа с id:" + id + " изменен статус на" + status.name());
+            log.info("У заказа с id={} изменен статус на status={}",id, status.name());
 
             return new SetStatusOrderResponse(//TODO Переделать возможно DTO
                     orderUpdate.getId(),
@@ -89,7 +89,7 @@ public class CourierService {
     private boolean isValidAssignOrder(Long courierId) {
         for (Order order : orderService.assignedCourierOrders(courierId)) {
             if(order.getStatus() == Order.OrderStatus.PENDING || order.getStatus() == Order.OrderStatus.DISPATCHED) {
-                log.error("Невозможно взять новый заказ: у курьера уже есть активный заказ в доставке." +
+                log.warn("Невозможно взять новый заказ: у курьера уже есть активный заказ в доставке." +
                         "ID активного заказа={}", order.getId());
                 return true;
             }
