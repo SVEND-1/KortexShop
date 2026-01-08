@@ -4,9 +4,7 @@ import org.example.kortex.roleRequest.db.RoleRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -16,7 +14,7 @@ public class RoleRequestMapper {
             return null;
         }
 
-        RoleRequestResponse dto = new RoleRequestResponse(
+        return new RoleRequestResponse(
                 roleRequest.getId(),
                 roleRequest.getStatus(),
                 roleRequest.getTypeAction(),
@@ -26,7 +24,6 @@ public class RoleRequestMapper {
                 roleRequest.getUser().getName(),
                 roleRequest.getUser().getEmail()
         );
-        return dto;
     }
 
 
@@ -36,19 +33,17 @@ public class RoleRequestMapper {
                 .collect(Collectors.toList());
     }
 
-    public Map<String, Object> toPageResponse(Page<RoleRequest> roleRequests) {
-        Map<String, Object> response = new HashMap<>();
+    public RolePageResponse toPageResponse(Page<RoleRequest> roleRequests) {
 
-        response.put("content", toDtoList(roleRequests.getContent()));
-
-        response.put("page", roleRequests.getNumber());
-        response.put("size", roleRequests.getSize());
-        response.put("totalElements", roleRequests.getTotalElements());
-        response.put("totalPages", roleRequests.getTotalPages());
-        response.put("first", roleRequests.isFirst());
-        response.put("last", roleRequests.isLast());
-        response.put("empty", roleRequests.isEmpty());
-
-        return response;
+        return new RolePageResponse(
+                toDtoList(roleRequests.getContent()),
+                roleRequests.getNumber(),
+                roleRequests.getSize(),
+                roleRequests.getTotalElements(),
+                roleRequests.getTotalPages(),
+                roleRequests.isFirst(),
+                roleRequests.isLast(),
+                roleRequests.isEmpty()
+        );
     }
 }

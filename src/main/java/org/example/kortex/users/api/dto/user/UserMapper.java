@@ -9,15 +9,12 @@ public class UserMapper {
         if (user == null) {
             return null;
         }
-
-        UserResponse dto = new UserResponse();
-        dto.setId(user.getId());
-        dto.setRole(user.getRole());
-        dto.setAddress(user.getAddress());
-        dto.setEmail(user.getEmail());
-        dto.setName(user.getName());
-
-
-        return dto;
+        return new UserResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole(),
+                user.getAddress()
+        );
     }
 }

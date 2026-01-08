@@ -1,6 +1,7 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.notify.kafka.EmailSenderService;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.api.dto.courier.CourierAssignResponse;
@@ -27,6 +28,7 @@ public class CourierService {
         this.emailSenderService = emailSenderService;
     }
 
+    //================================Controller Methods================================================
 
     public CourierAssignResponse assignOrder(Long id) {
         try {
@@ -85,6 +87,8 @@ public class CourierService {
         }
     }
 
+
+    //================================Service Methods================================================
 
     private boolean isValidAssignOrder(Long courierId) {
         for (Order order : orderService.assignedCourierOrders(courierId)) {

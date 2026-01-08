@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.config.JwtTokenProvider;
+import org.example.kortex.notify.kafka.EmailSenderService;
 import org.example.kortex.users.api.dto.auth.*;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
@@ -46,6 +47,8 @@ public class AuthService {
         this.jwtTokenProvider = jwtTokenProvider;
         this.authenticationManager = authenticationManager;
     }
+
+    //================================Controller Methods================================================
 
     public LoginResponse login(LoginRequest loginRequest, HttpServletResponse response) {
         try {
@@ -309,6 +312,8 @@ public class AuthService {
             return new SimpleResponse(false, "Ошибка при сбросе пароля: " + e.getMessage());
         }
     }
+
+    //================================Service Methods================================================
 
     private void cleanupExpiredData() {
         pendingRegistrations.entrySet().removeIf(entry -> entry.getValue().isExpired());

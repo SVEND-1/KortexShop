@@ -5,13 +5,14 @@ import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.orders.api.dto.OrderMapper;
+import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
-import org.example.kortex.users.domain.EmailSenderService;
+import org.example.kortex.notify.kafka.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,9 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Component
@@ -53,7 +52,7 @@ public class OrderCreateManager {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public Map<String, Object> createOrderFromCart() {
+    public OrderResponseDTO createOrderFromCart() {
         log.info("Создания заказа из корзины");
         try {
             User user = userService.getCurrentUser();
@@ -93,10 +92,7 @@ public class OrderCreateManager {
                     , "Мы отравим вам письмо когда курьер возьмет его");
             log.info("Заказ создан id={}", finalOrder.getId());
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("order", orderMapper.toDto(finalOrder));
-            response.put("redirect","/");
-            return response;
+            return orderMapper.toDto(finalOrder);
         }
         catch (DataIntegrityViolationException e) {
             log.error("Нарушение целостности данных при создании заказа, ex={}", e.getMessage());

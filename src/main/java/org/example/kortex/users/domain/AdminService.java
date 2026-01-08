@@ -18,8 +18,12 @@ public class AdminService {
         this.userService = userService;
     }
 
+    //================================Controller Methods================================================
+
+
+    //================================Service Methods================================================
     @Transactional
-    public User appoint(Long userId, Role role) {
+    public void appoint(Long userId, Role role) {
         try {
             User user = userService.getById(userId);
             log.info("Повышение пользователя id={} на роль : {}", user.getId(), role.name());
@@ -31,19 +35,16 @@ public class AdminService {
             }
 
             user.setRole(role);
-            User savedUser = userService.create(user);
+            userService.update(user.getId(),user);
             log.info("Пользователь повышен успешно");
-
-            return savedUser;
         }
         catch(Exception e) {
             log.error("Ошибка при повышение пользователя, ex={}", e.getMessage());
-            return null;
         }
     }
 
     @Transactional
-    public User downgrade(Long userId, Role role) {
+    public void downgrade(Long userId, Role role) {
         try {
             User user = userService.getById(userId);
             log.info("Понижение пользователя id={} на роль : {}", user.getId(), role.name());
@@ -55,13 +56,11 @@ public class AdminService {
             }
 
             user.setRole(Role.USER);
-            User saveUser = userService.create(user);
+            userService.update(user.getId(),user);
             log.info("Пользователь успешно понижен");
-            return saveUser;
         }
         catch(Exception e) {
             log.error("Ошибка при повышение понижении, ex={}", e.getMessage());
-            return null;
         }
     }
 

@@ -1,18 +1,17 @@
 package org.example.kortex.users.api.dto.courier;
 
 
-import lombok.Data;
-
 import java.math.BigDecimal;
 
-@Data
-public class CourierOrderItemDTO {
-    private Long id;
-    private String productName;
-    private String productCode;
-    private String productImageUrl;
-    private Integer quantity;
-    private BigDecimal price;
-    private BigDecimal totalPrice;
-    private String productDescription;
+public record CourierOrderItemDTO(
+        Long id,
+        String productName,
+        String productCode,
+        String productImageUrl,
+        String productDescription,
+        Integer quantity,
+        BigDecimal price,
+        BigDecimal totalPrice
+
+){
 }

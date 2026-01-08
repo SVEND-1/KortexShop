@@ -2,14 +2,15 @@ package org.example.kortex.orders.domain;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.orders.api.OrdersSearchCourierFilter;
+import org.example.kortex.orders.api.dto.OrderPageResponse;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.domain.ProductService;
+import org.example.kortex.users.api.dto.courier.CourierDTOMapper;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
@@ -23,11 +24,13 @@ public class OrderCourierManager {
     private final OrderRepository orderRepository;
     private final UserService userService;
     private final ProductService productService;
+    private final CourierDTOMapper courierDTOMapper;
 
-    public OrderCourierManager(OrderRepository orderRepository, UserService userService, ProductService productService) {
+    public OrderCourierManager(OrderRepository orderRepository, UserService userService, ProductService productService, CourierDTOMapper courierDTOMapper) {
         this.orderRepository = orderRepository;
         this.userService = userService;
         this.productService = productService;
+        this.courierDTOMapper = courierDTOMapper;
     }
 
     public List<Order> assignedCourierOrders(Long userId) {
@@ -38,8 +41,9 @@ public class OrderCourierManager {
         return orders;
     }
 
-    public Page<Order> assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
+    public OrderPageResponse assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
         log.info("Заказы курьера с filter={}", filter);
+
         User courier = userService.getById(filter.userId());
         validateCourier(courier);
 
@@ -48,11 +52,12 @@ public class OrderCourierManager {
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
         var orders = orderRepository.assignedOrdersPage(filter.userId(), pageable);
+        OrderPageResponse response = courierDTOMapper.toPageResponse(orders);
         log.info("Заказы курьера с фильтром выданы");
-        return orders;
+        return response;
     }
 
-    public Page<Order> availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
+    public OrderPageResponse availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
         log.info("Запрос доступный заказов для курьеров");
         pageSize = pageSize != null ? pageSize : 36;
         pageNumber = pageNumber != null ? pageNumber : 0;
@@ -61,9 +66,9 @@ public class OrderCourierManager {
                 .withPage(pageNumber);
 
         var orders = orderRepository.availableOrdersPage(pageable);
-
+        OrderPageResponse response = courierDTOMapper.toPageResponse(orders);
         log.info("Доступные заказы для курьеров выданы ");
-        return orders;
+        return response;
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)

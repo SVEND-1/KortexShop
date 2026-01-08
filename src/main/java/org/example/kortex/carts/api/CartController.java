@@ -29,12 +29,14 @@ public class CartController {
 
     @PatchMapping("/items/{itemId}/increase")
     public ResponseEntity<?> increaseQuantity(@PathVariable Long itemId) {
-        return ResponseEntity.ok(cartService.increaseQuantity(itemId));
+        cartService.increaseQuantity(itemId);
+        return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/items/{itemId}/decrease")
     public ResponseEntity<?> decreaseQuantity(@PathVariable Long itemId) {
-        return ResponseEntity.ok(cartService.decreaseQuantity(itemId));
+        cartService.decreaseQuantity(itemId);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/items/{itemId}")

@@ -1,13 +1,14 @@
 package org.example.kortex.products.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
-import java.math.BigDecimal;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "products")
 public class Product {

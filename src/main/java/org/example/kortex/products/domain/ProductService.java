@@ -4,6 +4,9 @@ import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.api.ProductSearchFilter;
+import org.example.kortex.products.api.dto.ProductPageResponse;
+import org.example.kortex.products.api.dto.ProductMapper;
+import org.example.kortex.products.api.dto.ProductResponse;
 import org.example.kortex.products.db.Category;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
@@ -23,64 +26,81 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class ProductService {
     private final ProductRepository productRepository;
+    private final ProductMapper productMapper;
+
     @Autowired
-    public ProductService(ProductRepository productRepository)
+    public ProductService(ProductRepository productRepository, ProductMapper productMapper)
     {
         this.productRepository = productRepository;
+        this.productMapper = productMapper;
     }
+
+    //================================Controller Methods================================================
 
     @Async("asyncExecutor")
-    public CompletableFuture<Page<Product>> findProductsFilter(ProductSearchFilter filter){
+    public CompletableFuture<ProductPageResponse> findProductsFilter(ProductSearchFilter filter) {
         log.info("Запрос на выдачу всех товаров с фильром: {}", filter);
 
-        Category category = filter.category() != null ? Category.valueOf(filter.category()) : null;
-        int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
-        int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
-        String query = filter.query() != null ? filter.query() : "";
+        try {
+            Category category = filter.category() != null ? Category.valueOf(filter.category()) : null;
+            int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
+            int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
+            String query = filter.query() != null ? filter.query() : "";
 
-        Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
+            Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        long startTime = System.currentTimeMillis();
-        Page<Product> productsPage = productRepository.findProductsFilter(category, query, pageable);
-        long endTime = System.currentTimeMillis();
+            long startTime = System.currentTimeMillis();
+            Page<Product> productsPage = productRepository.findProductsFilter(category, query, pageable);
+            long endTime = System.currentTimeMillis();
 
-        log.info("Поиск завершен за {} мс, найдено: {} товаров",
-                (endTime - startTime), productsPage.getTotalElements());
-        return CompletableFuture.completedFuture(productsPage);
+            log.info("Поиск завершен за {} мс, найдено: {} товаров",
+                    (endTime - startTime), productsPage.getTotalElements());
+
+            ProductPageResponse response = productMapper.toPageResponse(productsPage);
+            return CompletableFuture.completedFuture(response);
+
+        } catch (Exception ex) {
+            log.error("Ошибка при загрузке продуктов: {}", ex.getMessage(), ex);
+            return null;
+        }
     }
 
-    public List<Product> getProductsBySeller(Long sellerId) {
-        log.info("Запрос на товары у продавца: {}", sellerId);
-        List<Product> products = productRepository.findBySellerId(sellerId);
-        log.info("Запрос на товары у продавца успешно выполнен");
-        return products;
+    public ProductResponse getProductDto(Long id) {
+        return productRepository.findById(id)
+                .map(productMapper::toDtoResponse)
+                .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
     }
+
+    //================================Service Methods================================================
 
     public Product getById(Long id) {
         return productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
     }
 
+    public List<ProductResponse> getProductsBySeller(Long sellerId) {
+        log.info("Запрос на товары у продавца: {}", sellerId);
+        return productMapper.toDtoListResponse(productRepository.findBySellerId(sellerId));
+    }
+
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public Product productSubtractQuantity(Long productId, int quantity) {
+    public void productSubtractQuantity(Long productId, int quantity) {
         try {
             Product product = getById(productId);
             product.setCount(product.getCount() - quantity);
-            return productRepository.save(product);
+            productRepository.save(product);
         }catch (Exception e){
             log.error("Ошибка уменьшение количество продукта productId: {}, ex={}", productId, e.getMessage());
-            return null;
         }
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public Product productAddQuantity(Long productId, int quantity) {
+    public void productAddQuantity(Long productId, int quantity) {
         try {
             Product product = getById(productId);
             product.setCount(product.getCount() + quantity);
-            return productRepository.save(product);
+            productRepository.save(product);
         }catch (Exception e){
             log.error("Ошибка добавление количество продукта productId: {}, ex={}", productId, e.getMessage());
-            return null;
         }
     }
 

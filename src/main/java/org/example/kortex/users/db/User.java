@@ -1,7 +1,8 @@
 package org.example.kortex.users.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.roleRequest.db.RoleRequest;
@@ -10,7 +11,8 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
+@Setter
+@Getter
 @Entity
 @Table(name = "users")
 public class User {

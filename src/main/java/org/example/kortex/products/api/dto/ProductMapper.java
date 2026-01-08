@@ -4,9 +4,7 @@ import org.example.kortex.products.db.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -17,7 +15,7 @@ public class ProductMapper {
             return null;
         }
 
-        ProductResponse dto = new ProductResponse(
+        return new ProductResponse(
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
@@ -26,8 +24,6 @@ public class ProductMapper {
                 product.getCategory() != null ? product.getCategory().name() : null,
                 product.getImage()
         );
-
-        return dto;
     }
 
     public List<ProductResponse> toDtoListResponse(List<Product> products) {
@@ -36,20 +32,19 @@ public class ProductMapper {
                 .collect(Collectors.toList());
     }
 
-    public Map<String, Object> toPageResponse(Page<Product> productPage) {
-        Map<String, Object> response = new HashMap<>();
+    public ProductPageResponse toPageResponse(Page<Product> productPage) {
 
-        response.put("content", toDtoListResponse(productPage.getContent()));
+        return new ProductPageResponse(
+                toDtoListResponse(productPage.getContent()),
+                productPage.getNumber(),
+                productPage.getSize(),
+                productPage.getTotalElements(),
+                productPage.getTotalPages(),
+                productPage.isFirst(),
+                productPage.isLast(),
+                productPage.isEmpty()
 
-        response.put("page", productPage.getNumber());
-        response.put("size", productPage.getSize());
-        response.put("totalElements", productPage.getTotalElements());
-        response.put("totalPages", productPage.getTotalPages());
-        response.put("first", productPage.isFirst());
-        response.put("last", productPage.isLast());
-        response.put("empty", productPage.isEmpty());
-
-        return response;
+        );
     }
 }
 

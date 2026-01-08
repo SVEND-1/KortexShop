@@ -1,14 +1,16 @@
 package org.example.kortex.roleRequest.db;
 
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "role_requests")
 public class RoleRequest {
@@ -53,9 +55,4 @@ public class RoleRequest {
 
     public RoleRequest() {}
 
-    public RoleRequest(User user, Role requestedRole, String message) {
-        this.user = user;
-        this.requestedRole = requestedRole;
-        this.message = message;
-    }
 }

@@ -1,15 +1,16 @@
 package org.example.kortex.roleRequest.domain;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.roleRequest.api.dto.RolePageResponse;
 import org.example.kortex.roleRequest.api.dto.RoleRequestMapper;
 import org.example.kortex.roleRequest.api.dto.RoleRequestResponse;
-import org.example.kortex.users.api.RoleRequestFilter;
+import org.example.kortex.roleRequest.api.RoleRequestFilter;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.roleRequest.db.RoleRequest;
 import org.example.kortex.roleRequest.db.RoleRequestRepository;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.AdminService;
-import org.example.kortex.users.domain.EmailSenderService;
+import org.example.kortex.notify.kafka.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -41,25 +42,39 @@ public class RoleRequestService {
         this.userService = userService;
     }
 
+    //================================Controller Methods================================================
+
+
     public List<RoleRequestResponse> getAllRoleRequestsByUserId() {
         return roleRequestMapper.toDtoList(roleRequestRepository.getAllByUserId(userService.getCurrentUser().getId()));
     }
 
 
-    public RoleRequest getRoleRequest(Long roleRequestId) {
-        return roleRequestRepository.findById(roleRequestId).orElseThrow(() -> new EntityNotFoundException("Заявка не найдена"));
+    public RoleRequestResponse getRoleRequest(Long roleRequestId) {
+        return roleRequestMapper.toDto(roleRequestRepository.findById(roleRequestId).orElseThrow(() -> new EntityNotFoundException("Заявка не найдена")));
     }
 
     @Async("asyncExecutor")
-    public CompletableFuture<Page<RoleRequest>> getRoleRequestsPage(RoleRequestFilter filter) {
-        int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
-        int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
+    public CompletableFuture<RolePageResponse> getRoleRequestsPage(RoleRequestFilter filter) {
+        return CompletableFuture.supplyAsync(() -> {
+            log.info("Получение заявок с фильтром: {}", filter);
 
-        Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
+            int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
+            int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
+            Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        Page<RoleRequest> roleRequests = roleRequestRepository.findSearchFilter(filter.role(),filter.status(),filter.typeAction() ,pageable);
+            Page<RoleRequest> roleRequests = roleRequestRepository.findSearchFilter(
+                    filter.role(),
+                    filter.status(),
+                    filter.typeAction(),
+                    pageable
+            );
 
-        return CompletableFuture.completedFuture(roleRequests);
+            RolePageResponse response = roleRequestMapper.toPageResponse(roleRequests);
+            log.info("Успешно получено {} заявок", roleRequests.getTotalElements());
+
+            return response;
+        });
     }
 
     public RoleRequestResponse create(Role requestedRole,
@@ -92,7 +107,7 @@ public class RoleRequestService {
 
 
     @Transactional
-    public RoleRequest downgradeRole(Long roleRequestId) {
+    public RoleRequest downgradeRole(Long roleRequestId) {//TODO RESPONSE
         try {
             RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                     .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
@@ -115,7 +130,7 @@ public class RoleRequestService {
     }
 
     @Transactional
-    public RoleRequest approveRole(Long roleRequestId) {
+    public RoleRequest approveRole(Long roleRequestId) {//TODO RESPONSE
         try {
             RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                     .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
@@ -138,7 +153,7 @@ public class RoleRequestService {
     }
 
     @Transactional
-    public RoleRequest rejectRole(Long roleRequestId) {
+    public RoleRequest rejectRole(Long roleRequestId) {//TODO RESPONSE
         try {
             RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                     .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
@@ -157,6 +172,8 @@ public class RoleRequestService {
         }
     }
 
+
+    //================================Service Methods================================================
 
     private boolean hasPendingRequestForSameAction(Long userId) {
         return roleRequestRepository.existsByUserIdAndStatus(userId, RoleRequest.Status.PENDING);

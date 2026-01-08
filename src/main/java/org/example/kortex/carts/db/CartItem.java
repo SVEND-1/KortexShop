@@ -3,12 +3,15 @@ package org.example.kortex.carts.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.example.kortex.products.db.Product;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "cart_items")
 public class CartItem {

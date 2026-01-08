@@ -33,12 +33,14 @@ public class SellerService {
         this.productMapper = productMapper;
     }
 
+    //================================Controller Methods================================================
+
     public List<ProductResponse> getMyProducts() {
         try {
             User seller = userService.getCurrentUser();
-            List<Product> products = productService.getProductsBySeller(seller.getId());
+            List<ProductResponse> products = productService.getProductsBySeller(seller.getId());
             log.info("Выданы продукты продовца");
-            return productMapper.toDtoListResponse(products);
+            return products;
         } catch (Exception e) {
             log.error("Ошибка при получении товаров, ex={}", e.getMessage());
             return new ArrayList<>();
@@ -137,6 +139,8 @@ public class SellerService {
             return false;
         }
     }
+
+    //================================Service Methods================================================
 
 
     private String saveImage(MultipartFile imageFile)  {

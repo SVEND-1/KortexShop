@@ -32,8 +32,12 @@ public class CartItemService {
         this.productRepository = productRepository;
     }
 
+    //================================Controller Methods================================================
+
+    //================================Service Methods================================================
+
     @Transactional
-    public CartItem addItemToCart(Long cartId, Long productId) {
+    public void addItemToCart(Long cartId, Long productId) {
         try {
             log.info("Добавление CartItem в корзину cartId={}", cartId);
             Cart cart = cartRepository.findById(cartId)
@@ -52,7 +56,6 @@ public class CartItemService {
 
                 CartItem savedCartItem = cartItemRepository.save(cartItem);
                 log.info("CartItem уже был в корзине и добавилось количество товара к нему cartItemId={}", savedCartItem.getId());
-                return savedCartItem;
             } else {
                 CartItem cartItem = new CartItem();
                 cartItem.setCart(cart);
@@ -62,16 +65,14 @@ public class CartItemService {
 
                 CartItem savedCartItem = cartItemRepository.save(cartItem);
                 log.info("Создан CartItem id={}", savedCartItem.getId());
-                return savedCartItem;
             }
         }catch (Exception e) {
             log.error("Не удалось создать элемент корзины, ex={}", e.getMessage());
-            return null;
         }
     }
 
     @Transactional
-    public CartItem updateIncrement(Long cartItemId) {
+    public void updateIncrement(Long cartItemId) {
         try {
             log.info("Увеличение количества cartItem: {}", cartItemId);
 
@@ -87,14 +88,12 @@ public class CartItemService {
                 cartItem.setQuantity(cartItem.getQuantity() + 1);
                 cartItem.calculatePrice();
 
-                return cartItemRepository.save(cartItem);
+                cartItemRepository.save(cartItem);
             } else {
                 log.warn("Достингут лимит товаров на складе");
-                return cartItem;
             }
         }catch (Exception e){
             log.error("Не удалось увеличить количество элемент корзины, ex={}", e.getMessage());
-            return null;
         }
     }
 

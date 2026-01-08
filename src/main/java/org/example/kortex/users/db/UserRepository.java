@@ -15,7 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @EntityGraph(attributePaths = {"cart","cart.cartItems","cart.cartItems.product"})
     @Query("""
-    SELECT DISTINCT u FROM User u 
+    SELECT DISTINCT u FROM User u
     WHERE u.email = :email
 """)
     User findByIdWithCart(@Param("email") String email);
@@ -27,19 +27,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
 """)
     User findByIdWithOrders(@Param("email") String email);
 
-    // Оптимизированный: полная загрузка пользователя
-    @EntityGraph(attributePaths = {
-            "cart", "cart.cartItems", "cart.cartItems.product",
-            "orders", "orders.orderItems", "orders.orderItems.product",
-            "roleRequests"
-    })
-    @Query("SELECT DISTINCT u FROM User u WHERE u.email = :email")
-    User findByIdWithEverything(@Param("email") String email);
 
-    @EntityGraph(attributePaths = {"roleRequests"})
-    @Query("""
-    SELECT DISTINCT u FROM User u
-    WHERE u.email = :email
-""")
-    User findByIdWithRoleRequests(@Param("email") String email);
 }

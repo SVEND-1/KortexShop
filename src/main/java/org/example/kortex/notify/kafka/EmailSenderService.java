@@ -1,4 +1,4 @@
-package org.example.kortex.users.domain;
+package org.example.kortex.notify.kafka;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,8 +46,8 @@ public class EmailSenderService {
             message.setSubject("Kortex: Сброс пароля [" + code + "]");
             message.setText("""
                     Запрос на сброс пароля
-                    
-                    Ваш код подтверждения: """ + code + """
+                   
+                    Ваш код подтверждения:""" + code + """
                     
                     Введите этот код на странице подтверждения для сброса пароля.
                     
@@ -76,7 +76,7 @@ public class EmailSenderService {
             String content = """
                     Добро пожаловать в Kortex!
                     
-                    Ваш код для входа: """ + code + """
+                    Ваш код для входа:""" + code + """
                     
                     Введите этот код на странице подтверждения для завершения входа в ваш аккаунт.
                     

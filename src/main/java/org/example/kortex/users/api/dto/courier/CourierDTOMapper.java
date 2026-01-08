@@ -1,6 +1,7 @@
 package org.example.kortex.users.api.dto.courier;
 
 
+import org.example.kortex.orders.api.dto.OrderPageResponse;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.products.db.Product;
@@ -8,9 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Component
 public class CourierDTOMapper {//TODO Переделать
@@ -20,78 +19,63 @@ public class CourierDTOMapper {//TODO Переделать
             return null;
         }
 
-        CourierOrderDTO dto = new CourierOrderDTO();
-        dto.setId(order.getId());
-        dto.setOrderDate(order.getOrderDate());
-        dto.setStatus(order.getStatus());
-        dto.setTotalAmount(order.getTotalAmount());
-        dto.setShippingAddress(order.getShippingAddress());
-        dto.setMessage(order.getMessage());
+        CustomerInfoDTO customerDTO = new CustomerInfoDTO(
+                order.getUser().getId(),
+                order.getUser().getName(),
+                order.getUser().getEmail()
+        );
 
-        // Информация о клиенте
-        if (order.getUser() != null) {
-            CustomerInfoDTO customerDTO = new CustomerInfoDTO();
-            customerDTO.setId(order.getUser().getId());
-            customerDTO.setFullName(order.getUser().getName());
-            customerDTO.setEmail(order.getUser().getEmail());
-            dto.setCustomer(customerDTO);
-        }
+        List<CourierOrderItemDTO> courierOrderItemDTOS = order.getOrderItems().stream()
+                .map(this::toOrderItemDTO)
+                .toList();
 
-        // Преобразование элементов заказа
-        if (order.getOrderItems() != null && !order.getOrderItems().isEmpty()) {
-            List<CourierOrderItemDTO> courierOrderItemDTOS = order.getOrderItems().stream()
-                    .map(this::toOrderItemDTO)
-                    .toList();
-            dto.setOrderItems(courierOrderItemDTOS);
-        }
+        return new CourierOrderDTO(
+                order.getId(),
+                order.getOrderDate(),
+                order.getStatus(),
+                order.getTotalAmount(),
+                order.getShippingAddress(),
+                order.getMessage(),
+                customerDTO,
+                courierOrderItemDTOS
+        );
 
-        return dto;
     }
 
     public CourierOrderItemDTO toOrderItemDTO(OrderItem orderItem) {
         if (orderItem == null) {
             return null;
         }
+        Product product = orderItem.getProduct();
 
-        CourierOrderItemDTO dto = new CourierOrderItemDTO();
-        dto.setId(orderItem.getId());
-        dto.setQuantity(orderItem.getQuantity());
-        dto.setPrice(orderItem.getPrice());
-
-        // Вычисляем общую стоимость
-        if (orderItem.getQuantity() != null && orderItem.getPrice() != null) {
-            dto.setTotalPrice(orderItem.getPrice()
-                    .multiply(BigDecimal.valueOf(orderItem.getQuantity())));
-        }
-
-        // Информация о продукте
-        if (orderItem.getProduct() != null) {
-            Product product = orderItem.getProduct();
-            dto.setProductName(product.getName());
-            // Проверяем, есть ли эти поля в Product
-            if (product.getImage() != null) dto.setProductImageUrl(product.getImage());
-            if (product.getDescription() != null) dto.setProductDescription(product.getDescription());
-        }
-
-        return dto;
+        return new CourierOrderItemDTO(
+                orderItem.getId(),
+                product.getName(),
+                null,
+                product.getImage(),
+                product.getDescription(),
+                orderItem.getQuantity(),
+                orderItem.getPrice(),
+                orderItem.getPrice()
+                        .multiply(BigDecimal.valueOf(orderItem.getQuantity()))
+        );
     }
 
-    public Map<String, Object> toPageResponse(Page<Order> orderPage) {
-        Map<String, Object> response = new HashMap<>();
+    public OrderPageResponse toPageResponse(Page<Order> orderPage) {
 
         List<CourierOrderDTO> content = orderPage.getContent().stream()
                 .map(this::toCourierOrderDTO)
                 .toList();
 
-        response.put("content", content);
-        response.put("pageNumber", orderPage.getNumber());
-        response.put("pageSize", orderPage.getSize());
-        response.put("totalElements", orderPage.getTotalElements());
-        response.put("totalPages", orderPage.getTotalPages());
-        response.put("last", orderPage.isLast());
-        response.put("first", orderPage.isFirst());
-        response.put("empty", orderPage.isEmpty());
-
-        return response;
+        return new OrderPageResponse(
+                content,
+                orderPage.getNumber(),
+                orderPage.getSize(),
+                orderPage.getTotalElements(),
+                orderPage.getTotalPages(),
+                orderPage.isFirst(),
+                orderPage.isLast(),
+                orderPage.isEmpty()
+        );
     }
 }

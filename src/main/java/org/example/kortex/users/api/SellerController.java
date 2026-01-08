@@ -29,8 +29,7 @@ public class SellerController {
 
 
     @PostMapping(value = "/products", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createProduct(
-            @ModelAttribute ProductRequest request) {
+    public ResponseEntity<?> createProduct(@ModelAttribute ProductRequest request) {
         return ResponseEntity.ok(sellerService.createProduct(request));
     }
 

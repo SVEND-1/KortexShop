@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 public class CartMapper {
 
     public CartItemResponse toCartItemDto(CartItem item) {
-        CartItemResponse dto = new CartItemResponse(
+        return new CartItemResponse(
                 item.getId(),
                 item.getProduct().getId(),
                 item.getProduct().getName(),
@@ -20,8 +20,6 @@ public class CartMapper {
                 item.getPrice(),
                 item.getQuantity()
         );
-
-        return dto;
     }
 
     public CartResponse toCartResponse(Cart cart) {
@@ -31,10 +29,10 @@ public class CartMapper {
         BigDecimal total = cart.getCartItems().stream()
                 .map(i -> i.getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        CartResponse dto = new CartResponse(
+
+        return new CartResponse(
                 items,total
         );
-        return dto;
     }
 
     public List<CartItemResponse> toListCartItemDto(List<CartItem> cartItems) {

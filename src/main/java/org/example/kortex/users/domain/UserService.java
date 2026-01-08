@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.orders.api.dto.OrderMapper;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
+import org.example.kortex.users.api.dto.user.UserMapper;
+import org.example.kortex.users.api.dto.user.UserResponse;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +25,47 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
+    private final UserMapper userMapper;
 
     @Autowired
-    public UserService(UserRepository userRepository,OrderMapper orderMapper) {
+    public UserService(UserRepository userRepository, OrderMapper orderMapper, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.orderMapper = orderMapper;
+        this.userMapper = userMapper;
     }
+
+    //================================Controller Methods================================================
+
+
+    public UserResponse getProfile() {
+        return userMapper.toDto(getCurrentUser());
+    }
+
+    public UserResponse changeAddress(String newAddress) {
+        try {
+            User user = getCurrentUser();
+            log.info("Обновление адреса у пользователя id={}", user.getId());
+            user.setAddress(newAddress);
+            return userMapper.toDto(userRepository.save(user));
+        }catch (Exception  e){
+            log.error("Ошибка при обновление адреса, ex={}", e.getMessage());
+            throw new RuntimeException("Не удалось обновить пароль", e);
+        }
+    }
+
+    public List<OrderResponseDTO> meOrders() {
+        try {
+            User user = getCurrentUserOrders();
+            List<Order> userOrders = user.getOrders();
+            return orderMapper.toDtoList(userOrders);
+        }
+        catch (Exception e) {
+            log.error("Не удалось загрузить заказы пользователя, ex={}", e.getMessage());
+            throw new IllegalStateException("Не удалось загрузить заказы пользователя", e);
+        }
+    }
+
+    //================================Service Methods================================================
 
     public User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -36,7 +73,6 @@ public class UserService {
         notFoundUser(user);
         return user;
     }
-
 
     public User getCurrentUserCart() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -125,31 +161,6 @@ public class UserService {
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Не удалось изменить пароль"
             );
-        }
-    }
-
-
-    public User changeAddress(String newAddress) {
-        try {
-            User user = getCurrentUser();
-            log.info("Обновление адреса у пользователя id={}", user.getId());
-            user.setAddress(newAddress);
-            return userRepository.save(user);
-        }catch (Exception  e){
-            log.error("Ошибка при обновление адреса, ex={}", e.getMessage());
-            throw new RuntimeException("Не удалось обновить пароль", e);
-        }
-    }
-
-    public List<OrderResponseDTO> meOrders() {
-        try {
-            User user = getCurrentUserOrders();
-            List<Order> userOrders = user.getOrders();
-            return orderMapper.toDtoList(userOrders);
-        }
-        catch (Exception e) {
-            log.error("Не удалось загрузить заказы пользователя, ex={}", e.getMessage());
-            throw new IllegalStateException("Не удалось загрузить заказы пользователя", e);
         }
     }
 

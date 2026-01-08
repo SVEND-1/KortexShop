@@ -2,6 +2,8 @@ package org.example.kortex.carts.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
@@ -10,7 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "carts")
 public class Cart {

@@ -32,9 +32,7 @@ public class CartService {
         this.cartMapper = cartMapper;
     }
 
-    public Cart getCartWithUser(Long userId) {
-        return cartRepository.findByUserIdWithItemsAndUser(userId);
-    }
+    //================================Controller Methods================================================
 
     public CartResponse getCartPage() {
         try {
@@ -50,31 +48,15 @@ public class CartService {
         }
     }
 
-    public Cart create(Cart cartToCreate) {
-        try {
-            log.info("Создания корзины у пользователя id={}", cartToCreate.getUser().getId());
-            Cart cart = cartRepository.save(cartToCreate);
-            log.info("Корзина создана id={}", cart.getId());
-            return cart;
-        }
-        catch (Exception e){
-            log.error("Не удалось создать корзину, ex={}", e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Внутренняя ошибка сервера при создании корзины"
-            );
-        }
-    }
-
     @Transactional
-    public Cart addItemToCart(Long productId) {
+    public CartResponse addItemToCart(Long productId) {
         try {
             log.info("Добавление товара в корзину");
             User user = userService.getCurrentUserCart();
             cartItemService.addItemToCart(user.getCart().getId(),productId);
             Cart saveCart = cartRepository.save(user.getCart());
             log.info("Продукт с id={} добавлен в корзину с id={}" ,productId, saveCart.getId());
-            return saveCart;
+            return cartMapper.toCartResponse(saveCart);
         }
         catch (Exception e) {
             log.error("Ошибка при добавлении товара в корзину, ex={}", e.getMessage());
@@ -85,10 +67,9 @@ public class CartService {
         }
     }
 
-    public String increaseQuantity(Long itemId) {
+    public void increaseQuantity(Long itemId) {
         try {
             cartItemService.updateIncrement(itemId);
-            return "Успешно";
         }
         catch (Exception e) {
             log.error("Ошибка инкремента элемента корзины id={},ex={} ",itemId, e.getMessage());
@@ -99,15 +80,13 @@ public class CartService {
         }
     }
 
-    public String decreaseQuantity( Long itemId) {
+    public void decreaseQuantity(Long itemId) {
         try {
             CartItem updated = cartItemService.decreaseQuantityOrRemove(itemId);
 
             if (updated == null) {
                 log.info("Элемент корзины id={} удален из корзины", itemId);
-                return "Товар удален из корзины";
             }
-            return "Успешно";
         }
         catch (Exception e) {
             log.error("Ошибка декремента элемента корзины id={},ex={}",itemId, e.getMessage());
@@ -128,6 +107,28 @@ public class CartService {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Ошибка при удалении товара из корзины"
+            );
+        }
+    }
+
+    //================================Service Methods================================================
+
+    public Cart getCartWithUser(Long userId) {
+        return cartRepository.findByUserIdWithItemsAndUser(userId);
+    }
+
+    public Cart create(Cart cartToCreate) {
+        try {
+            log.info("Создания корзины у пользователя id={}", cartToCreate.getUser().getId());
+            Cart cart = cartRepository.save(cartToCreate);
+            log.info("Корзина создана id={}", cart.getId());
+            return cart;
+        }
+        catch (Exception e){
+            log.error("Не удалось создать корзину, ex={}", e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Внутренняя ошибка сервера при создании корзины"
             );
         }
     }

@@ -1,9 +1,9 @@
 package org.example.kortex.orders.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.example.kortex.users.db.User;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "orders")
 public class Order {
@@ -65,10 +66,7 @@ public class Order {
     }
 
     public enum OrderStatus {
-        PENDING, DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED,COMPLETED;
-        public SimpleGrantedAuthority toAuthority() {
-            return new SimpleGrantedAuthority("ROLE_" + this.name());
-        }
+        PENDING, DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED,COMPLETED
     }
 }
 
