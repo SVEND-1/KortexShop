@@ -10,7 +10,7 @@ import org.example.kortex.roleRequest.db.RoleRequest;
 import org.example.kortex.roleRequest.db.RoleRequestRepository;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.AdminService;
-import org.example.kortex.notify.kafka.EmailSenderService;
+import org.example.kortex.notify.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -66,7 +66,7 @@ public class RoleRequestService {
             Page<RoleRequest> roleRequests = roleRequestRepository.findSearchFilter(
                     filter.role(),
                     filter.status(),
-                    filter.typeAction(),
+                    filter.actionType(),
                     pageable
             );
 

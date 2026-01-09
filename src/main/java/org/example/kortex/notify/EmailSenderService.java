@@ -1,4 +1,4 @@
-package org.example.kortex.notify.kafka;
+package org.example.kortex.notify;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

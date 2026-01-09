@@ -27,11 +27,7 @@ public class CourierController {
 
     @GetMapping("/assignedOrders")
     public CompletableFuture<ResponseEntity<OrderPageResponse>> getAssignedOrders(
-            @RequestParam(name = "courierId") Long courierId,
-            @RequestParam(name = "pageSize", required = false) Integer pageSize,
-            @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
-
-        OrdersSearchCourierFilter filter = new OrdersSearchCourierFilter(courierId, pageSize, pageNumber);
+            @ModelAttribute OrdersSearchCourierFilter filter) {
 
         return orderService.assignedCourierOrdersPage(filter)
                 .thenApply(ResponseEntity::ok)

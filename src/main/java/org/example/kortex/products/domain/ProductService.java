@@ -43,8 +43,8 @@ public class ProductService {
 
         try {
             Category category = filter.category() != null ? Category.valueOf(filter.category()) : null;
-            int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
-            int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
+            int pageSize = filter.size() != null ? filter.size() : 10;
+            int pageNumber = filter.page() != null ? filter.page() : 0;
             String query = filter.query() != null ? filter.query() : "";
 
             Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);

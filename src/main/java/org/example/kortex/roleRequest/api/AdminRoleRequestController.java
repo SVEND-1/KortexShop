@@ -1,8 +1,6 @@
 package org.example.kortex.roleRequest.api;
 
 import org.example.kortex.roleRequest.api.dto.RolePageResponse;
-import org.example.kortex.users.db.Role;
-import org.example.kortex.roleRequest.db.RoleRequest;
 import org.example.kortex.roleRequest.domain.RoleRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,13 +20,7 @@ public class AdminRoleRequestController {//Перенести в другую
     }
 
     @GetMapping
-    public CompletableFuture<ResponseEntity<RolePageResponse>> getAdminRoleRequest(@RequestParam(name = "role",required = false) Role role,
-                                                                                    @RequestParam(name = "status",required = false) RoleRequest.Status status,
-                                                                                    @RequestParam(name = "actionType",required = false) RoleRequest.TypeAction actionType,
-                                                                                    @RequestParam(name = "pageSize",required = false) Integer pageSize,
-                                                                                    @RequestParam(name = "pageNumber", required = false) Integer pageNumber) {
-        RoleRequestFilter filter = new RoleRequestFilter(role, status, actionType, pageSize, pageNumber);
-
+    public CompletableFuture<ResponseEntity<RolePageResponse>> getAdminRoleRequest(@ModelAttribute RoleRequestFilter filter) {
         return roleRequestService.getRoleRequestsPage(filter)
                 .thenApply(ResponseEntity::ok)
                 .exceptionally(ex -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());

@@ -44,14 +44,14 @@ public class OrderCourierManager {
     public OrderPageResponse assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
         log.info("Заказы курьера с filter={}", filter);
 
-        User courier = userService.getById(filter.userId());
+        User courier = userService.getById(filter.courierId());
         validateCourier(courier);
 
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 8;
         int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        var orders = orderRepository.assignedOrdersPage(filter.userId(), pageable);
+        var orders = orderRepository.assignedOrdersPage(filter.courierId(), pageable);
         OrderPageResponse response = courierDTOMapper.toPageResponse(orders);
         log.info("Заказы курьера с фильтром выданы");
         return response;

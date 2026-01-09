@@ -1,5 +1,6 @@
 package org.example.kortex.roleRequest.api;
 
+import org.example.kortex.roleRequest.api.dto.RoleCreateRequest;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.roleRequest.db.RoleRequest;
 import org.example.kortex.roleRequest.domain.RoleRequestService;
@@ -23,11 +24,8 @@ public class UserRoleRequestController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestParam Role requestedRole,
-                                      @RequestParam RoleRequest.TypeAction typeAction,
-                                      @RequestParam(required = false) String message
-                                    ) {
-        return ResponseEntity.ok(roleRequestService.create(requestedRole,typeAction,message));
+    public ResponseEntity<?> create(@RequestBody RoleCreateRequest request) {
+        return ResponseEntity.ok(roleRequestService.create(request.requestedRole(), request.typeAction(),request.message()));
     }
 
 }

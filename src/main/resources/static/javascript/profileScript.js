@@ -463,13 +463,20 @@ async function submitRoleRequest(type, requestedRole, message) {
 
         console.log('Отправка заявки:', { type, requestedRole, message });
 
+// Вместо URLSearchParams используем JSON
         const response = await fetch(API_ENDPOINTS.CREATE_ROLE_REQUEST, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params,
+            headers: {
+                'Content-Type': 'application/json',  // ✅ Меняем на JSON
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({                    // ✅ Отправляем JSON
+                requestedRole: requestedRole,
+                typeAction: type,
+                message: message
+            }),
             credentials: 'include'
         });
-
         if (response.ok) {
             const result = await response.json();
             console.log('Заявка создана:', result);

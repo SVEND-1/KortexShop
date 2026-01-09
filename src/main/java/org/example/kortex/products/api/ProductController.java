@@ -22,13 +22,7 @@ public class ProductController {
 
 
     @GetMapping
-    public CompletableFuture<ResponseEntity<ProductPageResponse>> getProducts(
-            @RequestParam(name = "category", required = false) String category,
-            @RequestParam(name = "query", required = false) String query,
-            @RequestParam(name = "page", defaultValue = "0") Integer page,
-            @RequestParam(name = "size", defaultValue = "12") Integer size) {
-
-        ProductSearchFilter filter = new ProductSearchFilter(category, query, size, page);
+    public CompletableFuture<ResponseEntity<ProductPageResponse>> getProducts(@ModelAttribute ProductSearchFilter filter) {
         return productService.findProductsFilter(filter)
                 .thenApply(ResponseEntity::ok)
                 .exceptionally(ex -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());

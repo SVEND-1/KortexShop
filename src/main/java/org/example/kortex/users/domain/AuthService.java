@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.config.JwtTokenProvider;
-import org.example.kortex.notify.kafka.EmailSenderService;
+import org.example.kortex.notify.EmailSenderService;
 import org.example.kortex.users.api.dto.auth.*;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;

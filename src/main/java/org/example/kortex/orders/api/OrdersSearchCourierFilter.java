@@ -1,7 +1,7 @@
 package org.example.kortex.orders.api;
 
 public record OrdersSearchCourierFilter(
-        Long userId,
+        Long courierId,
         Integer pageSize,
         Integer pageNumber
 ) {

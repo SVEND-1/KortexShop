@@ -12,7 +12,7 @@ import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
-import org.example.kortex.notify.kafka.EmailSenderService;
+import org.example.kortex.notify.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
