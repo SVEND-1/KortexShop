@@ -4,6 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.domain.CartService;
+import org.example.kortex.notify.event.NotifyEvent;
+import org.example.kortex.notify.event.NotifyType;
+import org.example.kortex.notify.kafka.NotifyKafkaProducer;
 import org.example.kortex.orders.api.mapper.OrderMapper;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
@@ -12,7 +15,6 @@ import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
-import org.example.kortex.notify.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -25,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -35,20 +38,20 @@ public class OrderCreateManager {
     private final ProductService productService;
     private final OrderItemService orderItemService;
     private final OrderMapper orderMapper;
-    private final EmailSenderService emailSenderService;
+    private final NotifyKafkaProducer kafkaProducer;
 
     @Autowired
     public OrderCreateManager(UserService userService, OrderRepository orderRepository,
                               CartService cartService, ProductService productService,
                               OrderItemService orderItemService, OrderMapper orderMapper,
-                              EmailSenderService emailSenderService) {
+                              NotifyKafkaProducer notifyKafkaProducer) {
         this.userService = userService;
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.productService = productService;
         this.orderItemService = orderItemService;
         this.orderMapper = orderMapper;
-        this.emailSenderService = emailSenderService;
+        this.kafkaProducer = notifyKafkaProducer;
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
@@ -88,8 +91,13 @@ public class OrderCreateManager {
             for (OrderItem orderItem : finalOrder.getOrderItems()) {
                 productService.productSubtractQuantity(orderItem.getProduct().getId(), orderItem.getQuantity());
             }
-            emailSenderService.sendMessage(user.getEmail(), "Заказ успешно создан!"
-                    , "Мы отравим вам письмо когда курьер возьмет его");
+            NotifyEvent notifyEvent = new NotifyEvent(
+                    user.getEmail(),
+                    Map.of("userName", user.getName()),
+                    NotifyType.ORDER_CREATED
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
+
             log.info("Заказ создан id={}", finalOrder.getId());
 
             return orderMapper.toDto(finalOrder);
@@ -111,7 +119,7 @@ public class OrderCreateManager {
     }
 
 
-    private void validateCartItems(Cart cart) {//TODO полностью логи переделать
+    private void validateCartItems(Cart cart) {
         for (CartItem cartItem : cart.getCartItems()) {
             Product product = cartItem.getProduct();
             if (product == null) {

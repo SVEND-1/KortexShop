@@ -5,6 +5,9 @@ import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.config.JwtTokenProvider;
 import org.example.kortex.notify.EmailSenderService;
+import org.example.kortex.notify.event.NotifyEvent;
+import org.example.kortex.notify.event.NotifyType;
+import org.example.kortex.notify.kafka.NotifyKafkaProducer;
 import org.example.kortex.users.api.dto.auth.*;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
@@ -28,24 +31,26 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthService {
     private final UserService userService;
     private final CartService cartService;
-    private final EmailSenderService emailSenderService;
+    private final NotifyKafkaProducer kafkaProducer;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
+    private final EmailSenderService emailSenderService;
 
     private static final Map<String, RegistrationData> pendingRegistrations = new ConcurrentHashMap<>();
     private static final Map<String, ResetData> passwordResets = new ConcurrentHashMap<>();
 
     @Autowired
     public AuthService(UserService userService, CartService cartService,
-                       EmailSenderService emailSenderService, PasswordEncoder passwordEncoder,
-                       JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager) {
+                       NotifyKafkaProducer kafkaProducer , PasswordEncoder passwordEncoder,
+                       JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, EmailSenderService emailSenderService) {
         this.userService = userService;
         this.cartService = cartService;
-        this.emailSenderService = emailSenderService;
+        this.kafkaProducer = kafkaProducer;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.authenticationManager = authenticationManager;
+        this.emailSenderService = emailSenderService;
     }
 
     //================================Controller Methods================================================
@@ -76,6 +81,13 @@ public class AuthService {
                     roles
             );
             SecurityContextHolder.getContext().setAuthentication(authToken);
+
+            NotifyEvent notifyEvent = new NotifyEvent(
+                    user.getEmail(),
+                    Map.of("userName",user.getName()),
+                    NotifyType.LOGIN
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
 
             log.info("Пользователь вошел: {}, ID={}", loginRequest.email(), user.getId());
             return new LoginResponse(true, "Успешный вход", "/");
@@ -128,7 +140,12 @@ public class AuthService {
             pendingRegistrations.put(registrationId,
                     new RegistrationData(tempUser, verificationCode));
 
-            emailSenderService.sendVerification(email, verificationCode);
+            NotifyEvent notifyEvent = new NotifyEvent(
+                    email,
+                    Map.of("code",verificationCode),
+                    NotifyType.REGISTER
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
 
             cleanupExpiredData();
 
@@ -206,7 +223,12 @@ public class AuthService {
             data.verificationCode = newCode;
             data.timestamp = System.currentTimeMillis();
 
-            emailSenderService.sendVerification(data.user.getEmail(), newCode);
+            NotifyEvent notifyEvent = new NotifyEvent(
+                    data.user.getEmail(),
+                    Map.of("code",newCode),
+                    NotifyType.REPLAY_CODE
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
 
             log.info("Новый код отправлен на email: {}", data.user.getEmail());
             return new SimpleResponse(true, "Новый код отправлен на email");
@@ -232,7 +254,12 @@ public class AuthService {
 
             passwordResets.put(resetId, new ResetData(email, resetCode));
 
-            emailSenderService.sendPasswordResetEmail(email, resetCode);
+            NotifyEvent notifyEvent = new NotifyEvent(
+                    email,
+                    Map.of("code", resetCode),
+                    NotifyType.PASSWORD_RESET
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
 
             log.info("Код для сброса пароля отправлен на email: {}", email);
             return new PasswordResetResponse(true, "Код для сброса пароля отправлен на email", resetId);

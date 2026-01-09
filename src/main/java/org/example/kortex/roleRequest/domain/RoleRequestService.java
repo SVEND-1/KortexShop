@@ -1,6 +1,9 @@
 package org.example.kortex.roleRequest.domain;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.notify.event.NotifyEvent;
+import org.example.kortex.notify.event.NotifyType;
+import org.example.kortex.notify.kafka.NotifyKafkaProducer;
 import org.example.kortex.roleRequest.api.dto.RolePageResponse;
 import org.example.kortex.roleRequest.api.mapper.RoleRequestMapper;
 import org.example.kortex.roleRequest.api.dto.RoleRequestResponse;
@@ -10,7 +13,6 @@ import org.example.kortex.roleRequest.db.RoleRequest;
 import org.example.kortex.roleRequest.db.RoleRequestRepository;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.AdminService;
-import org.example.kortex.notify.EmailSenderService;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -21,25 +23,26 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
 public class RoleRequestService {
     private final RoleRequestRepository roleRequestRepository;
-    private final EmailSenderService emailSenderService;
     private final AdminService adminService;
     private final RoleRequestMapper roleRequestMapper;
     private final UserService userService;
+    private final NotifyKafkaProducer kafkaProducer;
 
     @Autowired
-    public RoleRequestService(RoleRequestRepository roleRequestRepository, EmailSenderService emailSenderService,
-                              AdminService adminService, RoleRequestMapper roleRequestMapper, UserService userService) {
+    public RoleRequestService(RoleRequestRepository roleRequestRepository,
+                              AdminService adminService, RoleRequestMapper roleRequestMapper, UserService userService, NotifyKafkaProducer notifyKafkaProducer) {
         this.roleRequestRepository = roleRequestRepository;
-        this.emailSenderService = emailSenderService;
         this.adminService = adminService;
         this.roleRequestMapper = roleRequestMapper;
         this.userService = userService;
+        this.kafkaProducer = notifyKafkaProducer;
     }
 
     //================================Controller Methods================================================
@@ -107,7 +110,7 @@ public class RoleRequestService {
 
 
     @Transactional
-    public RoleRequest downgradeRole(Long roleRequestId) {//TODO RESPONSE
+    public RoleRequestResponse downgradeRole(Long roleRequestId) {
         try {
             RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                     .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
@@ -120,8 +123,13 @@ public class RoleRequestService {
 
             log.info("Понижения пользователя с id={}", roleRequest.getUser().getId());
 
-            emailSenderService.sendMessage(roleRequest.getUser().getEmail(), "Заявка одобрена", "Вы получили понижение");
-            return savedRoleRequest;
+            NotifyEvent notifyEvent = new NotifyEvent(
+                    roleRequest.getUser().getEmail(),
+                    Map.of("userName", savedRoleRequest.getUser().getName()),
+                    NotifyType.REQUEST_DOWNGRADE
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
+            return roleRequestMapper.toDto(savedRoleRequest);
         }
         catch (Exception ex){
             log.error("Ошибка понижения пользователя, ex={} ", ex.getMessage());
@@ -130,7 +138,7 @@ public class RoleRequestService {
     }
 
     @Transactional
-    public RoleRequest approveRole(Long roleRequestId) {//TODO RESPONSE
+    public RoleRequestResponse approveRole(Long roleRequestId) {
         try {
             RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                     .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
@@ -143,9 +151,15 @@ public class RoleRequestService {
 
             log.info("Повышение пользователя с id={}", roleRequest.getUser().getId());
 
-            emailSenderService.sendMessage(roleRequest.getUser().getEmail(), "Заявка одобрена", "Вы получили повышение");
+            NotifyEvent notifyEvent = new NotifyEvent(
+                    roleRequest.getUser().getEmail(),
+                    Map.of("userName", savedRoleRequest.getUser().getName(),
+                            "newRole", savedRoleRequest.getRequestedRole().name()),
+                    NotifyType.REQUEST_APPROVED
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
 
-            return savedRoleRequest;
+            return roleRequestMapper.toDto(savedRoleRequest);
         }catch (Exception ex){
             log.error("Ошибка повышение пользователя, ex={} ", ex.getMessage());
             return null;
@@ -153,7 +167,7 @@ public class RoleRequestService {
     }
 
     @Transactional
-    public RoleRequest rejectRole(Long roleRequestId) {//TODO RESPONSE
+    public RoleRequestResponse rejectRole(Long roleRequestId) {
         try {
             RoleRequest roleRequest = roleRequestRepository.findById(roleRequestId)
                     .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
@@ -164,8 +178,13 @@ public class RoleRequestService {
 
             log.info("Запрос пользователя на смену роли отклонен id={}", roleRequestId);
 
-            emailSenderService.sendMessage(roleRequest.getUser().getEmail(), "Ваша заявка отклонена", "Можете отправить повторно позже");
-            return savedRoleRequest;
+            NotifyEvent notifyEvent = new NotifyEvent(
+                    roleRequest.getUser().getEmail(),
+                    Map.of("userName", savedRoleRequest.getUser().getName()),
+                    NotifyType.REQUEST_REJECTED
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
+            return roleRequestMapper.toDto(savedRoleRequest);
         }catch (Exception ex){
             log.error("Ошибка отмены заявки пользователя, ex={} ", ex.getMessage());
             return null;

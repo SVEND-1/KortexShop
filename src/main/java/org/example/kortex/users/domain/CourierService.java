@@ -1,7 +1,9 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.notify.EmailSenderService;
+import org.example.kortex.notify.event.NotifyEvent;
+import org.example.kortex.notify.event.NotifyType;
+import org.example.kortex.notify.kafka.NotifyKafkaProducer;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.api.dto.courier.CourierAssignResponse;
@@ -12,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Map;
 
 
 @Slf4j
@@ -19,13 +22,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class CourierService {
     private final OrderService orderService;
     private final UserService userService;
-    private final EmailSenderService emailSenderService;
+    private final NotifyKafkaProducer kafkaProducer;
+
     @Autowired
-    public CourierService(OrderService orderService, UserService userService,
-                          EmailSenderService emailSenderService) {
+    public CourierService(OrderService orderService, UserService userService, NotifyKafkaProducer notifyKafkaProducer) {
         this.orderService = orderService;
         this.userService = userService;
-        this.emailSenderService = emailSenderService;
+        this.kafkaProducer = notifyKafkaProducer;
     }
 
     //================================Controller Methods================================================
@@ -41,10 +44,14 @@ public class CourierService {
             }
 
             Order updateOrder = orderService.setCourier(orderService.getById(id), courier.getId());
-            emailSenderService.sendMessage(
+
+            NotifyEvent notifyEvent = new NotifyEvent(
                     updateOrder.getUser().getEmail(),
-                    "Курьер взял ваш заказ ",
-                    "Курьер ведет идет к вам," + courier.getName());
+                    Map.of("userName", updateOrder.getUser().getName(),
+                            "courierName",updateOrder.getCourier().getName()),
+                    NotifyType.COURIER_TAKE_ORDER
+            );
+            kafkaProducer.sendMessageToKafka(notifyEvent);
             log.info("Курьер с id={} взял заказ с id={}" , courier.getId(), updateOrder.getId());
 
 
@@ -68,10 +75,12 @@ public class CourierService {
         try {
             Order orderUpdate = orderService.setStatus(orderService.getById(id), status);
             if(status.equals(Order.OrderStatus.DELIVERED_TO_DESTINATION)) {
-                emailSenderService.sendMessage(
+                NotifyEvent notifyEvent = new NotifyEvent(
                         orderUpdate.getUser().getEmail(),
-                        "Курьер привез заказ",
-                        "Курьер уже приехал к вам заберите заказ");
+                        Map.of("userName", orderUpdate.getUser().getName()),
+                        NotifyType.COURIER_BRING_ORDER
+                );
+                kafkaProducer.sendMessageToKafka(notifyEvent);
             }
             log.info("У заказа с id={} изменен статус на status={}",id, status.name());
 
