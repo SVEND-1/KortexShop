@@ -1,7 +1,7 @@
 package org.example.kortex.carts.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.carts.api.dto.CartMapper;
+import org.example.kortex.carts.api.mapper.CartMapper;
 import org.example.kortex.carts.api.dto.CartResponse;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;

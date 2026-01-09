@@ -3,7 +3,7 @@ package org.example.kortex.orders.domain;
 import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.carts.api.dto.CartMapper;
+import org.example.kortex.carts.api.mapper.CartMapper;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.api.dto.CreateOrderPageDTO;
@@ -12,7 +12,7 @@ import org.example.kortex.orders.api.dto.OrderPageResponse;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderRepository;
-import org.example.kortex.users.api.dto.user.UserMapper;
+import org.example.kortex.users.api.mapper.UserMapper;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +72,7 @@ public class OrderService {
                     cartMapper.toListCartItemDto(cartItems),
                     cart.totalPrice(),
                     cart.getQuantity(),
-                    userMapper.toDto(user)
+                    userMapper.convertEntityToDto(user)
             );
         }catch (Exception e) {
             log.error("Ошибка при получении данных заказов, ex={}", e.getMessage());

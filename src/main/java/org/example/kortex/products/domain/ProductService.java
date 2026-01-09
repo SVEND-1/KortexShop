@@ -5,7 +5,7 @@ import javax.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.products.api.ProductSearchFilter;
 import org.example.kortex.products.api.dto.ProductPageResponse;
-import org.example.kortex.products.api.dto.ProductMapper;
+import org.example.kortex.products.api.mapper.ProductMapper;
 import org.example.kortex.products.api.dto.ProductResponse;
 import org.example.kortex.products.db.Category;
 import org.example.kortex.products.db.Product;
@@ -67,7 +67,7 @@ public class ProductService {
 
     public ProductResponse getProductDto(Long id) {
         return productRepository.findById(id)
-                .map(productMapper::toDtoResponse)
+                .map(productMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
     }
 
@@ -79,7 +79,7 @@ public class ProductService {
 
     public List<ProductResponse> getProductsBySeller(Long sellerId) {
         log.info("Запрос на товары у продавца: {}", sellerId);
-        return productMapper.toDtoListResponse(productRepository.findBySellerId(sellerId));
+        return productMapper.toDtoList(productRepository.findBySellerId(sellerId));
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)

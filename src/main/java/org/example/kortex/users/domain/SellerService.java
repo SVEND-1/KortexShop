@@ -1,7 +1,7 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.products.api.dto.ProductMapper;
+import org.example.kortex.products.api.mapper.ProductMapper;
 import org.example.kortex.products.api.dto.ProductRequest;
 import org.example.kortex.products.api.dto.ProductResponse;
 import org.example.kortex.products.db.Product;
@@ -50,7 +50,7 @@ public class SellerService {
     public ProductResponse getProduct(Long id) {
         try {
             Product product = productService.getById(id);
-            return productMapper.toDtoResponse(product);
+            return productMapper.toDto(product);
         } catch (Exception e) {
             log.error("Ошибка поиска продукта, ex={}", e.getMessage());
             return null;
@@ -81,7 +81,7 @@ public class SellerService {
 
             log.info("Товар создан успешно id={}", createdProduct.getId());
 
-            return productMapper.toDtoResponse(createdProduct);
+            return productMapper.toDto(createdProduct);
         } catch (Exception e) {
             log.error("Ошибка при создании товара, ex={} ", e.getMessage());
             return null;
@@ -114,7 +114,7 @@ public class SellerService {
             Product updatedProduct = productService.update(id, existingProduct);
 
             log.info("Товар успешно обновлен");
-            return productMapper.toDtoResponse(updatedProduct);
+            return productMapper.toDto(updatedProduct);
         } catch (Exception e) {
             log.error("Ошибка при обновлении товара, ex={}", e.getMessage());
             return null;

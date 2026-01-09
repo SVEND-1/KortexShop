@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.domain.CartService;
-import org.example.kortex.orders.api.dto.OrderMapper;
+import org.example.kortex.orders.api.mapper.OrderMapper;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;

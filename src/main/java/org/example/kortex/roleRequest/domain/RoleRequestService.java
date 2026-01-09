@@ -2,7 +2,7 @@ package org.example.kortex.roleRequest.domain;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.roleRequest.api.dto.RolePageResponse;
-import org.example.kortex.roleRequest.api.dto.RoleRequestMapper;
+import org.example.kortex.roleRequest.api.mapper.RoleRequestMapper;
 import org.example.kortex.roleRequest.api.dto.RoleRequestResponse;
 import org.example.kortex.roleRequest.api.RoleRequestFilter;
 import org.example.kortex.users.db.Role;
