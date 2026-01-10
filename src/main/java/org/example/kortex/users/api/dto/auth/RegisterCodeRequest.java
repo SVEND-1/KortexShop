@@ -12,8 +12,6 @@ public record RegisterCodeRequest(
         @Size(min = 6, max = 50)
         String password,
         @NotNull
-        String name,
-        @NotNull
-        String code
+        String name
 ) {
 }

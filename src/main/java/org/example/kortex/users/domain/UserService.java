@@ -123,7 +123,7 @@ public class UserService {
             log.info("Обновление пользователя с id={}", id);
             User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
-            User updatedUser = new User(
+            User updatedUser = new User(//TODO Сделать билдер
                     user.getId(),
                     userToUpdate.getEmail(),
                     userToUpdate.getName(),
