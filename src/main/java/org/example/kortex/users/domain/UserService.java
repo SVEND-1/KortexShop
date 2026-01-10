@@ -157,9 +157,8 @@ public class UserService {
             return userRepository.save(savedUser);
         }catch (Exception e) {
             log.error("Ошибка смена пароля пользователя id={}, ex={}", id ,e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Не удалось изменить пароль"
+            throw new RuntimeException(
+                    "Не удалось изменить пароль, ex=" + e.getMessage()
             );
         }
     }

@@ -104,7 +104,7 @@ public class RoleRequestService {
             return roleRequestMapper.toDto(savedRoleRequest);
         }catch (Exception ex){
             log.error("Не удалось создать заявку, ex={} ", ex.getMessage());
-            throw new IllegalArgumentException("Ошибка в заявке на создания role",ex);
+            throw new IllegalArgumentException("Ошибка в заявке на создания role ex=" + ex.getMessage(),ex);
         }
     }
 

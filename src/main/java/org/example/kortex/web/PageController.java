@@ -2,6 +2,7 @@ package org.example.kortex.web;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 public class PageController {
@@ -67,4 +68,10 @@ public class PageController {
 
     @GetMapping("/checkout")
     public String checkout(){return "forward:/checkout.html";}
+
+    @GetMapping("/error")
+    public String getErrorPage() {
+        return "forward:/error.html";
+    }
+
 }

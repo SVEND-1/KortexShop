@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ошибка</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .error-container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .error-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .error-icon.error-404 { color: #f59e0b; }
+        .error-icon.error-400 { color: #ef4444; }
+        .error-icon.error-500 { color: #7c3aed; }
+        .error-icon.error-default { color: #64748b; }
+
+        .error-icon i {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        h1 {
+            color: #2d3436;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+
+        .error-message-box {
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border-left: 4px solid;
+        }
+
+        .error-404-box { border-left-color: #f59e0b; }
+        .error-400-box { border-left-color: #ef4444; }
+        .error-500-box { border-left-color: #7c3aed; }
+        .error-default-box { border-left-color: #64748b; }
+
+        #errorMessage {
+            color: #495057;
+            font-size: 18px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        #errorDetail {
+            color: #6c757d;
+            font-size: 16px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #4f46e5;
+            border: 2px solid #4f46e5;
+        }
+
+        .btn-outline:hover {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .error-time {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #64748b;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+
+        @media (max-width: 600px) {
+            .error-container {
+                padding: 30px 20px;
+            }
+
+            .error-icon {
+                font-size: 60px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .error-message-box {
+                padding: 20px;
+            }
+
+            #errorMessage {
+                font-size: 16px;
+            }
+
+            #errorDetail {
+                font-size: 14px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="error-container">
+    <div class="error-icon" id="errorIcon">
+        <i class="fas fa-exclamation-circle"></i>
+    </div>
+
+    <h1 id="errorTitle">Ошибка</h1>
+
+    <div class="error-message-box" id="errorBox">
+        <p id="errorMessage">Произошла ошибка. Пожалуйста, попробуйте еще раз.</p>
+        <div id="errorDetail"></div>
+    </div>
+
+    <div class="actions">
+        <button class="btn-primary" onclick="window.location.href='/'">
+            <i class="fas fa-home"></i> На главную
+        </button>
+        <button class="btn-secondary" onclick="window.history.back()">
+            <i class="fas fa-arrow-left"></i> Назад
+        </button>
+        <button class="btn-outline" onclick="location.reload()">
+            <i class="fas fa-redo"></i> Попробовать снова
+        </button>
+    </div>
+
+    <div class="error-time" id="errorTime"></div>
+</div>
+
+<script>
+    // Объект с сообщениями ошибок (как в твоем GlobalExceptionHandler)
+    const errorMessages = {
+        404: {
+            title: "Не найдено",
+            message: "Не получилось найти данные",
+            iconClass: "error-404",
+            boxClass: "error-404-box"
+        },
+        400: {
+            title: "Ошибка данных",
+            message: "Не правильно переданные данные",
+            iconClass: "error-400",
+            boxClass: "error-400-box"
+        },
+        500: {
+            title: "Ошибка сервера",
+            message: "Ошибка сервера, попробуйте ещё раз",
+            iconClass: "error-500",
+            boxClass: "error-500-box"
+        },
+        default: {
+            title: "Ошибка",
+            message: "Произошла ошибка. Пожалуйста, попробуйте еще раз.",
+            iconClass: "error-default",
+            boxClass: "error-default-box"
+        }
+    };
+
+    // Получаем данные об ошибке из различных источников
+    function getErrorData() {
+        // 1. Пробуем получить из URL параметров (самый правильный способ)
+        const urlParams = getErrorFromUrl();
+        if (urlParams) {
+            return urlParams;
+        }
+
+        // 2. Пробуем получить из sessionStorage (временное хранение)
+        const sessionData = getErrorFromSession();
+        if (sessionData) {
+            return sessionData;
+        }
+
+        // 3. Пробуем получить из localStorage (резервный вариант)
+        const localData = getErrorFromLocal();
+        if (localData) {
+            return localData;
+        }
+
+        return null;
+    }
+
+    // Получаем ошибку из URL параметров (наиболее правильный способ)
+    function getErrorFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const status = params.get('status');
+        const message = params.get('message');
+        const errorMessage = params.get('errorMessage');
+        const errorTime = params.get('errorTime');
+
+        if (status || message) {
+            return {
+                status: parseInt(status) || 500,
+                message: message || "Произошла ошибка",
+                errorMessage: errorMessage || "",
+                errorTime: errorTime || new Date().toISOString()
+            };
+        }
+
+        return null;
+    }
+
+    // Получаем ошибку из sessionStorage (очищается при закрытии вкладки)
+    function getErrorFromSession() {
+        try {
+            const errorData = sessionStorage.getItem('kortexErrorData');
+            if (errorData) {
+                const data = JSON.parse(errorData);
+                sessionStorage.removeItem('kortexErrorData'); // Очищаем после получения
+                return data;
+            }
+        } catch (e) {
+            console.error('Ошибка при чтении из sessionStorage:', e);
+        }
+        return null;
+    }
+
+    // Получаем ошибку из localStorage (резервный вариант)
+    function getErrorFromLocal() {
+        try {
+            const errorData = localStorage.getItem('kortexErrorData');
+            if (errorData) {
+                const data = JSON.parse(errorData);
+                localStorage.removeItem('kortexErrorData'); // Очищаем после получения
+                return data;
+            }
+        } catch (e) {
+            console.error('Ошибка при чтении из localStorage:', e);
+        }
+        return null;
+    }
+
+    // Отображаем сообщение об ошибке
+    function displayError() {
+        const errorData = getErrorData();
+
+        if (!errorData) {
+            // Если нет данных об ошибке, показываем стандартное сообщение
+            showError(errorMessages.default);
+            return;
+        }
+
+        // Определяем тип ошибки по статусу
+        let errorType;
+        if (errorData.status === 404) {
+            errorType = 404;
+        } else if (errorData.status === 400) {
+            errorType = 400;
+        } else if (errorData.status === 500) {
+            errorType = 500;
+        } else {
+            errorType = 'default';
+        }
+
+        const errorConfig = errorMessages[errorType] || errorMessages.default;
+
+        // Обновляем заголовок
+        const title = errorData.title || errorConfig.title;
+        document.getElementById('errorTitle').textContent = title;
+
+        // Обновляем иконку
+        const errorIcon = document.getElementById('errorIcon');
+        errorIcon.className = 'error-icon ' + errorConfig.iconClass;
+
+        // Обновляем блок с сообщением
+        const errorBox = document.getElementById('errorBox');
+        errorBox.className = 'error-message-box ' + errorConfig.boxClass;
+
+        // Обновляем сообщение - используем message из данных ошибки
+        const message = errorData.message || errorConfig.message;
+        document.getElementById('errorMessage').textContent = message;
+
+        // Обновляем детали ошибки
+        const errorDetail = document.getElementById('errorDetail');
+        if (errorData.errorMessage && errorData.errorMessage !== message) {
+            errorDetail.innerHTML = `<strong>Детали:</strong><br>${errorData.errorMessage}`;
+            errorDetail.style.display = 'block';
+        } else {
+            errorDetail.style.display = 'none';
+        }
+
+        // Обновляем время ошибки
+        const errorTimeElement = document.getElementById('errorTime');
+        if (errorData.errorTime) {
+            try {
+                const time = new Date(errorData.errorTime).toLocaleString('ru-RU');
+                errorTimeElement.textContent = `Время ошибки: ${time}`;
+            } catch (e) {
+                errorTimeElement.textContent = `Время ошибки: ${errorData.errorTime}`;
+            }
+            errorTimeElement.style.display = 'block';
+        } else {
+            const now = new Date().toLocaleString('ru-RU');
+            errorTimeElement.textContent = `Время ошибки: ${now}`;
+            errorTimeElement.style.display = 'block';
+        }
+    }
+
+    // Показываем ошибку с конфигом
+    function showError(config) {
+        document.getElementById('errorTitle').textContent = config.title;
+
+        const errorIcon = document.getElementById('errorIcon');
+        errorIcon.className = 'error-icon ' + config.iconClass;
+
+        const errorBox = document.getElementById('errorBox');
+        errorBox.className = 'error-message-box ' + config.boxClass;
+
+        document.getElementById('errorMessage').textContent = config.message;
+        document.getElementById('errorDetail').style.display = 'none';
+
+        const now = new Date().toLocaleString('ru-RU');
+        document.getElementById('errorTime').textContent = `Время ошибки: ${now}`;
+    }
+
+    // Запускаем при загрузке страницы
+    document.addEventListener('DOMContentLoaded', displayError);
+</script>
+</body>
+</html>

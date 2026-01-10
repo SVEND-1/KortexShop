@@ -63,11 +63,10 @@ public class CourierService {
 
         }catch (IllegalStateException e) {
             log.warn("Невозможно взять заказ: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e);
+            throw new IllegalStateException("Невозможно взять заказ: " + e.getMessage());
         } catch (Exception e) {
             log.error("Ошибка при взятии заказа курьером: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Ошибка при взятии заказа: " + e.getMessage(), e);
+            throw new RuntimeException("Ошибка при взятии заказа: " + e.getMessage());
         }
     }
 
@@ -91,8 +90,7 @@ public class CourierService {
         }
         catch (Exception e) {
             log.error("Ошибка при изменении статуса заказа: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Ошибка при изменении статуса заказа: " + e.getMessage(), e);
+            throw new RuntimeException("Ошибка при изменении статуса заказа: " + e.getMessage(), e);
         }
     }
 
