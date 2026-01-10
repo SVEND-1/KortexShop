@@ -5,6 +5,7 @@ import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,7 +29,11 @@ public class GlobalExceptionHandler implements ErrorController {
                 .body(errorResponse);
     }
 
-    @ExceptionHandler({IllegalArgumentException.class,IllegalStateException.class})
+    @ExceptionHandler({
+            IllegalArgumentException.class,
+            IllegalStateException.class,
+            MethodArgumentNotValidException.class,
+    })
     public ResponseEntity<ErrorResponseDTO> handleBadRequest(Exception e) {
         ErrorResponseDTO errorResponse = new ErrorResponseDTO(
                 "Не правильно переданные данные",

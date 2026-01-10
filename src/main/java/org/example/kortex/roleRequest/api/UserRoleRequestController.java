@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 @RestController
 @RequestMapping("/api/users/role-request")
 public class UserRoleRequestController {
@@ -24,7 +26,7 @@ public class UserRoleRequestController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody RoleCreateRequest request) {
+    public ResponseEntity<?> create(@RequestBody @Valid RoleCreateRequest request) {
         return ResponseEntity.ok(roleRequestService.create(request.requestedRole(), request.typeAction(),request.message()));
     }
 

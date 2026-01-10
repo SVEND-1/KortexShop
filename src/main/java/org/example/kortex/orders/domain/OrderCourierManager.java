@@ -44,6 +44,10 @@ public class OrderCourierManager {
     public OrderPageResponse assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
         log.info("Заказы курьера с filter={}", filter);
 
+        if(filter.courierId() == null){
+            throw new IllegalArgumentException("Id курьера не передано");
+        }
+
         User courier = userService.getById(filter.courierId());
         validateCourier(courier);
 
@@ -59,6 +63,7 @@ public class OrderCourierManager {
 
     public OrderPageResponse availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
         log.info("Запрос доступный заказов для курьеров");
+
         pageSize = pageSize != null ? pageSize : 36;
         pageNumber = pageNumber != null ? pageNumber : 0;
         Pageable pageable = Pageable

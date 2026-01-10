@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -23,7 +24,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest,
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequest loginRequest,
                                    HttpServletResponse response) {
         return ResponseEntity.ok(authService.login(loginRequest, response));
     }
@@ -34,13 +35,13 @@ public class AuthController {
     }
 
     @PostMapping("/register/send-code")
-    public ResponseEntity<?> sendRegistrationCode(@RequestBody RegisterCodeRequest request) {
+    public ResponseEntity<?> sendRegistrationCode(@RequestBody @Valid RegisterCodeRequest request) {
         return ResponseEntity.ok(authService.sendRegistrationCode(request));
     }
 
     @PostMapping("/register/verify")
     public ResponseEntity<?> verifyRegistration(
-            @RequestBody VerifyRegisterRequest request,
+            @RequestBody @Valid VerifyRegisterRequest request,
             HttpServletResponse response) {
         return ResponseEntity.ok(authService.verifyRegistration(request, response));
     }
@@ -64,7 +65,7 @@ public class AuthController {
 
     @PostMapping("/password/reset")
     public ResponseEntity<?> resetPassword(
-            @RequestBody ResetPasswordRequest request,
+            @RequestBody @Valid ResetPasswordRequest request,
             HttpServletResponse response) {
         return ResponseEntity.ok(authService.resetPassword(request, response));
     }

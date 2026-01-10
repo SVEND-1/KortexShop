@@ -7,6 +7,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 @RestController
 @RequestMapping("/api/sellers")
 public class SellerController {
@@ -29,7 +31,7 @@ public class SellerController {
 
 
     @PostMapping(value = "/products", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createProduct(@ModelAttribute ProductRequest request) {
+    public ResponseEntity<?> createProduct(@ModelAttribute @Valid ProductRequest request) {
         return ResponseEntity.ok(sellerService.createProduct(request));
     }
 
@@ -37,7 +39,7 @@ public class SellerController {
     @PutMapping(value = "/products/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProduct(
             @PathVariable Long id,
-            @ModelAttribute ProductRequest request) {
+            @ModelAttribute @Valid ProductRequest request) {
         return ResponseEntity.ok(sellerService.updateProduct(id, request));
     }
 

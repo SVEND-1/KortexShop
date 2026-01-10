@@ -32,7 +32,7 @@ public class Product {
     private int count;
 
     @Column(name = "description", nullable = false)
-    private String description;
+    private String description;//Добавить @LOB
 
     @Column(name = "image", nullable = false)
     private String image;
