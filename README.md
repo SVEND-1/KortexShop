@@ -38,7 +38,7 @@ Kortex — это полнофункциональный маркетплейс,
 ![Liquibase](https://img.shields.io/badge/Liquibase-2962FF?logo=liquibase&logoColor=white)
 
 ### **Интеграция и обмен сообщениями**
-![Apache Kafka](https://img.shields.io/badge/Apache_Kafka231F20?logo=apachekafka&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?logo=apachekafka&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-Authentication?logo=jsonwebtokens&logoColor=white)
 
 ### **Утилиты и библиотеки**
