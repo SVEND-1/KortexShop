@@ -2,10 +2,10 @@
 
 <div align="center">
 
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green?logo=spring)
-![Java](https://img.shields.io/badge/Java-17%2B-blue?logo=openjdk)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-blue?logo=postgresql)
-![Kafka](https://img.shields.io/badge/Apache%20Kafka-3.x-black?logo=apachekafka)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-green?logo=spring)
+![Java](https://img.shields.io/badge/Java%2B-blue?logo=openjdk)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2B-blue?logo=postgresql)
+![Kafka](https://img.shields.io/badge/Apache%20Kafka-black?logo=apachekafka)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 **Современный маркетплейс для удобных покупок с доставкой прямо до дома**
