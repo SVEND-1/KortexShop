@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -31,7 +30,7 @@ public class OrderItemService {
     public List<OrderItem> saveAll(List<OrderItem> orderItems) {
         log.info("Сохранения всех orderItem");
         if (orderItems == null || orderItems.isEmpty()) {
-            return new ArrayList<>();
+            throw new IllegalStateException("Элементы заказа не найдены");
         }
 
         try {

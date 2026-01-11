@@ -2,15 +2,11 @@ package org.example.kortex.notify;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.notify.event.NotifyEvent;
-import org.example.kortex.notify.event.NotifyType;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 
 @Slf4j

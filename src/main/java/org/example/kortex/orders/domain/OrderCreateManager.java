@@ -7,6 +7,7 @@ import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.notify.event.NotifyEvent;
 import org.example.kortex.notify.event.NotifyType;
 import org.example.kortex.notify.kafka.NotifyKafkaProducer;
+import org.example.kortex.orders.api.exception.ProductZeroException;
 import org.example.kortex.orders.api.mapper.OrderMapper;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
@@ -28,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @Component
@@ -63,10 +65,10 @@ public class OrderCreateManager {
             Cart cart = user.getCart();
             if (cart == null) {
                 log.warn("Корзина не найдена для пользователя с id={}", user.getId());
-                throw new RuntimeException("Корзина не найдена для пользователя с ID: " + user.getId());
+                throw new NoSuchElementException("Корзина не найдена для пользователя с ID: " + user.getId());
             }
 
-            if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
+            if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {//TODO Добавить свою ошибку
                 log.warn("Корзина пуста, невозможно создать заказ");
                 throw new RuntimeException("Корзина пуста, невозможно создать заказ");
             }
@@ -104,15 +106,13 @@ public class OrderCreateManager {
         }
         catch (DataIntegrityViolationException e) {
             log.error("Нарушение целостности данных при создании заказа, ex={}", e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
+            throw new RuntimeException(
                     "Конфликт данных. Возможно, недостаточно товара на складе"
             );
         }
         catch (Exception e){
             log.error("Ошибка при создании заказа, ex={}", e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
+            throw new RuntimeException(
                     "Внутренняя ошибка сервера при создании заказа"
             );
         }
@@ -124,19 +124,19 @@ public class OrderCreateManager {
             Product product = cartItem.getProduct();
             if (product == null) {
                 log.warn("Товар не найден в корзине");
-                throw new RuntimeException("Товар не найден в корзине");
+                throw new NoSuchElementException("Товар не найден в корзине");
             }
 
             Product actualProduct = productService.getById(product.getId());
             if(actualProduct == null) {
                 log.warn("Товар не найден id={}",product.getId());
-                throw new RuntimeException("Товар не найден: " + product.getName());
+                throw new NoSuchElementException("Товар не найден: " + product.getName());
             }
 
             if (actualProduct.getCount() < cartItem.getQuantity()) {
                 log.error("Недостаточно товара на складе productId={}.Доступно: {}, а запрошено: {}",
                         product.getId(), actualProduct.getCount(), cartItem.getQuantity());
-                throw new RuntimeException("Недостаточно товара на складе");
+                throw new ProductZeroException("Недостаточно товара на складе");
             }
         }
     }
@@ -145,7 +145,7 @@ public class OrderCreateManager {
         BigDecimal total = BigDecimal.ZERO;
 
         for (CartItem cartItem : cart.getCartItems()) {
-            BigDecimal itemPrice = BigDecimal.valueOf(cartItem.getProduct().getPrice());
+            BigDecimal itemPrice = cartItem.getProduct().getPrice();
             BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             total = total.add(itemTotal);
         }
@@ -164,7 +164,7 @@ public class OrderCreateManager {
                 orderItem.setProduct(cartItem.getProduct());
                 orderItem.setQuantity(cartItem.getQuantity());
 
-                BigDecimal itemPrice = BigDecimal.valueOf(cartItem.getProduct().getPrice());
+                BigDecimal itemPrice = cartItem.getProduct().getPrice();
                 orderItem.setPrice(itemPrice);
 
                 orderItem.setPrice(itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity())));

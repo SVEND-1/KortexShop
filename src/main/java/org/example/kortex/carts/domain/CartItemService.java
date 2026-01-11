@@ -127,9 +127,6 @@ public class CartItemService {
             CartItem cartItem = cartItemRepository.findById(cartItemId)
                     .orElseThrow(() -> new EntityNotFoundException("CartItem не найден"));
 
-            Product product = cartItem.getProduct();
-            product.setCount(product.getCount() + cartItem.getQuantity());
-
             cartItemRepository.delete(cartItem);
             log.info("CartItem удален id={}", cartItemId);
         }catch (Exception e){

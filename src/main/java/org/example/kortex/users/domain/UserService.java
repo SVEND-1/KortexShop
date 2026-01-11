@@ -10,11 +10,9 @@ import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
@@ -43,6 +41,9 @@ public class UserService {
 
     public UserResponse changeAddress(String newAddress) {
         try {
+            if(newAddress == null){
+                throw new IllegalArgumentException("Пустой адрес,укажите правильно адрес");
+            }
             User user = getCurrentUser();
             log.info("Обновление адреса у пользователя id={}", user.getId());
             user.setAddress(newAddress);
@@ -95,6 +96,10 @@ public class UserService {
     public User getByEmail(String email) {
         log.info("Поиск пользователя с email={}", email);
 
+        if (email == null) {
+            throw new IllegalArgumentException("Пустой email пользователя");
+        }
+
         User user = userRepository.findByEmailEqualsIgnoreCase(email);
 
         if (user == null) {
@@ -111,7 +116,7 @@ public class UserService {
             User createdUser = userRepository.save(userToCreate);
             log.info("Пользователь создан его id={}", createdUser.getId());
             return createdUser;
-        } catch (DataIntegrityViolationException e) {
+        } catch (Exception e) {
             log.error("Ошибка создание пользователя, ex={}", e.getMessage());
             throw new RuntimeException("Пользователь с email " + userToCreate.getEmail() + " уже существует");
         }
@@ -123,7 +128,7 @@ public class UserService {
             log.info("Обновление пользователя с id={}", id);
             User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
-            User updatedUser = new User(//TODO Сделать билдер
+            User updatedUser = new User(
                     user.getId(),
                     userToUpdate.getEmail(),
                     userToUpdate.getName(),

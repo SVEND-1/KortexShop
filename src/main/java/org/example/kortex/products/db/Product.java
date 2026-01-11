@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -26,13 +27,13 @@ public class Product {
     private String name;
 
     @Column(name = "price", nullable = false)
-    private Double price;//BigDecimal сделать
+    private BigDecimal price;
 
     @Column(name = "count", nullable = false)
     private int count;
 
-    @Column(name = "description", nullable = false)
-    private String description;//Добавить @LOB
+    @Column(name = "description", nullable = false,length = 3000)
+    private String description;
 
     @Column(name = "image", nullable = false)
     private String image;
@@ -42,7 +43,7 @@ public class Product {
     private Category category;
 
 
-    public Product(User seller,String name, Double price, int count, String description, String image, Category category) {
+    public Product(User seller,String name, BigDecimal price, int count, String description, String image, Category category) {
         this.seller = seller;
         this.name = name;
         this.price = price;

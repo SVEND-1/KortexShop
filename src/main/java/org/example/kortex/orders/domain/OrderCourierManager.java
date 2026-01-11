@@ -3,6 +3,7 @@ package org.example.kortex.orders.domain;
 import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.orders.api.OrdersSearchCourierFilter;
 import org.example.kortex.orders.api.dto.OrderPageResponse;
+import org.example.kortex.orders.api.exception.UserNotCourierException;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.db.OrderRepository;
@@ -137,7 +138,7 @@ public class OrderCourierManager {
     private void validateCourier(User user) {
         if (user.getRole() != Role.COURIER) {
             log.warn("Пользователь id={} не является курьером",user.getId());
-            throw new IllegalArgumentException(
+            throw new UserNotCourierException(
                     String.format("Пользователь с ID %d не является курьером", user.getId())
             );
         }

@@ -1,23 +1,90 @@
 package org.example.kortex.web;
 
-import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.orders.api.exception.ProductZeroException;
+import org.example.kortex.orders.api.exception.UserNotCourierException;
+import org.example.kortex.roleRequest.api.exception.PendingRequestException;
+import org.example.kortex.users.api.exception.CourierHasActiveOrderException;
+import org.example.kortex.users.api.exception.IncorrectUpdateRoleException;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
+import java.util.NoSuchElementException;
 
-@Slf4j
 @ControllerAdvice
-public class GlobalExceptionHandler implements ErrorController {
+public class GlobalExceptionHandler implements ErrorController {//TODO Поменять ретурны у моих исключениях
 
-    @ExceptionHandler(EntityNotFoundException.class)
+    @ExceptionHandler(ProductZeroException.class)
+    public ResponseEntity<ErrorResponseDTO> handleProductZeroException(ProductZeroException e) {
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                "Продукт закончился на сладе",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(errorResponse);
+    }
+
+    @ExceptionHandler(UserNotCourierException.class)
+    public ResponseEntity<ErrorResponseDTO> handleUserNotCourierException(UserNotCourierException e) {
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                "Это доступно только курьерам",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return  ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(errorResponse);
+    }
+
+    @ExceptionHandler(PendingRequestException.class)
+    public ResponseEntity<ErrorResponseDTO> handlePendingRequestException(PendingRequestException e) {
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                "У вас уже есть активаная заявка",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(errorResponse);
+    }
+
+    @ExceptionHandler(CourierHasActiveOrderException.class)
+    public ResponseEntity<ErrorResponseDTO> handleCourierHasActiveOrderException(CourierHasActiveOrderException e) {
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                "У вас уже есть активный заказ",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(errorResponse);
+    }
+
+    @ExceptionHandler(IncorrectUpdateRoleException.class)
+    public ResponseEntity<ErrorResponseDTO> handleIncorrectUpdateRoleException(IncorrectUpdateRoleException e) {
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                "Вы не можете поменять роль на выбранную",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(errorResponse);
+    }
+
+    @ExceptionHandler({
+            EntityNotFoundException.class,
+            NoSuchElementException.class
+    })
     public ResponseEntity<ErrorResponseDTO> handleEntityNotFoundException(EntityNotFoundException e) {
         ErrorResponseDTO errorResponse = new ErrorResponseDTO(
                 "Не получилось найти данные",

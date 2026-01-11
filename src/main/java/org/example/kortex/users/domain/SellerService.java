@@ -57,7 +57,6 @@ public class SellerService {
         }
     }
 
-
     public ProductResponse createProduct(ProductRequest request) {
         try {
             log.info("Создания товара");

@@ -1,6 +1,7 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.kortex.users.api.exception.IncorrectUpdateRoleException;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,7 @@ public class AdminService {
             log.info("Повышение пользователя id={} на роль : {}", user.getId(), role.name());
 
             if (isValidRoleAppoint(user.getRole(), role)) {
-                throw new IllegalArgumentException(
+                throw new IncorrectUpdateRoleException(
                         "Нельзя назначить на роль" + role.name() + " пользователя с ролью: " + user.getRole()
                 );
             }
@@ -50,7 +51,7 @@ public class AdminService {
             log.info("Понижение пользователя id={} на роль : {}", user.getId(), role.name());
 
             if (isValidRoleDowngrade(user.getRole(), role)) {
-                throw new IllegalArgumentException(
+                throw new IncorrectUpdateRoleException(
                         "Нельзя забрать роль " + role + " у пользователя с ролью: " + user.getRole()
                 );
             }
@@ -70,17 +71,17 @@ public class AdminService {
             if(userRole.equals(Role.ADMIN) ||
                     userRole.equals(Role.SELLER)) {
                 log.warn("Нельзя назначить курьером пользователя с ролью: {}", userRole);
-                return false;
+                return true;
             }
         }
         if(Role.SELLER.equals(updateRole)) {
             if(userRole.equals(Role.ADMIN) ||
                     userRole.equals(Role.COURIER)) {
                 log.warn("Нельзя назначить продавцом пользователя с ролью: {}", userRole);
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     private boolean isValidRoleDowngrade(Role userRole, Role updateRole) {

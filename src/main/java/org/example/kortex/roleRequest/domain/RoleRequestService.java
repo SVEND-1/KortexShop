@@ -5,6 +5,7 @@ import org.example.kortex.notify.event.NotifyEvent;
 import org.example.kortex.notify.event.NotifyType;
 import org.example.kortex.notify.kafka.NotifyKafkaProducer;
 import org.example.kortex.roleRequest.api.dto.RolePageResponse;
+import org.example.kortex.roleRequest.api.exception.PendingRequestException;
 import org.example.kortex.roleRequest.api.mapper.RoleRequestMapper;
 import org.example.kortex.roleRequest.api.dto.RoleRequestResponse;
 import org.example.kortex.roleRequest.api.RoleRequestFilter;
@@ -89,7 +90,7 @@ public class RoleRequestService {
 
             if (hasPendingRequestForSameAction(currentUser.getId())) {
                 log.warn("У вас уже есть активная заявка на это действие");
-                throw new IllegalStateException("У вас уже есть активная заявка на это действие");
+                throw new PendingRequestException("У вас уже есть активная заявка на это действие");
             }
 
             RoleRequest roleRequest = new RoleRequest();
@@ -133,7 +134,7 @@ public class RoleRequestService {
         }
         catch (Exception ex){
             log.error("Ошибка понижения пользователя, ex={} ", ex.getMessage());
-            return null;
+            throw new RuntimeException("Не удалось понижить пользователя: " + ex.getMessage());
         }
     }
 
@@ -162,7 +163,7 @@ public class RoleRequestService {
             return roleRequestMapper.toDto(savedRoleRequest);
         }catch (Exception ex){
             log.error("Ошибка повышение пользователя, ex={} ", ex.getMessage());
-            return null;
+            throw new RuntimeException("Не повысить пользователя: " + ex.getMessage());
         }
     }
 
@@ -187,7 +188,7 @@ public class RoleRequestService {
             return roleRequestMapper.toDto(savedRoleRequest);
         }catch (Exception ex){
             log.error("Ошибка отмены заявки пользователя, ex={} ", ex.getMessage());
-            return null;
+            throw new RuntimeException("Не удалось отклонить заявку: " + ex.getMessage());
         }
     }
 

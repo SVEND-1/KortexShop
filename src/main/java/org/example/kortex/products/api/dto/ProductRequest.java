@@ -5,6 +5,7 @@ import org.example.kortex.products.db.Product;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.*;
+import java.math.BigDecimal;
 
 public record ProductRequest(
         @NotNull
@@ -13,13 +14,14 @@ public record ProductRequest(
 
         @NotNull
         @DecimalMin(value = "0.01")
-        Double price,
+        BigDecimal price,
 
         @NotNull
         @Min(value = 0)
         Integer count,
 
         @NotNull
+        @Size(min = 1, max = 3000)
         String description,
 
         @NotNull

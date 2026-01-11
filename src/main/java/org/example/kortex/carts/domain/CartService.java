@@ -9,10 +9,8 @@ import org.example.kortex.carts.db.CartRepository;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @Service
@@ -41,8 +39,7 @@ public class CartService {
             return cartMapper.toCartResponse(cart);
         }catch (Exception e) {
             log.error("Ошибка при получении данных корзины, ex={}", e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
+            throw new RuntimeException(
                     "Ошибка сервера при получении корзины"
             );
         }
@@ -60,8 +57,7 @@ public class CartService {
         }
         catch (Exception e) {
             log.error("Ошибка при добавлении товара в корзину, ex={}", e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
+            throw new RuntimeException(
                     "Ошибка при добавлении товара в корзину"
             );
         }
@@ -73,8 +69,7 @@ public class CartService {
         }
         catch (Exception e) {
             log.error("Ошибка инкремента элемента корзины id={},ex={} ",itemId, e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
+            throw new RuntimeException(
                     "Ошибка при увеличении количества"
             );
         }
@@ -90,8 +85,7 @@ public class CartService {
         }
         catch (Exception e) {
             log.error("Ошибка декремента элемента корзины id={},ex={}",itemId, e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
+            throw new RuntimeException(
                     "Ошибка при уменьшении количества"
             );
         }
@@ -104,8 +98,7 @@ public class CartService {
         }
         catch (Exception e) {
             log.error("Не удалось удалить товар, ex={}", e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
+            throw new RuntimeException(
                     "Ошибка при удалении товара из корзины"
             );
         }
@@ -126,8 +119,7 @@ public class CartService {
         }
         catch (Exception e){
             log.error("Не удалось создать корзину, ex={}", e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
+            throw new RuntimeException(
                     "Внутренняя ошибка сервера при создании корзины"
             );
         }

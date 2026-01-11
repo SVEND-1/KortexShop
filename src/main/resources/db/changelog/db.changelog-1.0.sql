@@ -15,10 +15,10 @@ CREATE TABLE products (
                           id BIGSERIAL PRIMARY KEY,
                           category VARCHAR(255),
                           count INTEGER NOT NULL,
-                          description VARCHAR(255) NOT NULL,
+                          description VARCHAR(3000) NOT NULL,
                           image VARCHAR(255) NOT NULL,
                           name VARCHAR(255) NOT NULL,
-                          price DOUBLE PRECISION NOT NULL,
+                          price NUMERIC(19,2) NOT NULL,
                           seller_id BIGINT NOT NULL
 );
 

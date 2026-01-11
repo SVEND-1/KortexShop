@@ -8,11 +8,10 @@ import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.api.dto.courier.CourierAssignResponse;
 import org.example.kortex.users.api.dto.courier.SetStatusOrderResponse;
+import org.example.kortex.users.api.exception.CourierHasActiveOrderException;
 import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
@@ -38,7 +37,7 @@ public class CourierService {
             User courier = userService.getCurrentUser();
 
             if(isValidAssignOrder(courier.getId())){
-                throw new IllegalStateException(
+                throw new CourierHasActiveOrderException(
                         "Невозможно взять новый заказ у курьера уже есть активный заказ в доставке."
                 );
             }
@@ -55,7 +54,7 @@ public class CourierService {
             log.info("Курьер с id={} взял заказ с id={}" , courier.getId(), updateOrder.getId());
 
 
-            return new CourierAssignResponse(//TODO Переделать возможно DTO
+            return new CourierAssignResponse(
                     updateOrder.getId(),
                     courier.getId(),
                     courier.getName()
@@ -83,7 +82,7 @@ public class CourierService {
             }
             log.info("У заказа с id={} изменен статус на status={}",id, status.name());
 
-            return new SetStatusOrderResponse(//TODO Переделать возможно DTO
+            return new SetStatusOrderResponse(
                     orderUpdate.getId(),
                     status.name()
             );

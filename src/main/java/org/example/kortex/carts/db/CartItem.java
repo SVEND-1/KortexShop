@@ -2,7 +2,6 @@ package org.example.kortex.carts.db;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.example.kortex.products.db.Product;
@@ -35,7 +34,7 @@ public class CartItem {
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 
-    public CartItem(Long id, Cart cart, Product product, Integer quantity, BigDecimal price) {
+    public CartItem(Long id, Cart cart, Product product, Integer quantity) {
         this.id = id;
         this.cart = cart;
         this.product = product;
@@ -49,7 +48,7 @@ public class CartItem {
 
     public void calculatePrice() {
         if (product != null && product.getPrice() != null) {
-            this.price = BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(quantity));
+            this.price = product.getPrice().multiply(BigDecimal.valueOf(quantity));
         }
     }
 }
