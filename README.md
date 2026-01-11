@@ -6,7 +6,7 @@
 ![Java](https://img.shields.io/badge/Java%2B-blue?logo=openjdk)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2B-blue?logo=postgresql)
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-black?logo=apachekafka)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![Liquibase](https://img.shields.io/badge/License-MIT-yellow)
 
 **Современный маркетплейс для удобных покупок с доставкой прямо до дома**
 
@@ -31,6 +31,7 @@ Kortex — это полнофункциональный маркетплейс,
 ![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?logo=springsecurity&logoColor=white)
 ![Spring Data JPA](https://img.shields.io/badge/Spring_Data_JPA-6DB33F?logo=spring&logoColor=white)
 ![Spring Web](https://img.shields.io/badge/Spring_Web-6DB33F?logo=spring&logoColor=white)
+![Spring Mail](https://img.shields.io/badge/Spring_Web-6DB33F?logo=spring&logoColor=white)
 
 ### **База данных**
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2B-336791?logo=postgresql&logoColor=white)
