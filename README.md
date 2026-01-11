@@ -1,4 +1,4 @@
-# 🛍️ Kortex - Маркетплейс с доставкой до двери
+# Kortex - Маркетплейс с доставкой до двери
 
 <div align="center">
 
@@ -6,7 +6,7 @@
 ![Java](https://img.shields.io/badge/Java%2B-blue?logo=openjdk)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2B-blue?logo=postgresql)
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-black?logo=apachekafka)
-![Liquibase](https://img.shields.io/badge/Liquibase-4.x-2962FF?logo=liquibase&logoColor=white)
+![Liquibase](https://img.shields.io/badge/Liquibase-2962FF?logo=liquibase&logoColor=white)
 
 **Современный маркетплейс для удобных покупок с доставкой прямо до дома**
 
