@@ -43,7 +43,7 @@ Kortex — это полнофункциональный маркетплейс,
 ![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?logo=apachekafka&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-Authentication?logo=jsonwebtokens&logoColor=white)
 
-### **DevOps & Инфраструктура**
+### **DevOps**
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?logo=docker&logoColor=white)
 
