@@ -6,6 +6,7 @@
 ![Java](https://img.shields.io/badge/Java%2B-blue?logo=openjdk)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%2B-blue?logo=postgresql)
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-black?logo=apachekafka)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 ![Liquibase](https://img.shields.io/badge/Liquibase-2962FF?logo=liquibase&logoColor=white)
 
 **Современный маркетплейс для удобных покупок с доставкой прямо до дома**
@@ -41,6 +42,10 @@ Kortex — это полнофункциональный маркетплейс,
 ### **Интеграция и обмен сообщениями**
 ![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?logo=apachekafka&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-Authentication?logo=jsonwebtokens&logoColor=white)
+
+### **DevOps & Инфраструктура**
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?logo=docker&logoColor=white)
 
 ### **Утилиты и библиотеки**
 ![Lombok](https://img.shields.io/badge/Lombok-pink?logo=lombok&logoColor=white)
