@@ -21,7 +21,7 @@ import java.util.*;
 
 @Slf4j
 @Service
-public class SellerService {
+public class SellerService {//TODO проверять что это товар у продавца
     private final ProductService productService;
     private final UserService userService;
     private final ProductMapper productMapper;

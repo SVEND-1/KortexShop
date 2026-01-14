@@ -130,6 +130,8 @@ public class AuthService {
             String verificationCode = emailSenderService.generateVerificationCode();
             String registrationId = UUID.randomUUID().toString();
 
+            log.debug("Code: {}",verificationCode);
+
             User tempUser = new User();
             tempUser.setEmail(email);
             tempUser.setPassword(passwordEncoder.encode(password));
