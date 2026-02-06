@@ -2,6 +2,7 @@ version: '3.8'
 
 volumes:
   postgres_data:
+  redis_data:
 
 services:
   postgres:
@@ -24,6 +25,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - redis
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/kortex
       - SPRING_DATASOURCE_USERNAME=postgres
@@ -39,6 +41,19 @@ services:
       - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED=true
       - SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE=false
       - SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_TRUST=smtp.gmail.com
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=svend123
+
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=svend123
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_REDIS_PASSWORD=svend123
 
       - SERVER_PORT=8080
 
@@ -61,27 +76,57 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./uploads:/usr/share/nginx/html/uploads
 
+#  kafka:
+#    image: confluentinc/cp-kafka:7.6.0
+#    container_name: kortex-kafka
+#    restart: unless-stopped
+#    ports:
+#      - "9092:9092"
+#    environment:
+#      KAFKA_NODE_ID: 1
+#      KAFKA_PROCESS_ROLES: broker,controller
+#      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+#
+#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+#      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+#      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+#
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+#      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+#
+#      # Для Windows может потребоваться
+#      KAFKA_HEAP_OPTS: "-Xmx512M -Xms256M"
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: kortex-redis
+    restart: always
+    command: redis-server --requirepass svend123 --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
+    image: apache/kafka:latest
     container_name: kortex-kafka
-    restart: unless-stopped
     ports:
       - "9092:9092"
+      - "9093:9093"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
-
-      # Для Windows может потребоваться
-      KAFKA_HEAP_OPTS: "-Xmx512M -Xms256M"

@@ -13,6 +13,7 @@ import org.example.kortex.products.db.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -21,18 +22,24 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 
 @Slf4j
 @Service
 public class ProductService {
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
+    private final RedisTemplate<String, Product> redisTemplate;
+    private static final String CACHE_KEY_PREFIX = "product:";
+    private static final long CACHE_TTL_MINUTES = 1;
 
     @Autowired
-    public ProductService(ProductRepository productRepository, ProductMapper productMapper)
+    public ProductService(ProductRepository productRepository, ProductMapper productMapper, RedisTemplate<String, Product> redisTemplate)
     {
         this.productRepository = productRepository;
         this.productMapper = productMapper;
+        this.redisTemplate = redisTemplate;
     }
 
     //================================Controller Methods================================================
@@ -66,15 +73,28 @@ public class ProductService {
     }
 
     public ProductResponse getProductDto(Long id) {
-        return productRepository.findById(id)
-                .map(productMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
+        return productMapper.toDto(getById(id));
     }
 
     //================================Service Methods================================================
 
     public Product getById(Long id) {
-        return productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
+        try {
+            Product product = redisTemplate.opsForValue().get(CACHE_KEY_PREFIX + id);
+            if (product != null) {
+                log.debug("Продукт найден в кэше key={}", CACHE_KEY_PREFIX + id);
+                return product;
+            }
+
+            product = productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
+            redisTemplate.opsForValue().set(CACHE_KEY_PREFIX + id, product, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+
+            return product;
+        }
+        catch (Exception e){
+            log.error("REDIS ex={}",e.getMessage());
+            throw  new RuntimeException();
+        }
     }
 
     public List<ProductResponse> getProductsBySeller(Long sellerId) {
@@ -88,6 +108,9 @@ public class ProductService {
             Product product = getById(productId);
             product.setCount(product.getCount() - quantity);
             productRepository.save(product);
+
+            String cacheKey = CACHE_KEY_PREFIX + productId;
+            redisTemplate.delete(cacheKey);
         }catch (Exception e){
             log.error("Ошибка уменьшение количество продукта productId: {}, ex={}", productId, e.getMessage());
         }
@@ -99,6 +122,9 @@ public class ProductService {
             Product product = getById(productId);
             product.setCount(product.getCount() + quantity);
             productRepository.save(product);
+
+            String cacheKey = CACHE_KEY_PREFIX + productId;
+            redisTemplate.delete(cacheKey);
         }catch (Exception e){
             log.error("Ошибка добавление количество продукта productId: {}, ex={}", productId, e.getMessage());
         }
@@ -136,7 +162,11 @@ public class ProductService {
 
             Product productUpdated = productRepository.save(existingProduct);
             log.info("Продукт обновлени id: {}", productUpdated.getId());
-            return productRepository.save(productUpdated);
+
+            String cacheKey = CACHE_KEY_PREFIX + id;
+            redisTemplate.delete(cacheKey);
+
+            return productUpdated;
         }
         catch (Exception e){
             log.error("Ошибка обновление продукта с id: {}, ex={}", id, e.getMessage());
@@ -147,10 +177,13 @@ public class ProductService {
     public void deleted(Long id) {
         try {
             if (!productRepository.existsById(id)) {
-                log.warn("Продукт не найден id={}",id);
+                log.info("Продукт не найден id={}",id);
                 throw new NoSuchElementException("Продукт не найден");
             }
             productRepository.deleteById(id);
+
+            String cacheKey = CACHE_KEY_PREFIX + id;
+            redisTemplate.delete(cacheKey);
             log.info("Продукт удален id: {}", id);
         }
         catch (Exception e){
