@@ -1,0 +1,28 @@
+stages:
+  - test
+  - build
+  - deploy
+
+test-job:
+  stage: test
+  image: maven:3.9.9-amazoncorretto-17
+  script:
+    - mvn test
+  only:
+    - master
+    - develop
+
+build-job:
+  stage: build
+    - docker build --network=host -t app .
+  only:
+    - master
+    - develop
+
+deploy-job:
+  stage: deploy
+  script:
+    - docker compose up -d
+  only:
+    - master
+    - develop
