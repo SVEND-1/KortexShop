@@ -1,4 +1,4 @@
-// cartManager.js - Исправленная версия для твоего CartController
+// cartManager.js - Исправленная версия для твоего CartController (jQuery версия)
 
 class CartManager {
     constructor() {
@@ -28,7 +28,7 @@ class CartManager {
                 if (response.status === 401 || response.status === 403) {
                     console.log('Пользователь не авторизован, корзина пустая');
                     this.cart = { items: [], total: 0 };
-                    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: this.cart }));
+                    $(window).trigger('cartUpdated', [this.cart]);
                     return this.cart;
                 }
                 throw new Error(`HTTP ${response.status}`);
@@ -76,16 +76,14 @@ class CartManager {
                 };
             }
 
-            window.dispatchEvent(new CustomEvent('cartUpdated', {
-                detail: this.cart
-            }));
+            $(window).trigger('cartUpdated', [this.cart]);
 
             return this.cart;
 
         } catch (error) {
             console.error('Ошибка загрузки корзины:', error);
             this.cart = { items: [], total: 0 };
-            window.dispatchEvent(new CustomEvent('cartUpdated', { detail: this.cart }));
+            $(window).trigger('cartUpdated', [this.cart]);
             return this.cart;
         }
     }

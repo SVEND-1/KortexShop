@@ -1,4 +1,4 @@
-// cartScript.js - отображение корзины с сервера
+// cartScript.js - отображение корзины с сервера (jQuery версия)
 // Ждем cartManager и обновляем при событиях
 
 let cartManager = null;
@@ -16,8 +16,8 @@ async function initCartPage() {
     // Первоначальная отрисовка
     renderCart();
 
-    // Слушаем события обновления корзины
-    window.addEventListener('cartUpdated', function(event) {
+    // Слушаем события обновления корзины (jQuery способ)
+    $(window).on('cartUpdated', function(event, cartData) {
         renderCart();
     });
 }
@@ -28,45 +28,43 @@ function renderCart() {
     const items = cartManager.getItems();
     const total = cartManager.getTotal();
 
-    const cartItemsContainer = document.getElementById('cartItems');
-    const emptyCart = document.getElementById('emptyCart');
-    const cartWithItems = document.getElementById('cartWithItems');
-    const totalItemsText = document.getElementById('totalItemsText');
-    const totalPrice = document.getElementById('totalPrice');
-    const finalTotal = document.getElementById('finalTotal');
-    const checkoutBtn = document.getElementById('checkoutBtn');
+    const $cartItemsContainer = $('#cartItems');
+    const $emptyCart = $('#emptyCart');
+    const $cartWithItems = $('#cartWithItems');
+    const $totalItemsText = $('#totalItemsText');
+    const $totalPrice = $('#totalPrice');
+    const $finalTotal = $('#finalTotal');
+    const $checkoutBtn = $('#checkoutBtn');
 
     if (!items || items.length === 0) {
         // Показываем пустую корзину
-        emptyCart.style.display = 'block';
-        cartWithItems.style.display = 'none';
+        $emptyCart.show();
+        $cartWithItems.hide();
 
-        if (totalItemsText) totalItemsText.textContent = 'Товары (0)';
-        if (totalPrice) totalPrice.textContent = formatPrice(0);
-        if (finalTotal) finalTotal.textContent = formatPrice(0);
-        if (cartItemsContainer) cartItemsContainer.innerHTML = '';
+        if ($totalItemsText.length) $totalItemsText.text('Товары (0)');
+        if ($totalPrice.length) $totalPrice.text(formatPrice(0));
+        if ($finalTotal.length) $finalTotal.text(formatPrice(0));
+        if ($cartItemsContainer.length) $cartItemsContainer.empty();
 
         // Деактивируем кнопку оформления
-        if (checkoutBtn) {
-            checkoutBtn.disabled = true;
-            checkoutBtn.style.opacity = '0.6';
+        if ($checkoutBtn.length) {
+            $checkoutBtn.prop('disabled', true).css('opacity', '0.6');
         }
         return;
     }
 
     // Показываем корзину с товарами
-    emptyCart.style.display = 'none';
-    cartWithItems.style.display = 'block';
+    $emptyCart.hide();
+    $cartWithItems.show();
 
     // Активируем кнопку оформления
-    if (checkoutBtn) {
-        checkoutBtn.disabled = false;
-        checkoutBtn.style.opacity = '1';
+    if ($checkoutBtn.length) {
+        $checkoutBtn.prop('disabled', false).css('opacity', '1');
     }
 
     // Отрисовываем товары
-    if (cartItemsContainer) {
-        cartItemsContainer.innerHTML = items.map(item => {
+    if ($cartItemsContainer.length) {
+        const itemsHtml = items.map(item => {
             const imagePath = item.image ? `/uploads/images/${item.image}` : '/images/product-img.png';
             const name = item.productName || item.name || 'Товар';
             const price = Number(item.price) || 0;
@@ -99,13 +97,15 @@ function renderCart() {
                 </div>
             </div>`;
         }).join('');
+
+        $cartItemsContainer.html(itemsHtml);
     }
 
     // Обновляем итоги
     const uniqueCount = cartManager.getUniqueCount();
-    if (totalItemsText) totalItemsText.textContent = `Товары (${uniqueCount})`;
-    if (totalPrice) totalPrice.textContent = formatPrice(total);
-    if (finalTotal) finalTotal.textContent = formatPrice(total);
+    if ($totalItemsText.length) $totalItemsText.text(`Товары (${uniqueCount})`);
+    if ($totalPrice.length) $totalPrice.text(formatPrice(total));
+    if ($finalTotal.length) $finalTotal.text(formatPrice(total));
 
     // Вешаем обработчики событий
     attachCartEvents();
@@ -113,28 +113,28 @@ function renderCart() {
 
 // Вешаем обработчики на кнопки
 function attachCartEvents() {
-    const container = document.getElementById('cartItems');
-    if (!container) return;
+    const $container = $('#cartItems');
+    if (!$container.length) return;
 
     // Удаляем старые обработчики и вешаем новые
-    container.removeEventListener('click', handleCartClick);
-    container.addEventListener('click', handleCartClick);
+    $container.off('click', handleCartClick);
+    $container.on('click', handleCartClick);
 }
 
 // Обработчик кликов по кнопкам в корзине
 async function handleCartClick(event) {
-    const button = event.target.closest('[data-action]');
-    if (!button) return;
+    const $button = $(event.target).closest('[data-action]');
+    if (!$button.length) return;
 
     event.preventDefault();
 
-    const action = button.getAttribute('data-action');
-    const itemId = button.getAttribute('data-id');
+    const action = $button.data('action');
+    const itemId = $button.data('id');
 
     if (!action || !itemId) return;
 
     // Блокируем кнопку на время запроса
-    button.disabled = true;
+    $button.prop('disabled', true);
 
     try {
         if (action === 'increase') {
@@ -143,7 +143,7 @@ async function handleCartClick(event) {
             await cartManager.decrease(itemId);
         } else if (action === 'remove') {
             if (!confirm('Удалить товар из корзины?')) {
-                button.disabled = false;
+                $button.prop('disabled', false);
                 return;
             }
             await cartManager.remove(itemId);
@@ -155,7 +155,7 @@ async function handleCartClick(event) {
     } catch (error) {
         console.error('Ошибка:', error);
         alert('Не удалось выполнить действие: ' + error.message);
-        button.disabled = false;
+        $button.prop('disabled', false);
     }
 }
 
@@ -175,5 +175,5 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Запускаем при загрузке страницы
-document.addEventListener('DOMContentLoaded', initCartPage);
+// Запускаем при загрузке страницы (jQuery способ)
+$(document).ready(initCartPage);

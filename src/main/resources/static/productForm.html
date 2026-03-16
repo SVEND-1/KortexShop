@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <link rel="stylesheet" href="design/mainFormStyle.css">
     <link rel="stylesheet" href="design/productStyle.css">
+
+    <!-- jQuery уже подключен -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <title>О товаре - Онлайн магазин</title>
 </head>
 
@@ -19,24 +23,24 @@
                 <div class="search-container">
                     <input id="search-input" type="text" class="search-input" placeholder="Поиск товаров...">
                     <button type="submit" class="search-button">
-                        <img src="images/findImg.png">
+                        <img src="images/findImg.png" alt="Поиск">
                     </button>
                 </div>
             </form>
 
             <nav class="nav">
                 <a href="/cart" class="nav-link">
-                    <img src="images/cart-img.png" class="nav-icon">
+                    <img src="images/cart-img.png" class="nav-icon" alt="Корзина">
                     Корзина
                 </a>
 
                 <a href="/profile" class="nav-link">
-                    <img src="images/profile-img.png" class="nav-icon">
+                    <img src="images/profile-img.png" class="nav-icon" alt="Профиль">
                     Профиль
                 </a>
 
                 <a href="/login" class="nav-link">
-                    <img src="images/join-img.png" class="nav-icon">
+                    <img src="images/join-img.png" class="nav-icon" alt="Войти">
                     Войти
                 </a>
             </nav>
@@ -114,9 +118,9 @@
 </main>
 
 
-<!-- ======= JS ======= -->
+<!-- ======= JS с jQuery ======= -->
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    $(document).ready(function() {
         const params = new URLSearchParams(window.location.search);
         const id = params.get("id");
 
@@ -149,38 +153,36 @@
 
 
     /* =====================
-       ОТОБРАЖЕНИЕ ТОВАРА
+       ОТОБРАЖЕНИЕ ТОВАРА (с jQuery)
     ===================== */
     function fillProduct(p) {
+        // Используем jQuery для установки текста
+        $("#productTitle").text(p.name);
+        $("#productCategory").text(p.category);
+        $("#productCategoryFull").text(p.category);
 
-        document.getElementById("productTitle").textContent = p.name;
-        document.getElementById("productCategory").textContent = p.category;
-        document.getElementById("productCategoryFull").textContent = p.category;
+        $("#productPrice").text(formatPrice(p.price));
 
-        document.getElementById("productPrice").textContent = formatPrice(p.price);
+        $("#productStock").text(`✓ В наличии: ${p.count} шт.`);
 
-        document.getElementById("productStock").textContent =
-            `✓ В наличии: ${p.count} шт.`;
+        $("#productDescription").text(p.description || "Описание отсутствует");
 
-        document.getElementById("productDescription").textContent =
-            p.description || "Описание отсутствует";
+        $("#mainImage").attr("src", "/uploads/images/" + p.image);
 
-        document.getElementById("mainImage").src = "/uploads/images/" + p.image;
-
-        // Количество удалено, просто добавляем товар
+        // Инициализируем добавление в корзину
         initAddToCart(p.id);
     }
 
 
     /* =====================
-       ДОБАВЛЕНИЕ В КОРЗИНУ
+       ДОБАВЛЕНИЕ В КОРЗИНУ (с jQuery)
     ===================== */
     function initAddToCart(productId) {
-        const btn = document.getElementById("addToCartBtn");
+        const $btn = $("#addToCartBtn");
 
-        btn.onclick = async () => {
+        $btn.on("click", async function() {
             try {
-                btn.disabled = true;
+                $btn.prop("disabled", true);
 
                 const response = await fetch(`/api/carts/items?productId=${productId}`, {
                     method: "POST",
@@ -194,22 +196,23 @@
                     throw new Error(err.error || "Ошибка при добавлении в корзину");
                 }
 
-                const s = document.getElementById("successMessage");
-                s.style.display = "block";
-                setTimeout(() => s.style.display = "none", 2000);
+                // Показываем успешное сообщение
+                const $successMsg = $("#successMessage");
+                $successMsg.show();
+                setTimeout(() => $successMsg.hide(), 2000);
 
             } catch (e) {
                 console.error(e);
 
-                const err = document.getElementById("errorMessage");
-                err.textContent = "❌ " + e.message;
-                err.style.display = "block";
-                setTimeout(() => err.style.display = "none", 3000);
+                // Показываем ошибку
+                const $errorMsg = $("#errorMessage");
+                $errorMsg.text("❌ " + e.message).show();
+                setTimeout(() => $errorMsg.hide(), 3000);
 
             } finally {
-                btn.disabled = false;
+                $btn.prop("disabled", false);
             }
-        };
+        });
     }
 
 
@@ -226,13 +229,12 @@
 
 
     /* =====================
-       ОШИБКА
+       ОШИБКА (с jQuery)
     ===================== */
     function showError(msg) {
-        document.getElementById("product-content").style.display = "none";
-
-        document.getElementById("errorText").textContent = msg;
-        document.getElementById("errorBlock").style.display = "block";
+        $("#product-content").hide();
+        $("#errorText").text(msg);
+        $("#errorBlock").show();
     }
 </script>
 
