@@ -107,6 +107,11 @@
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>ru.loolzaaa</groupId>
+            <artifactId>youkassa-sdk-java</artifactId>
+            <version>0.1.0</version>
+        </dependency>
         <!-- MapStruct Core -->
         <dependency>
             <groupId>org.mapstruct</groupId>

@@ -36,7 +36,7 @@ public class Cart {
         if (cartItems == null || cartItems.isEmpty()) {
             return BigDecimal.ZERO;
         }
-        // Так как price уже содержит цену × количество, просто складываем
+
         return cartItems.stream()
                 .map(CartItem::calculatePrice)
                 .filter(Objects::nonNull)

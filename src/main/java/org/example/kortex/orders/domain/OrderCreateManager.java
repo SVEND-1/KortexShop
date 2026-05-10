@@ -7,12 +7,17 @@ import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.notify.event.NotifyEvent;
 import org.example.kortex.notify.event.NotifyType;
 import org.example.kortex.notify.kafka.NotifyKafkaProducer;
+import org.example.kortex.orders.api.dto.OrderPaymentApproved;
 import org.example.kortex.orders.domain.exception.ProductZeroException;
 import org.example.kortex.orders.domain.mapper.OrderMapper;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.db.OrderRepository;
+import org.example.kortex.payments.api.dto.response.payment.PaymentCreateResponse;
+import org.example.kortex.payments.api.dto.response.payment.PaymentResponse;
+import org.example.kortex.payments.db.PaymentEntity;
+import org.example.kortex.payments.domain.PaymentService;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
@@ -22,12 +27,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.loolzaaa.youkassa.model.PersonalData;
 
+import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -37,25 +43,25 @@ public class OrderCreateManager {
     private final CartService cartService;
     private final ProductService productService;
     private final OrderItemService orderItemService;
-    private final OrderMapper orderMapper;
     private final NotifyKafkaProducer kafkaProducer;
+    private final PaymentService paymentService;
 
     @Autowired
     public OrderCreateManager(UserService userService, OrderRepository orderRepository,
                               CartService cartService, ProductService productService,
-                              OrderItemService orderItemService, OrderMapper orderMapper,
-                              NotifyKafkaProducer notifyKafkaProducer) {
+                              OrderItemService orderItemService,
+                              NotifyKafkaProducer notifyKafkaProducer, PaymentService paymentService) {
         this.userService = userService;
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.productService = productService;
         this.orderItemService = orderItemService;
-        this.orderMapper = orderMapper;
         this.kafkaProducer = notifyKafkaProducer;
+        this.paymentService = paymentService;
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public OrderResponseDTO createOrderFromCart(String comment) {
+    public PaymentCreateResponse createOrderFromCart(String comment) {
         try {
             User user = userService.getCurrentUser();
             Cart cart = user.getCart();
@@ -63,12 +69,13 @@ public class OrderCreateManager {
             isValid(user,cart);
             validateCartItems(cart);
 
+            BigDecimal total = calculateTotalAmount(cart);//TODO ИСПРАВИТЬ МАТЕМАТИКУ
             Order order = Order.builder()
                     .user(user)
-                    .status(Order.OrderStatus.PENDING)
+                    .status(Order.OrderStatus.PENDING)//TODO РАЗОБРАТЬСЯ С ВЕБХУК И ДОПИСАТЬ
                     .shippingAddress(user.getAddress())
                     .message(comment)
-                    .totalAmount(calculateTotalAmount(cart))
+                    .totalAmount(total)
                     .build();
             Order savedOrder = orderRepository.save(order);//Переписать логику
 
@@ -76,10 +83,16 @@ public class OrderCreateManager {
             savedOrder.setOrderItems(orderItems);
 
             cartService.clearCartByUserId(user.getId());
-            Order finalOrder = productSubtractQuantity(savedOrder);
-            notify(user);
+            Order paymentOrder = productSubtractQuantity(savedOrder);
 
-            return orderMapper.toDto(finalOrder);
+            BigDecimal yookassaAmount = total.setScale(2, RoundingMode.HALF_UP);
+            String value = yookassaAmount.toPlainString();
+            PaymentCreateResponse response = paymentService.createPayment(value,paymentOrder.getId());
+            paymentOrder.setPaymentId(response.paymentId());
+            orderRepository.save(paymentOrder);
+
+            notify(user);
+            return response;
         }
         catch (DataIntegrityViolationException e) {
             log.error("Нарушение целостности данных при создании заказа, ex={}", e.getMessage());
@@ -92,6 +105,23 @@ public class OrderCreateManager {
             throw new RuntimeException(
                     "Внутренняя ошибка сервера при создании заказа"
             );
+        }
+    }
+
+    @Transactional
+    public String paymentApprove(OrderPaymentApproved request){//TODO добавить id платежа в Order
+        try {
+            String validationError = validatePayment(request.paymentId());
+            if (validationError != null) {
+                return validationError;
+            }
+            Order order = orderRepository.findById(request.orderId()).orElseThrow(() -> new EntityNotFoundException("Не найден заказ"));
+            order.setStatus(Order.OrderStatus.PENDING);
+            orderRepository.save(order);
+            return "Успешно";
+        }catch (Exception e){
+            log.error("Не получилось подтвердить оплату");
+            throw new RuntimeException(e);
         }
     }
 
@@ -144,6 +174,19 @@ public class OrderCreateManager {
         }
 
         return total;
+    }
+
+    private String validatePayment(String paymentId) {
+        if (paymentId == null || paymentId.trim().isEmpty()) {
+            return "Неверный paymentId";
+        }
+        paymentService.isValidUser(paymentId);
+
+        PaymentResponse payment = paymentService.findPaymentDto(paymentId);
+        if (!"succeeded".equals(payment.status())) {
+            return "Платёж не прошёл";
+        }
+        return null;
     }
 
     private void validateCartItems(Cart cart) {

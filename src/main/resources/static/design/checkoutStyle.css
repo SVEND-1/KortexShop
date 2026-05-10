@@ -12,6 +12,10 @@
     min-height: calc(100vh - 150px);
 }
 
+.modal-icon.pending {
+    background: #fff3cd;
+    font-size: 48px;
+}
 .container {
     max-width: 1400px;
     margin: 0 auto;

@@ -1,4 +1,4 @@
-// checkoutScript.js - Упрощенная версия с поддержкой комментария
+// checkoutScript.js - С поддержкой платежной системы
 
 document.addEventListener('DOMContentLoaded', function() {
     initCheckout();
@@ -41,15 +41,10 @@ async function loadCartData() {
 
         currentUserData = data.user || {};
 
-        // Отображаем данные
         renderOrderItems(data.cartItems || []);
         updateOrderSummary(data.totalPrice || 0, data.totalItems || 0);
         renderUserDeliveryInfo(data.user || {});
-
-        // Проверяем наличие адреса
         checkAddressAndUpdateButton(data.user || {});
-
-        // Обновляем итоговую сумму в кнопке
         updateCheckoutButton(data.totalPrice || 0);
 
     } catch (error) {
@@ -99,7 +94,6 @@ function renderUserDeliveryInfo(user) {
     if (emailEl) emailEl.textContent = email;
     if (addressEl) addressEl.textContent = address;
 
-    // Подсветка адреса если не заполнен
     if (!address || address === 'Не указан') {
         if (addressEl) {
             addressEl.style.color = '#dc3545';
@@ -161,7 +155,6 @@ function updateOrderSummary(totalPrice, totalItems) {
     }
 }
 
-// Настройка обработчиков событий
 function setupEventHandlers() {
     const submitOrderBtn = document.getElementById('submit-order-btn');
 
@@ -176,7 +169,6 @@ async function handleSubmitOrder(e) {
 
     console.log('Начинаем оформление заказа...');
 
-    // Проверяем наличие адреса еще раз
     if (!currentUserData || !currentUserData.address || currentUserData.address.trim() === '' || currentUserData.address === 'null') {
         showError('Для оформления заказа необходимо указать адрес доставки в профиле');
         return;
@@ -191,18 +183,13 @@ async function handleSubmitOrder(e) {
     submitBtn.innerHTML = '<span>Оформление...</span>';
 
     try {
-        // Получаем комментарий из textarea
         const comment = document.getElementById('comment')?.value || '';
-
-        // Отправляем комментарий как Query Parameter (как требует ваш контроллер)
-        // @PostMapping() public ResponseEntity<?> createOrder(@RequestParam String comment)
 
         console.log('Отправка комментария:', comment);
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        // ВАЖНО: отправляем comment как Query Parameter, а не в body!
         const response = await fetch(`/api/orders?comment=${encodeURIComponent(comment)}`, {
             method: 'POST',
             headers: {
@@ -211,7 +198,6 @@ async function handleSubmitOrder(e) {
             },
             credentials: 'include',
             signal: controller.signal
-            // НЕ отправляем body, так как используем @RequestParam
         });
 
         clearTimeout(timeoutId);
@@ -229,7 +215,7 @@ async function handleSubmitOrder(e) {
         let result;
         try {
             result = await response.json();
-            console.log('Результат создания заказа:', result);
+            console.log('Результат создания заказа (PaymentCreateResponse):', result);
         } catch (jsonError) {
             if (response.status === 200 || response.status === 201) {
                 result = { success: true };
@@ -242,9 +228,25 @@ async function handleSubmitOrder(e) {
             throw new Error(result.error || `Ошибка ${response.status}`);
         }
 
-        // Показываем модальное окно успеха
-        const orderId = result.id || result.orderId;
-        showSuccessModal(orderId);
+        // Если есть URL для оплаты - перенаправляем на платежную страницу
+        if (result.urlPay) {
+            console.log('Перенаправление на страницу оплаты:', result.urlPay);
+
+            // Сохраняем информацию о заказе в localStorage
+            const paymentData = {
+                orderId: result.orderId,
+                paymentId: result.paymentId,
+                urlPay: result.urlPay,
+                createdAt: new Date().toISOString()
+            };
+            localStorage.setItem('pendingPayment', JSON.stringify(paymentData));
+
+            // Перенаправляем на страницу оплаты
+            window.location.href = result.urlPay;
+        } else {
+            // Если платеж не требуется - показываем успех
+            showSuccessModal(result.orderId);
+        }
 
     } catch (error) {
         console.error('Ошибка при оформлении заказа:', error);
@@ -255,8 +257,6 @@ async function handleSubmitOrder(e) {
             errorMessage += 'Время ожидания истекло. Попробуйте позже.';
         } else if (error.message.includes('Failed to fetch')) {
             errorMessage += 'Проблема с подключением к серверу.';
-        } else if (error.message.includes('comment')) {
-            errorMessage += 'Ошибка при отправке комментария.';
         } else {
             errorMessage += error.message;
         }
@@ -268,7 +268,98 @@ async function handleSubmitOrder(e) {
     }
 }
 
-// Показ модального окна успеха
+// Функция для проверки статуса платежа после возврата
+async function checkPaymentStatus(orderId) {
+    try {
+        console.log('Проверка статуса платежа для заказа:', orderId);
+
+        const response = await fetch(`/api/orders/${orderId}/status`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const orderData = await response.json();
+            console.log('Статус заказа:', orderData);
+
+            if (orderData.status === 'PENDING' || orderData.status === 'PAID') {
+                // Платеж успешен
+                showSuccessModal(orderId);
+                // Очищаем сохраненные данные
+                localStorage.removeItem('pendingPayment');
+                return true;
+            } else if (orderData.status === 'PAYMENT') {
+                // Еще ожидает оплаты
+                showPaymentPendingModal(orderId);
+                return false;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('Ошибка проверки статуса:', error);
+        return false;
+    }
+}
+
+// Показ модального окна ожидания оплаты
+function showPaymentPendingModal(orderId) {
+    const modal = document.getElementById('payment-pending-modal');
+    if (!modal) {
+        // Создаем модальное окно если его нет
+        createPaymentPendingModal();
+    }
+
+    const pendingModal = document.getElementById('payment-pending-modal');
+    const orderIdSpan = document.getElementById('pending-order-id');
+
+    if (orderIdSpan && orderId) {
+        orderIdSpan.textContent = `#${orderId}`;
+    }
+
+    if (pendingModal) {
+        pendingModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function createPaymentPendingModal() {
+    const modalHTML = `
+        <div id="payment-pending-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-icon pending">⏳</div>
+                <h3>Ожидание оплаты</h3>
+                <p>Заказ <strong id="pending-order-id">#00000</strong> ожидает оплаты</p>
+                <p>После успешной оплаты статус заказа обновится автоматически</p>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="checkPaymentAgain()">
+                        Проверить статус
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.location.href='/profile'">
+                        Перейти в профиль
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// Функция для повторной проверки платежа
+window.checkPaymentAgain = async function() {
+    const pendingPayment = localStorage.getItem('pendingPayment');
+    if (pendingPayment) {
+        const data = JSON.parse(pendingPayment);
+        await checkPaymentStatus(data.orderId);
+    } else {
+        closeAllModals();
+        window.location.href = '/profile';
+    }
+};
+
 function showSuccessModal(orderId) {
     const modal = document.getElementById('success-modal');
     const orderIdSpan = document.getElementById('order-id');
@@ -281,9 +372,11 @@ function showSuccessModal(orderId) {
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
+
+    // Очищаем корзину в localStorage
+    localStorage.removeItem('cart');
 }
 
-// Показ состояния загрузки
 function showLoading() {
     const itemsContainer = document.getElementById('order-items-container');
 
@@ -294,7 +387,6 @@ function showLoading() {
 
 function hideLoading() {}
 
-// Показ ошибки
 function showError(message) {
     const modal = document.getElementById('error-modal');
     const messageElement = document.getElementById('error-message');
@@ -309,7 +401,6 @@ function showError(message) {
     }
 }
 
-// Закрытие модального окна
 function closeModal() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.classList.remove('active');
@@ -317,7 +408,14 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
-// Обновление кнопки оформления
+function closeAllModals() {
+    closeModal();
+    const pendingModal = document.getElementById('payment-pending-modal');
+    if (pendingModal) {
+        pendingModal.classList.remove('active');
+    }
+}
+
 function updateCheckoutButton(total) {
     const button = document.getElementById('submit-order-btn');
     if (button) {
@@ -333,7 +431,6 @@ function updateCheckoutButton(total) {
     }
 }
 
-// Форматирование цены
 function formatPrice(price) {
     return new Intl.NumberFormat('ru-RU', {
         style: 'decimal',
@@ -351,6 +448,17 @@ function escapeHtml(text) {
 
 // Глобальные функции
 window.closeModal = closeModal;
+window.closeAllModals = closeAllModals;
+
+// При загрузке страницы проверяем, не вернулись ли с оплаты
+document.addEventListener('DOMContentLoaded', function() {
+    const pendingPayment = localStorage.getItem('pendingPayment');
+    if (pendingPayment) {
+        const data = JSON.parse(pendingPayment);
+        console.log('Обнаружен ожидающий платеж для заказа:', data.orderId);
+        checkPaymentStatus(data.orderId);
+    }
+});
 
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal')) {

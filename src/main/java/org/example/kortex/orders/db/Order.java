@@ -48,6 +48,9 @@ public class Order {
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
+    @Column(name = "payment_id")
+    private String paymentId;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
 
@@ -57,7 +60,7 @@ public class Order {
     }
 
     public enum OrderStatus {
-        PENDING, DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED,COMPLETED
+        PAYMENT,PENDING, DISPATCHED, DELIVERED_TO_DESTINATION, CANCELLED, RETURNED,COMPLETED
     }
 }
 

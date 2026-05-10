@@ -49,7 +49,7 @@ public class SecurityConfig {
 
                 .antMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                         "/v3/api-docs", "/swagger-resources/**", "/webjars/**")
-                .hasAnyRole("ADMIN","COURIER")
+                .hasRole("ADMIN")
 
                 .antMatchers("/profile", "/cart", "/api/users/role-request/**",
                         "/api/users/**", "/api/orders/**", "/api/carts/**")

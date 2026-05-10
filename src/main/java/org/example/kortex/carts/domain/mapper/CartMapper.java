@@ -27,12 +27,6 @@ public interface CartMapper {
 
     @Named("calculateTotal")
     default BigDecimal calculateTotal(Cart cart) {
-        if (cart == null || cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-
-        return cart.getCartItems().stream()
-                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return cart.totalPrice();
     }
 }

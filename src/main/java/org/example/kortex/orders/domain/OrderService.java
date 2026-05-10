@@ -6,13 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.kortex.carts.domain.mapper.CartMapper;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.Cart;
-import org.example.kortex.orders.api.dto.CreateOrderPageDTO;
-import org.example.kortex.orders.api.dto.OrdersSearchCourierFilter;
-import org.example.kortex.orders.api.dto.OrderPageResponse;
-import org.example.kortex.orders.api.dto.OrderResponseDTO;
+import org.example.kortex.orders.api.dto.*;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.orders.domain.mapper.OrderMapper;
+import org.example.kortex.payments.api.dto.response.payment.PaymentCreateResponse;
 import org.example.kortex.users.domain.mapper.UserMapper;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
@@ -91,11 +89,19 @@ public class OrderService {
         }
     }
 
-    public OrderResponseDTO createOrderFromCart(String comment) {
+    public PaymentCreateResponse createOrderFromCart(String comment) {
         return orderCreateManager.createOrderFromCart(comment);
     }
 
+    public String paymentApprove(OrderPaymentApproved request) {
+        return orderCreateManager.paymentApprove(request);
+    }
+
     //================================Service Methods================================================
+
+    public Order findOrderIdByPaymentId(String paymentId) {
+        return orderRepository.findByPaymentId(paymentId);
+    }
 
     public List<Order> getAll(){
         return orderRepository.findAll();
