@@ -9,23 +9,14 @@
     <link rel="stylesheet" href="design/checkoutStyle.css">
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <title>Оформление заказа - Kortex Marketplace</title>
+    <title>Оформление заказа - Kortex</title>
 </head>
 <body>
 <!-- Шапка страницы -->
 <header class="header">
     <div class="container">
         <div class="header-content">
-            <a href="/" class="logo">Kortex marketplace</a>
-
-            <form class="search-form" action="/search" method="GET">
-                <div class="search-container">
-                    <input id="search-input" type="text" class="search-input" placeholder="Поиск товаров...">
-                    <button type="submit" class="search-button">
-                        <img id="findImg" src="images/findImg.png" alt="Поиск">
-                    </button>
-                </div>
-            </form>
+            <a href="/" class="logo">Kortex</a>
 
             <nav class="nav">
                 <a href="/cart" class="nav-link">
@@ -53,64 +44,45 @@
         <h1 class="checkout-title">Оформление заказа</h1>
 
         <div class="checkout-content">
-            <!-- Левая колонка: Форма оформления -->
+            <!-- Левая колонка: Информация о доставке -->
             <div class="checkout-form-section">
                 <div class="checkout-form-card">
                     <div class="section-header">
-                        <h2><i class="icon-user"></i> Данные доставки</h2>
+                        <h2>📋 Информация о доставке</h2>
                     </div>
 
-                    <form id="checkout-form" class="checkout-form">
-                        <!-- ФИО получателя -->
-                        <div class="form-group">
-                            <label for="recipient-name" class="required">
-                                <i class="icon-user-circle"></i> ФИО получателя *
-                            </label>
-                            <input type="text" id="recipient-name" name="recipientName"
-                                   placeholder="Иванов Иван Иванович" required>
+                    <!-- Информация о пользователе (только для просмотра) -->
+                    <div class="user-delivery-info" id="userDeliveryInfo">
+                        <div class="info-row">
+                            <span class="info-label">📦 Получатель:</span>
+                            <span class="info-value" id="display-name">Загрузка...</span>
                         </div>
-
-                        <!-- Email -->
-                        <div class="form-group">
-                            <label for="email" class="required">
-                                <i class="icon-mail"></i> Email *
-                            </label>
-                            <input type="email" id="email" name="email"
-                                   placeholder="example@mail.ru" required>
+                        <div class="info-row">
+                            <span class="info-label">📧 Email:</span>
+                            <span class="info-value" id="display-email">Загрузка...</span>
                         </div>
-
-                        <!-- Адрес доставки -->
-                        <div class="form-group">
-                            <label for="address" class="required">
-                                <i class="icon-map-pin"></i> Адрес доставки *
-                            </label>
-                            <input type="text" id="address" name="address"
-                                   placeholder="Город, улица, дом, квартира" required>
+                        <div class="info-row">
+                            <span class="info-label">📍 Адрес доставки:</span>
+                            <span class="info-value" id="display-address">Загрузка...</span>
                         </div>
+                    </div>
 
-
-
-                        <!-- Комментарий к заказу -->
-                        <div class="form-group">
-                            <label for="comment">
-                                <i class="icon-message-circle"></i> Комментарий к заказу
-                            </label>
-                            <textarea id="comment" name="comment"
-                                      placeholder="Дополнительные пожелания..."
-                                      rows="3"></textarea>
+                    <!-- Предупреждение о необходимости заполнить адрес -->
+                    <div class="address-warning" id="addressWarning" style="display: none;">
+                        <div class="warning-icon">⚠️</div>
+                        <div class="warning-text">
+                            <strong>Адрес доставки не указан!</strong>
+                            <p>Для оформления заказа необходимо добавить адрес в <a href="/profile">профиле</a></p>
                         </div>
+                    </div>
 
-
-
-                        <!-- Соглашение -->
-                        <div class="agreement">
-                            <input type="checkbox" id="agree-terms" name="agreeTerms" required>
-                            <label for="agree-terms">
-                                Я согласен с <a href="/terms" target="_blank">условиями использования</a>
-                                и <a href="/privacy" target="_blank">политикой конфиденциальности</a>
-                            </label>
-                        </div>
-                    </form>
+                    <!-- Комментарий к заказу -->
+                    <div class="form-group">
+                        <label for="comment">💬 Комментарий к заказу</label>
+                        <textarea id="comment" name="comment"
+                                  placeholder="Дополнительные пожелания..."
+                                  rows="3"></textarea>
+                    </div>
                 </div>
             </div>
 
@@ -118,7 +90,7 @@
             <div class="order-summary-section">
                 <div class="order-summary-card">
                     <div class="section-header">
-                        <h2><i class="icon-shopping-bag"></i> Ваш заказ</h2>
+                        <h2>🛍️ Ваш заказ</h2>
                     </div>
 
                     <!-- Товары -->
@@ -136,10 +108,6 @@
                             <span>Доставка:</span>
                             <span class="delivery-price">Бесплатно</span>
                         </div>
-                        <div class="total-row discount">
-                            <span>Скидка:</span>
-                            <span class="discount-amount">-0 ₽</span>
-                        </div>
                         <div class="total-row final-total">
                             <span>Итого:</span>
                             <span class="total-price" id="total-price">0 ₽</span>
@@ -148,19 +116,14 @@
 
                     <!-- Кнопка оформления -->
                     <div class="checkout-actions">
-                        <button type="submit" form="checkout-form" class="checkout-button" id="submit-order-btn">
+                        <button type="button" class="checkout-button" id="submit-order-btn">
                             <span class="button-text">Оформить заказ</span>
                             <span class="button-icon">→</span>
                         </button>
                         <p class="secure-notice">
-                            <i class="icon-shield"></i> Ваши данные защищены
+                            🔒 Ваши данные защищены
                         </p>
                     </div>
-                </div>
-
-                <!-- Информация о пользователе -->
-                <div class="user-info-card" id="user-info-section">
-                    <div class="loading-spinner"></div>
                 </div>
             </div>
         </div>
@@ -170,9 +133,7 @@
 <!-- Модальное окно успеха -->
 <div id="success-modal" class="modal">
     <div class="modal-content">
-        <div class="modal-icon success">
-            <i class="icon-check-circle"></i>
-        </div>
+        <div class="modal-icon success">✅</div>
         <h3>Заказ оформлен!</h3>
         <p>Номер вашего заказа: <strong id="order-id">#00000</strong></p>
         <p>Информация о заказе отправлена на вашу почту</p>
@@ -180,7 +141,7 @@
             <button class="btn btn-primary" onclick="window.location.href='/'">
                 Вернуться на главную
             </button>
-            <button class="btn btn-secondary" onclick="window.location.href='/profile/orders'">
+            <button class="btn btn-secondary" onclick="window.location.href='/profile'">
                 Мои заказы
             </button>
         </div>
@@ -190,9 +151,7 @@
 <!-- Модальное окно ошибки -->
 <div id="error-modal" class="modal">
     <div class="modal-content">
-        <div class="modal-icon error">
-            <i class="icon-alert-circle"></i>
-        </div>
+        <div class="modal-icon error">❌</div>
         <h3>Ошибка</h3>
         <p id="error-message">Произошла ошибка при оформлении заказа</p>
         <div class="modal-actions">

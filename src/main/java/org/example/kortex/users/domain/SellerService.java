@@ -1,7 +1,7 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.products.api.mapper.ProductMapper;
+import org.example.kortex.products.domain.mapper.ProductMapper;
 import org.example.kortex.products.api.dto.ProductRequest;
 import org.example.kortex.products.api.dto.ProductResponse;
 import org.example.kortex.products.db.Product;

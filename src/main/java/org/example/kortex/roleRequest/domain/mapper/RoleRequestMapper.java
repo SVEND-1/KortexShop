@@ -1,4 +1,4 @@
-package org.example.kortex.roleRequest.api.mapper;
+package org.example.kortex.roleRequest.domain.mapper;
 
 import org.example.kortex.roleRequest.api.dto.RolePageResponse;
 import org.example.kortex.roleRequest.api.dto.RoleRequestResponse;

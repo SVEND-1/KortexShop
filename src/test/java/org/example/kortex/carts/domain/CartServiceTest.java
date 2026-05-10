@@ -2,7 +2,7 @@ package org.example.kortex.carts.domain;
 
 import org.example.kortex.carts.api.dto.CartResponse;
 import org.example.kortex.carts.api.dto.CartItemResponse;
-import org.example.kortex.carts.api.mapper.CartMapper;
+import org.example.kortex.carts.domain.mapper.CartMapper;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.carts.db.CartRepository;

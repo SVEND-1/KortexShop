@@ -1,14 +1,14 @@
 package org.example.kortex.orders.domain;
 
 import org.example.kortex.carts.api.dto.CartItemResponse;
-import org.example.kortex.carts.api.mapper.CartMapper;
+import org.example.kortex.carts.domain.mapper.CartMapper;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.carts.db.CartItem;
 import org.example.kortex.orders.api.dto.CreateOrderPageDTO;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.users.api.dto.user.UserResponse;
-import org.example.kortex.users.api.mapper.UserMapper;
+import org.example.kortex.users.domain.mapper.UserMapper;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;

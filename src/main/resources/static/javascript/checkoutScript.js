@@ -1,13 +1,14 @@
-// checkoutScript.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// checkoutScript.js - Упрощенная версия с поддержкой комментария
 
 document.addEventListener('DOMContentLoaded', function() {
     initCheckout();
 });
 
+let currentUserData = null;
+
 function initCheckout() {
     loadCartData();
     setupEventHandlers();
-    setupAutoFill();
 }
 
 // Загрузка данных корзины с сервера
@@ -38,10 +39,15 @@ async function loadCartData() {
         const data = await response.json();
         console.log('Данные с сервера:', data);
 
+        currentUserData = data.user || {};
+
         // Отображаем данные
         renderOrderItems(data.cartItems || []);
         updateOrderSummary(data.totalPrice || 0, data.totalItems || 0);
-        renderUserInfo(data.user || {});
+        renderUserDeliveryInfo(data.user || {});
+
+        // Проверяем наличие адреса
+        checkAddressAndUpdateButton(data.user || {});
 
         // Обновляем итоговую сумму в кнопке
         updateCheckoutButton(data.totalPrice || 0);
@@ -51,6 +57,58 @@ async function loadCartData() {
         showError(`Ошибка загрузки данных: ${error.message}`);
     } finally {
         hideLoading();
+    }
+}
+
+// Проверка адреса и обновление кнопки
+function checkAddressAndUpdateButton(user) {
+    const submitBtn = document.getElementById('submit-order-btn');
+    const addressWarning = document.getElementById('addressWarning');
+
+    const hasAddress = user.address && user.address.trim() !== '' && user.address !== 'null' && user.address !== 'Адрес не указан';
+
+    if (!hasAddress) {
+        if (addressWarning) addressWarning.style.display = 'flex';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.title = 'Для оформления заказа необходимо указать адрес в профиле';
+        }
+        return false;
+    } else {
+        if (addressWarning) addressWarning.style.display = 'none';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+        }
+        return true;
+    }
+}
+
+// Отображение информации о доставке
+function renderUserDeliveryInfo(user) {
+    const nameEl = document.getElementById('display-name');
+    const emailEl = document.getElementById('display-email');
+    const addressEl = document.getElementById('display-address');
+
+    const fullName = user.fullName || user.name || 'Не указано';
+    const email = user.email || 'Не указан';
+    const address = user.address && user.address !== 'null' ? user.address : 'Не указан';
+
+    if (nameEl) nameEl.textContent = fullName;
+    if (emailEl) emailEl.textContent = email;
+    if (addressEl) addressEl.textContent = address;
+
+    // Подсветка адреса если не заполнен
+    if (!address || address === 'Не указан') {
+        if (addressEl) {
+            addressEl.style.color = '#dc3545';
+            addressEl.style.fontWeight = 'bold';
+        }
+    } else {
+        if (addressEl) {
+            addressEl.style.color = '#28a745';
+        }
     }
 }
 
@@ -78,7 +136,7 @@ function renderOrderItems(cartItems) {
                          onerror="this.onerror=null; this.src='/images/no-image.png'">
                 </div>
                 <div class="item-details">
-                    <div class="item-name">${productName}</div>
+                    <div class="item-name">${escapeHtml(productName)}</div>
                     <div class="item-meta">
                         <div class="item-quantity">${quantity} шт.</div>
                         <div class="item-price">${formatPrice(total)}</div>
@@ -103,55 +161,6 @@ function updateOrderSummary(totalPrice, totalItems) {
     }
 }
 
-// Отображение информации о пользователе
-function renderUserInfo(user) {
-    const container = document.getElementById('user-info-section');
-    console.log('Рендерим user:', user);
-
-    if (!user || !user.email) {
-        container.innerHTML = `
-            <div class="user-info-header">
-                <h3>Информация о покупателе</h3>
-            </div>
-            <div class="user-details">
-                <p style="color: #666; text-align: center;">Войдите в аккаунт</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Пробуем разные варианты названий полей
-    const fullName = user.fullName ||
-        `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-        user.name ||
-        'Не указано';
-
-    const address = user.address ||
-        user.deliveryAddress ||
-        user.shippingAddress ||
-        'Не указан';
-
-    container.innerHTML = `
-        <div class="user-info-header">
-            <h3>Информация о покупателе</h3>
-        </div>
-        <div class="user-details">
-            <div class="user-detail">
-                <span>Имя:</span>
-                <span>${fullName}</span>
-            </div>
-            <div class="user-detail">
-                <span>Email:</span>
-                <span>${user.email}</span>
-            </div>
-            <div class="user-detail">
-                <span>Адрес:</span>
-                <span>${address}</span>
-            </div>
-        </div>
-    `;
-}
-
 // Настройка обработчиков событий
 function setupEventHandlers() {
     const submitOrderBtn = document.getElementById('submit-order-btn');
@@ -159,75 +168,50 @@ function setupEventHandlers() {
     if (submitOrderBtn) {
         submitOrderBtn.addEventListener('click', handleSubmitOrder);
     }
-
-    // Валидация полей при вводе
-    const requiredFields = document.querySelectorAll('#checkout-form input[required]');
-    requiredFields.forEach(field => {
-        field.addEventListener('blur', validateField);
-    });
 }
 
-// Настройка автозаполнения формы из данных пользователя
-function setupAutoFill() {
-    setTimeout(() => {
-        const userEmail = document.querySelector('#user-info-section .user-detail:nth-child(2) span:last-child')?.textContent;
-        const userName = document.querySelector('#user-info-section .user-detail:nth-child(1) span:last-child')?.textContent;
-        const userAddress = document.querySelector('#user-info-section .user-detail:nth-child(3) span:last-child')?.textContent;
-
-        // Автозаполняем только если данные есть и не "Не указано"
-        if (userEmail && userEmail !== 'Не указан') {
-            const emailInput = document.getElementById('email');
-            if (emailInput) emailInput.value = userEmail;
-        }
-
-        if (userName && userName !== 'Не указано') {
-            const nameInput = document.getElementById('recipient-name');
-            if (nameInput) nameInput.value = userName;
-        }
-
-        if (userAddress && userAddress !== 'Не указан') {
-            const addressInput = document.getElementById('address');
-            if (addressInput) addressInput.value = userAddress;
-        }
-    }, 500);
-}
-
-// Обработка нажатия на кнопку "Оформить заказ" - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Обработка нажатия на кнопку "Оформить заказ"
 async function handleSubmitOrder(e) {
     e.preventDefault();
 
     console.log('Начинаем оформление заказа...');
 
-    if (!validateForm()) {
-        console.log('Форма не валидна');
+    // Проверяем наличие адреса еще раз
+    if (!currentUserData || !currentUserData.address || currentUserData.address.trim() === '' || currentUserData.address === 'null') {
+        showError('Для оформления заказа необходимо указать адрес доставки в профиле');
         return;
     }
 
     const submitBtn = document.getElementById('submit-order-btn');
     if (!submitBtn) return;
 
-    // Сохраняем оригинальный текст ДО try-catch
     const originalText = submitBtn.innerHTML;
 
-    // Блокируем кнопку
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span>Оформление...</span>';
 
     try {
-        // Отправляем POST запрос на создание заказа
-        console.log('Отправляем запрос на /api/orders...');
+        // Получаем комментарий из textarea
+        const comment = document.getElementById('comment')?.value || '';
 
-        // Добавляем таймаут для запроса
+        // Отправляем комментарий как Query Parameter (как требует ваш контроллер)
+        // @PostMapping() public ResponseEntity<?> createOrder(@RequestParam String comment)
+
+        console.log('Отправка комментария:', comment);
+
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        const response = await fetch('/api/orders', {
+        // ВАЖНО: отправляем comment как Query Parameter, а не в body!
+        const response = await fetch(`/api/orders?comment=${encodeURIComponent(comment)}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             credentials: 'include',
             signal: controller.signal
+            // НЕ отправляем body, так как используем @RequestParam
         });
 
         clearTimeout(timeoutId);
@@ -242,15 +226,12 @@ async function handleSubmitOrder(e) {
             return;
         }
 
-        // Пробуем прочитать ответ, даже если он неполный
         let result;
         try {
             result = await response.json();
             console.log('Результат создания заказа:', result);
         } catch (jsonError) {
-            console.warn('Не удалось распарсить JSON ответ:', jsonError);
-            // Если не удалось распарсить JSON, но статус 201 - считаем успехом
-            if (response.status === 201) {
+            if (response.status === 200 || response.status === 201) {
                 result = { success: true };
             } else {
                 throw new Error('Сервер вернул невалидный ответ');
@@ -261,143 +242,57 @@ async function handleSubmitOrder(e) {
             throw new Error(result.error || `Ошибка ${response.status}`);
         }
 
-        // Показываем сообщение об успехе и переходим на главную
-        alert('✅ Заказ успешно оформлен!' +
-            (result.order && result.order.id ? ' Номер заказа: #' + result.order.id : ''));
-
-        // Немедленный редирект на главную
-        window.location.href = '/';
+        // Показываем модальное окно успеха
+        const orderId = result.id || result.orderId;
+        showSuccessModal(orderId);
 
     } catch (error) {
         console.error('Ошибка при оформлении заказа:', error);
 
-        // Показываем понятное сообщение об ошибке
         let errorMessage = 'Не удалось оформить заказ. ';
 
         if (error.name === 'AbortError') {
             errorMessage += 'Время ожидания истекло. Попробуйте позже.';
         } else if (error.message.includes('Failed to fetch')) {
             errorMessage += 'Проблема с подключением к серверу.';
+        } else if (error.message.includes('comment')) {
+            errorMessage += 'Ошибка при отправке комментария.';
         } else {
             errorMessage += error.message;
         }
 
         showError(errorMessage);
 
-        // Восстанавливаем кнопку
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
-
-    } finally {
-        // Убедимся, что кнопка разблокирована в любом случае
-        if (submitBtn.disabled) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-        }
     }
 }
 
-// Валидация формы
-function validateForm() {
-    let isValid = true;
+// Показ модального окна успеха
+function showSuccessModal(orderId) {
+    const modal = document.getElementById('success-modal');
+    const orderIdSpan = document.getElementById('order-id');
 
-    // Проверяем только обязательные поля
-    const requiredFields = [
-        'recipient-name',
-        'email',
-        'address'
-    ];
-
-    requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field || !field.value.trim()) {
-            highlightFieldError(field, 'Это поле обязательно для заполнения');
-            isValid = false;
-        } else if (fieldId === 'email' && !isValidEmail(field.value)) {
-            highlightFieldError(field, 'Введите корректный email');
-            isValid = false;
-        } else {
-            clearFieldError(field);
-        }
-    });
-
-    // Проверяем согласие с условиями
-    const agreeTerms = document.getElementById('agree-terms');
-    if (!agreeTerms || !agreeTerms.checked) {
-        showError('Необходимо согласиться с условиями использования');
-        isValid = false;
+    if (orderIdSpan && orderId) {
+        orderIdSpan.textContent = `#${orderId}`;
     }
 
-    return isValid;
-}
-
-// Валидация отдельного поля
-function validateField(e) {
-    const field = e.target;
-
-    if (field.hasAttribute('required') && !field.value.trim()) {
-        highlightFieldError(field, 'Это поле обязательно для заполнения');
-    } else if (field.type === 'email' && !isValidEmail(field.value)) {
-        highlightFieldError(field, 'Введите корректный email');
-    } else {
-        clearFieldError(field);
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
-}
-
-function highlightFieldError(field, message) {
-    if (!field) return;
-
-    field.style.borderColor = '#dc3545';
-    field.style.boxShadow = '0 0 0 3px rgba(220, 53, 69, 0.1)';
-
-    // Удаляем предыдущее сообщение об ошибке
-    const existingError = field.parentNode.querySelector('.field-error');
-    if (existingError) existingError.remove();
-
-    // Добавляем новое сообщение об ошибке
-    const errorElement = document.createElement('div');
-    errorElement.className = 'field-error';
-    errorElement.style.color = '#dc3545';
-    errorElement.style.fontSize = '13px';
-    errorElement.style.marginTop = '5px';
-    errorElement.textContent = message;
-
-    field.parentNode.appendChild(errorElement);
-}
-
-function clearFieldError(field) {
-    if (!field) return;
-
-    field.style.borderColor = '#e9ecef';
-    field.style.boxShadow = 'none';
-
-    const existingError = field.parentNode.querySelector('.field-error');
-    if (existingError) existingError.remove();
-}
-
-// Вспомогательные функции валидации
-function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
 }
 
 // Показ состояния загрузки
 function showLoading() {
     const itemsContainer = document.getElementById('order-items-container');
-    const userContainer = document.getElementById('user-info-section');
 
     if (itemsContainer) {
         itemsContainer.innerHTML = '<div class="loading-spinner">Загрузка...</div>';
     }
-
-    if (userContainer) {
-        userContainer.innerHTML = '<div class="loading-spinner">Загрузка...</div>';
-    }
 }
 
-function hideLoading() {
-    // Можно добавить, если нужно явно скрывать загрузку
-}
+function hideLoading() {}
 
 // Показ ошибки
 function showError(message) {
@@ -447,17 +342,22 @@ function formatPrice(price) {
     }).format(price) + ' ₽';
 }
 
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Глобальные функции
 window.closeModal = closeModal;
 
-// Обработка клика вне модального окна
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal')) {
         closeModal();
     }
 });
 
-// Обработка Escape для закрытия модальных окон
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeModal();

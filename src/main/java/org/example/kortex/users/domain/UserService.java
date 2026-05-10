@@ -1,11 +1,11 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.orders.api.mapper.OrderMapper;
+import org.example.kortex.orders.domain.mapper.OrderMapper;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.users.api.dto.user.UserResponse;
-import org.example.kortex.users.api.mapper.UserMapper;
+import org.example.kortex.users.domain.mapper.UserMapper;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.db.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

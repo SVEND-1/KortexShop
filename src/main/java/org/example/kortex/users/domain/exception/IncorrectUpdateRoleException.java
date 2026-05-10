@@ -1,4 +1,4 @@
-package org.example.kortex.users.api.exception;
+package org.example.kortex.users.domain.exception;
 
 public class IncorrectUpdateRoleException extends RuntimeException{
     public IncorrectUpdateRoleException(String message) {

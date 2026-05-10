@@ -1,14 +1,14 @@
 package org.example.kortex.orders.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.orders.api.OrdersSearchCourierFilter;
+import org.example.kortex.orders.api.dto.OrdersSearchCourierFilter;
 import org.example.kortex.orders.api.dto.OrderPageResponse;
-import org.example.kortex.orders.api.exception.UserNotCourierException;
+import org.example.kortex.orders.domain.exception.UserNotCourierException;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.domain.ProductService;
-import org.example.kortex.users.api.dto.courier.CourierDTOMapper;
+import org.example.kortex.users.domain.mapper.CourierDTOMapper;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
@@ -42,21 +42,18 @@ public class OrderCourierManager {
         return orders;
     }
 
+    @Transactional
     public OrderPageResponse assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
         log.info("Заказы курьера с filter={}", filter);
 
-        if(filter.courierId() == null){
-            throw new IllegalArgumentException("Id курьера не передано");
-        }
-
-        User courier = userService.getById(filter.courierId());
+        User courier = userService.getCurrentUser();
         validateCourier(courier);
 
         int pageSize = filter.pageSize() != null ? filter.pageSize() : 8;
         int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
         Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        var orders = orderRepository.assignedOrdersPage(filter.courierId(), pageable);
+        var orders = orderRepository.assignedOrdersPage(courier.getId(), pageable);
         OrderPageResponse response = courierDTOMapper.toPageResponse(orders);
         log.info("Заказы курьера с фильтром выданы");
         return response;

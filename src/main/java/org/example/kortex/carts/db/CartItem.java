@@ -46,9 +46,11 @@ public class CartItem {
     }
 
 
-    public void calculatePrice() {
+    public BigDecimal  calculatePrice() {
         if (product != null && product.getPrice() != null) {
             this.price = product.getPrice().multiply(BigDecimal.valueOf(quantity));
         }
+        return price;
     }
+
 }

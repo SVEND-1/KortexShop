@@ -8,7 +8,7 @@ import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.api.dto.courier.CourierAssignResponse;
 import org.example.kortex.users.api.dto.courier.SetStatusOrderResponse;
-import org.example.kortex.users.api.exception.CourierHasActiveOrderException;
+import org.example.kortex.users.domain.exception.CourierHasActiveOrderException;
 import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

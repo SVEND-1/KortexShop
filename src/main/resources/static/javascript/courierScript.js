@@ -7,9 +7,15 @@ const pageSize = 3;
 let totalPages = 0;
 let totalElements = 0;
 
+// Модальное окно для деталей заказа
+let orderDetailsModal = null;
+
 // Основная функция инициализации
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Панель курьера загружена');
+
+    // Создаем модальное окно
+    createModal();
 
     try {
         // Получаем данные текущего пользователя
@@ -21,43 +27,225 @@ document.addEventListener('DOMContentLoaded', async function() {
                 window.location.href = '/login';
                 return;
             }
-            const errorText = await userResponse.text();
-            throw new Error(`HTTP ${userResponse.status}: ${errorText}`);
+            throw new Error(`HTTP ${userResponse.status}`);
         }
 
         const userData = await userResponse.json();
         console.log('Данные пользователя:', userData);
 
-        // Проверяем структуру ответа
-        if (userData.error) {
-            throw new Error(userData.error);
-        }
-
         currentUser = userData;
 
-        // Проверяем, что пользователь - курьер ИЛИ админ
         if (currentUser.role !== 'COURIER' && currentUser.role !== 'ADMIN') {
             alert('Доступ только для курьеров и администраторов!');
             window.location.href = '/';
             return;
         }
 
-        // Обновляем UI
         updateUserInfo();
-
-        // Загружаем данные
         await loadData();
 
     } catch (error) {
         console.error('Ошибка инициализации:', error);
         showError(`Ошибка загрузки данных: ${error.message}`);
-
-        // Если ошибка авторизации, перенаправляем на логин
-        if (error.message.includes('401') || error.message.includes('авторизация')) {
-            setTimeout(() => window.location.href = '/login', 2000);
-        }
     }
 });
+
+// Создание модального окна
+function createModal() {
+    const modalHTML = `
+        <div id="orderDetailsModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Детали заказа #<span id="modalOrderId"></span></h2>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <div class="loading">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Добавляем стили для модального окна
+    const modalStyles = document.createElement('style');
+    modalStyles.textContent = `
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 0;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+        
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 1.5rem;
+        }
+        
+        .modal-close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 25px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .detail-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+            padding: 8px 0;
+        }
+        
+        .detail-label {
+            width: 120px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .detail-value {
+            flex: 1;
+            color: #333;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .items-table th,
+        .items-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .items-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .items-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .product-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        
+        .total-amount {
+            margin-top: 20px;
+            padding-top: 20px;
+            text-align: right;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+            }
+            
+            .detail-label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .items-table {
+                font-size: 0.85rem;
+            }
+            
+            .items-table th,
+            .items-table td {
+                padding: 8px;
+            }
+        }
+    `;
+    document.head.appendChild(modalStyles);
+
+    orderDetailsModal = document.getElementById('orderDetailsModal');
+    const closeBtn = orderDetailsModal.querySelector('.modal-close');
+    closeBtn.onclick = () => orderDetailsModal.style.display = 'none';
+
+    window.onclick = (event) => {
+        if (event.target === orderDetailsModal) {
+            orderDetailsModal.style.display = 'none';
+        }
+    };
+}
 
 // Обновление информации о пользователе
 function updateUserInfo() {
@@ -68,7 +256,6 @@ function updateUserInfo() {
     if (courierNameEl) courierNameEl.textContent = currentUser.name || getUserTitle();
     if (courierRoleEl) courierRoleEl.textContent = getRoleText(currentUser.role);
 
-    // Если админ, меняем заголовок
     if (currentUser.role === 'ADMIN' && headerTitle) {
         headerTitle.textContent = 'Панель управления заказами';
         if (courierRoleEl) courierRoleEl.textContent = 'Администратор';
@@ -79,9 +266,8 @@ function updateUserInfo() {
 async function loadData() {
     try {
         await loadStats();
-        await loadOrdersData('assigned');
+        await loadOrdersData('assigned', 0);
         setActiveFilter('assigned');
-
     } catch (error) {
         console.error('Ошибка загрузки данных:', error);
         showError(`Ошибка загрузки данных: ${error.message}`);
@@ -93,42 +279,33 @@ async function loadStats() {
     try {
         if (!currentUser) return;
 
-        // Обновляем UI с нулями пока загружаем
         updateStatsUI(0, 0, 0);
 
         let myOrders = [];
         let availableOrders = [];
 
         if (currentUser.role === 'COURIER') {
-            // Для курьера: получаем его заказы
             try {
-                const assignedResponse = await fetch(`${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}&pageSize=100&pageNumber=0`);
+                const assignedResponse = await fetch(`${API_BASE}/couriers/assignedOrders?pageSize=100&pageNumber=0`);
                 if (assignedResponse.ok) {
                     const result = await assignedResponse.json();
-                    console.log('Статистика - назначенные заказы:', result);
-
-                    // Обработка разных форматов ответа
-                    myOrders = extractOrdersFromResponse(result);
+                    myOrders = result.content || [];
                 }
             } catch (error) {
-                console.warn('Ошибка загрузки назначенных заказов для статистики:', error);
+                console.warn('Ошибка загрузки назначенных заказов:', error);
             }
         }
 
-        // Получаем доступные заказы для всех
         try {
             const availableResponse = await fetch(`${API_BASE}/couriers/availableOrders?pageSize=100&pageNumber=0`);
             if (availableResponse.ok) {
                 const result = await availableResponse.json();
-                console.log('Статистика - доступные заказы:', result);
-
-                availableOrders = extractOrdersFromResponse(result);
+                availableOrders = result.content || [];
             }
         } catch (error) {
-            console.warn('Ошибка загрузки доступных заказов для статистики:', error);
+            console.warn('Ошибка загрузки доступных заказов:', error);
         }
 
-        // Считаем статистику
         let activeOrders = 0;
         if (currentUser.role === 'COURIER') {
             activeOrders = myOrders.filter(order => {
@@ -137,65 +314,11 @@ async function loadStats() {
             }).length;
         }
 
-        // Обновляем UI
         updateStatsUI(activeOrders, availableOrders.length, myOrders.length);
 
     } catch (error) {
         console.error('Ошибка загрузки статистики:', error);
     }
-}
-
-// Извлечение заказов из ответа API (универсальная функция)
-function extractOrdersFromResponse(response) {
-    if (!response) return [];
-
-    console.log('Извлекаем заказы из ответа:', response);
-
-    // Ваш API возвращает Map с ключами: content, totalPages, totalElements и т.д.
-    if (response.content && Array.isArray(response.content)) {
-        return response.content;
-    }
-
-    // Если API возвращает напрямую массив
-    if (Array.isArray(response)) {
-        return response;
-    }
-
-    // Если это один объект заказа
-    if (response.id && response.status) {
-        return [response];
-    }
-
-    // Пытаемся найти заказы в других возможных полях
-    for (const key in response) {
-        if (Array.isArray(response[key]) && response[key].length > 0 && response[key][0].id) {
-            return response[key];
-        }
-    }
-
-    return [];
-}
-
-// Обновление информации о пагинации
-function updatePaginationInfo(response) {
-    if (!response || typeof response !== 'object') {
-        totalPages = 0;
-        totalElements = 0;
-        currentPage = 0;
-        return;
-    }
-
-    // Ваш API использует эти поля (из Spring Data Page)
-    totalPages = response.totalPages || 0;
-    totalElements = response.totalElements || 0;
-    currentPage = response.number !== undefined ? response.number : 0;
-
-    console.log('Пагинация обновлена:', {
-        totalPages,
-        totalElements,
-        currentPage,
-        responseKeys: Object.keys(response)
-    });
 }
 
 // Обновление UI статистики
@@ -218,18 +341,10 @@ async function loadOrdersData(filter = 'assigned', page = 0) {
     const ordersTitle = document.getElementById('ordersTitle');
     const paginationContainer = document.getElementById('paginationContainer');
 
-    if (!ordersContainer) {
-        console.error('Элемент ordersContainer не найден');
-        return;
-    }
+    if (!ordersContainer) return;
 
-    // Показываем индикатор загрузки
     ordersContainer.innerHTML = '<div class="loading">Загрузка заказов...</div>';
-
-    // Скрываем пагинацию во время загрузки
-    if (paginationContainer) {
-        paginationContainer.style.display = 'none';
-    }
+    if (paginationContainer) paginationContainer.style.display = 'none';
 
     try {
         let apiUrl = '';
@@ -237,9 +352,9 @@ async function loadOrdersData(filter = 'assigned', page = 0) {
 
         if (filter === 'assigned') {
             if (currentUser.role === 'COURIER') {
-                apiUrl = `${API_BASE}/couriers/assignedOrders?courierId=${currentUser.id}&pageSize=${pageSize}&pageNumber=${page}`;
+                apiUrl = `${API_BASE}/couriers/assignedOrders?pageSize=${pageSize}&pageNumber=${page}`;
                 title = 'Мои заказы';
-            } else if (currentUser.role === 'ADMIN') {
+            } else {
                 ordersContainer.innerHTML = `
                     <div class="no-orders">
                         <div class="no-orders-icon">📦</div>
@@ -260,48 +375,34 @@ async function loadOrdersData(filter = 'assigned', page = 0) {
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Текст ошибки:', errorText);
             throw new Error(`Ошибка сервера: ${response.status}`);
         }
 
         const result = await response.json();
-        console.log('Полный ответ от API:', result);
+        console.log('Ответ API:', result);
 
-        // Проверяем успешность операции
-        if (result.success === false) {
-            throw new Error(result.message || result.error || 'Ошибка сервера');
-        }
+        // Извлекаем данные из Page Response
+        const orders = result.content || [];
+        totalPages = result.totalPages || 0;
+        totalElements = result.totalElements || 0;
+        currentPage = result.pageNumber || 0;
 
-        // Извлекаем заказы из ответа
-        const orders = extractOrdersFromResponse(result);
-        console.log('Извлеченные заказы:', orders);
-
-        // Обновляем информацию о пагинации
-        updatePaginationInfo(result);
-
-        // Обновляем заголовок
         if (ordersTitle) ordersTitle.textContent = title;
 
-        // Отображаем заказы
         displayOrders(orders, filter);
 
     } catch (error) {
         console.error('Ошибка загрузки заказов:', error);
         ordersContainer.innerHTML = `
             <div class="error-message">
-                Ошибка загрузки заказов: ${getErrorMessage(error)}
+                Ошибка загрузки заказов: ${error.message}
                 <br><br>
                 <button onclick="loadOrdersData('${filter}', ${currentPage})" class="btn btn-outline btn-small">
                     Повторить
                 </button>
             </div>
         `;
-
-        // Скрываем пагинацию при ошибке
-        if (paginationContainer) {
-            paginationContainer.style.display = 'none';
-        }
+        if (paginationContainer) paginationContainer.style.display = 'none';
     }
 }
 
@@ -312,14 +413,8 @@ function displayOrders(orders, filter) {
 
     if (!ordersContainer) return;
 
-    if (!Array.isArray(orders) || orders.length === 0) {
-        let message = '';
-        if (currentUser.role === 'ADMIN') {
-            message = filter === 'assigned' ? 'Нет заказов для отображения' : 'Нет заказов без курьера';
-        } else {
-            message = filter === 'assigned' ? 'У вас нет назначенных заказов' : 'В данный момент нет доступных заказов';
-        }
-
+    if (!orders || orders.length === 0) {
+        let message = filter === 'assigned' ? 'У вас нет назначенных заказов' : 'В данный момент нет доступных заказов';
         ordersContainer.innerHTML = `
             <div class="no-orders">
                 <div class="no-orders-icon">📦</div>
@@ -327,18 +422,12 @@ function displayOrders(orders, filter) {
                 <p>${message}</p>
             </div>
         `;
-
-        // Скрываем пагинацию
-        if (paginationContainer) {
-            paginationContainer.style.display = 'none';
-        }
+        if (paginationContainer) paginationContainer.style.display = 'none';
         return;
     }
 
-    // Очищаем контейнер
     ordersContainer.innerHTML = '';
 
-    // Добавляем заказы
     orders.forEach(order => {
         try {
             const orderElement = createOrderElement(order, filter);
@@ -348,7 +437,6 @@ function displayOrders(orders, filter) {
         }
     });
 
-    // Добавляем пагинацию если нужно
     if (totalPages > 1 && paginationContainer) {
         addPaginationControls(paginationContainer, filter);
     } else if (paginationContainer) {
@@ -356,152 +444,117 @@ function displayOrders(orders, filter) {
     }
 }
 
-// Создание элемента заказа
+// Создание элемента заказа (адаптировано под ваше DTO)
 function createOrderElement(order, filter) {
     const template = document.getElementById('orderTemplate');
-    if (!template) {
-        throw new Error('Шаблон orderTemplate не найден');
-    }
+    if (!template) throw new Error('Шаблон не найден');
 
     const clone = template.content.cloneNode(true);
     const orderCard = clone.querySelector('.order-card');
-    if (!orderCard) {
-        throw new Error('Элемент .order-card не найден в шаблоне');
-    }
+    if (!orderCard) throw new Error('Элемент .order-card не найден');
 
-    const orderId = order.id || 'N/A';
+    const orderId = order.id;
     orderCard.setAttribute('data-order-id', orderId);
 
-    // Находим все элементы
-    const elements = {
-        orderId: orderCard.querySelector('.order-id'),
-        customerName: orderCard.querySelector('.customer-name'),
-        customerPhone: orderCard.querySelector('.customer-phone'),
-        customerAddress: orderCard.querySelector('.customer-address'),
-        priceValue: orderCard.querySelector('.price-value'),
-        orderDate: orderCard.querySelector('.order-date'),
-        courierInfo: orderCard.querySelector('.courier-info'),
-        courierName: orderCard.querySelector('.courier-name'),
-        orderStatus: orderCard.querySelector('.order-status'),
-        acceptBtn: orderCard.querySelector('.accept-btn'),
-        startBtn: orderCard.querySelector('.start-btn'),
-        completeBtn: orderCard.querySelector('.complete-btn'),
-        detailsBtn: orderCard.querySelector('.details-btn'),
-        cancelBtn: orderCard.querySelector('.cancel-btn'),
-        returnBtn: orderCard.querySelector('.return-btn')
-    };
-
-    // Заполняем основные данные
-    if (elements.orderId) elements.orderId.textContent = `Заказ #${orderId}`;
-
-    // Информация о клиенте
-    const user = order.user || {};
-    if (elements.customerName) elements.customerName.textContent = user.name || 'Не указано';
-    if (elements.customerPhone) elements.customerPhone.textContent = user.phone || 'Не указано';
-    if (elements.customerAddress) {
-        elements.customerAddress.textContent = order.shippingAddress || user.address || 'Не указано';
+    // Заполняем данные
+    const orderIdSpan = orderCard.querySelector('.order-id');
+    const orderNumber = orderCard.querySelector('.order-number');
+    if (orderIdSpan) orderIdSpan.textContent = orderId;
+    if (orderNumber && orderIdSpan) {
+        orderNumber.textContent = `Заказ #${orderId}`;
     }
 
-    // Информация о курьере
-    const courier = order.courier || {};
-    if (elements.courierInfo) {
-        if (courier.name) {
-            elements.courierInfo.innerHTML = `<strong>Курьер:</strong> <span class="courier-name">${courier.name}</span>`;
-        } else {
-            elements.courierInfo.innerHTML = '<strong>Курьер:</strong> <span class="courier-name">Не назначен</span>';
-        }
+    // Информация о клиенте (customer из вашего DTO)
+    const customer = order.customer || {};
+    const customerNameSpan = orderCard.querySelector('.customer-name');
+    const customerPhoneSpan = orderCard.querySelector('.customer-phone');
+    const customerAddressSpan = orderCard.querySelector('.customer-address');
+
+    if (customerNameSpan) customerNameSpan.textContent = customer.fullName || 'Не указано';
+    if (customerPhoneSpan) customerPhoneSpan.textContent = customer.phone || 'Не указан';
+    if (customerAddressSpan) customerAddressSpan.textContent = order.shippingAddress || 'Не указан';
+
+    // Цена
+    const priceSpan = orderCard.querySelector('.price-value');
+    if (priceSpan) {
+        const totalAmount = order.totalAmount || 0;
+        priceSpan.textContent = `${totalAmount.toLocaleString('ru-RU')} ₽`;
     }
 
-    // Цена и дата
-    if (elements.priceValue) {
-        const price = order.totalAmount || 0;
-        elements.priceValue.textContent = `${formatPrice(price)} ₽`;
-    }
-
-    if (elements.orderDate && order.orderDate) {
-        elements.orderDate.textContent = formatDate(order.orderDate);
+    // Дата
+    const orderDateSpan = orderCard.querySelector('.order-date');
+    if (orderDateSpan && order.orderDate) {
+        orderDateSpan.textContent = formatDate(order.orderDate);
     }
 
     // Статус
+    const statusSpan = orderCard.querySelector('.order-status');
     const status = order.status || 'PENDING';
-    if (elements.orderStatus) {
-        elements.orderStatus.textContent = getStatusText(status);
-        elements.orderStatus.className = `order-status status-${status.toLowerCase()}`;
+    if (statusSpan) {
+        statusSpan.textContent = getStatusText(status);
+        statusSpan.className = `order-status ${status}`;
     }
 
     // Настраиваем кнопки
-    setupOrderButtons(elements, status, orderId, filter);
+    const acceptBtn = orderCard.querySelector('.accept-btn');
+    const startBtn = orderCard.querySelector('.start-btn');
+    const completeBtn = orderCard.querySelector('.complete-btn');
+    const cancelBtn = orderCard.querySelector('.cancel-btn');
+    const returnBtn = orderCard.querySelector('.return-btn');
+    const detailsBtn = orderCard.querySelector('.details-btn');
 
-    return orderCard;
-}
-
-// Настройка кнопок заказа
-function setupOrderButtons(elements, status, orderId, filter) {
-    // Сначала скрываем все кнопки
-    Object.values(elements).forEach(el => {
-        if (el && el.classList && el.classList.contains('btn')) {
-            el.style.display = 'none';
-        }
+    // Скрываем все кнопки сначала
+    [acceptBtn, startBtn, completeBtn, cancelBtn, returnBtn].forEach(btn => {
+        if (btn) btn.style.display = 'none';
     });
 
-    // Показываем кнопку подробностей всегда
-    if (elements.detailsBtn) {
-        elements.detailsBtn.style.display = 'inline-block';
-        elements.detailsBtn.onclick = () => showOrderDetails(orderId);
+    // Кнопка подробностей всегда видна
+    if (detailsBtn) {
+        detailsBtn.style.display = 'inline-block';
+        detailsBtn.onclick = () => showOrderDetails(orderId);
     }
 
     // Логика для доступных заказов
     if (filter === 'available') {
-        if (elements.acceptBtn) {
-            elements.acceptBtn.style.display = 'inline-block';
-            elements.acceptBtn.textContent = currentUser.role === 'ADMIN' ? 'Назначить курьера' : 'Принять заказ';
-            elements.acceptBtn.onclick = () => {
-                if (currentUser.role === 'ADMIN') {
-                    assignOrderAsAdmin(orderId);
-                } else {
-                    assignOrder(orderId);
-                }
-            };
+        if (acceptBtn) {
+            acceptBtn.style.display = 'inline-block';
+            acceptBtn.textContent = currentUser.role === 'ADMIN' ? 'Назначить' : 'Принять заказ';
+            acceptBtn.onclick = () => assignOrder(orderId);
         }
-        return;
+        return orderCard;
     }
 
     // Логика для назначенных заказов
-    const upperStatus = status.toUpperCase();
-
-    switch(upperStatus) {
+    switch(status) {
         case 'PENDING':
-            if (elements.startBtn) {
-                elements.startBtn.style.display = 'inline-block';
-                elements.startBtn.textContent = 'Начать доставку';
-                elements.startBtn.onclick = () => updateOrderStatus(orderId, 'DISPATCHED');
+            if (startBtn) {
+                startBtn.style.display = 'inline-block';
+                startBtn.onclick = () => updateOrderStatus(orderId, 'DISPATCHED');
             }
-            if (elements.cancelBtn) {
-                elements.cancelBtn.style.display = 'inline-block';
-                elements.cancelBtn.textContent = 'Отменить';
-                elements.cancelBtn.onclick = () => updateOrderStatus(orderId, 'CANCELLED');
+            if (cancelBtn) {
+                cancelBtn.style.display = 'inline-block';
+                cancelBtn.onclick = () => updateOrderStatus(orderId, 'CANCELLED');
             }
             break;
 
         case 'DISPATCHED':
-            if (elements.completeBtn) {
-                elements.completeBtn.style.display = 'inline-block';
-                elements.completeBtn.textContent = 'Доставлен';
-                elements.completeBtn.onclick = () => updateOrderStatus(orderId, 'DELIVERED_TO_DESTINATION');
+            if (completeBtn) {
+                completeBtn.style.display = 'inline-block';
+                completeBtn.textContent = 'Доставлен';
+                completeBtn.onclick = () => updateOrderStatus(orderId, 'DELIVERED_TO_DESTINATION');
             }
             break;
 
         case 'DELIVERED_TO_DESTINATION':
-            if (elements.completeBtn) {
-                elements.completeBtn.style.display = 'inline-block';
-                elements.completeBtn.textContent = 'Завершить';
-                elements.completeBtn.className = 'btn btn-success btn-small complete-btn';
-                elements.completeBtn.onclick = () => updateOrderStatus(orderId, 'COMPLETED');
+            if (completeBtn) {
+                completeBtn.style.display = 'inline-block';
+                completeBtn.textContent = 'Завершить';
+                completeBtn.classList.add('btn-success');
+                completeBtn.onclick = () => updateOrderStatus(orderId, 'COMPLETED');
             }
-            if (elements.returnBtn) {
-                elements.returnBtn.style.display = 'inline-block';
-                elements.returnBtn.textContent = 'Вернуть';
-                elements.returnBtn.onclick = () => updateOrderStatus(orderId, 'RETURNED');
+            if (returnBtn) {
+                returnBtn.style.display = 'inline-block';
+                returnBtn.onclick = () => updateOrderStatus(orderId, 'RETURNED');
             }
             break;
 
@@ -511,9 +564,11 @@ function setupOrderButtons(elements, status, orderId, filter) {
             // Только кнопка подробностей
             break;
     }
+
+    return orderCard;
 }
 
-// Принять заказ (для курьера)
+// Принять заказ
 async function assignOrder(orderId) {
     if (!confirm(`Принять заказ #${orderId}?`)) return;
 
@@ -526,39 +581,22 @@ async function assignOrder(orderId) {
             }
         });
 
-        const result = await handleApiResponse(response, `Принятие заказа #${orderId}`);
-        if (result.success) {
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Ошибка при принятии заказа');
+        }
+
+        const result = await response.json();
+
+        if (result.success !== false) {
             alert(`Заказ #${orderId} успешно принят!`);
             await refreshData();
+        } else {
+            throw new Error(result.message || 'Ошибка');
         }
 
     } catch (error) {
-        console.error('Ошибка при принятии заказа:', error);
-        alert(`Ошибка: ${error.message}`);
-    }
-}
-
-// Назначить заказ курьеру (для админа)
-async function assignOrderAsAdmin(orderId) {
-    if (!confirm(`Назначить себя курьером для заказа #${orderId}?`)) return;
-
-    try {
-        const response = await fetch(`${API_BASE}/couriers/${orderId}/assign`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        });
-
-        const result = await handleApiResponse(response, `Назначение заказа #${orderId}`);
-        if (result.success) {
-            alert(`Вы назначены курьером для заказа #${orderId}!`);
-            await refreshData();
-        }
-
-    } catch (error) {
-        console.error('Ошибка при назначении заказа:', error);
+        console.error('Ошибка:', error);
         alert(`Ошибка: ${error.message}`);
     }
 }
@@ -566,9 +604,7 @@ async function assignOrderAsAdmin(orderId) {
 // Обновить статус заказа
 async function updateOrderStatus(orderId, status) {
     const statusText = getStatusText(status);
-    const actionText = getActionText(status, currentUser.role);
-
-    if (!confirm(`Вы уверены, что хотите ${actionText} заказа #${orderId}?`)) return;
+    if (!confirm(`Вы уверены, что хотите изменить статус заказа #${orderId} на "${statusText}"?`)) return;
 
     try {
         const response = await fetch(`${API_BASE}/couriers/orders/${orderId}/status?status=${status}`, {
@@ -579,44 +615,174 @@ async function updateOrderStatus(orderId, status) {
             }
         });
 
-        const result = await handleApiResponse(response, `Обновление статуса заказа #${orderId}`);
-        if (result.success) {
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Ошибка при обновлении статуса');
+        }
+
+        const result = await response.json();
+
+        if (result.success !== false) {
             alert(`Статус заказа #${orderId} обновлен на "${statusText}"!`);
             await refreshData();
+        } else {
+            throw new Error(result.message || 'Ошибка');
         }
 
     } catch (error) {
-        console.error('Ошибка при обновлении статуса:', error);
+        console.error('Ошибка:', error);
         alert(`Ошибка: ${error.message}`);
     }
 }
 
-// Обработка ответа API
-async function handleApiResponse(response, action) {
-    if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Ошибка при ${action}`;
+// Показать детали заказа (ПОЛНОСТЬЮ РАБОТАЮЩАЯ ВЕРСИЯ)
+async function showOrderDetails(orderId) {
+    if (!orderDetailsModal) {
+        console.error('Модальное окно не создано');
+        return;
+    }
 
-        try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (e) {
-            errorMessage = errorText || errorMessage;
+    const modalBody = document.getElementById('modalBody');
+    const modalOrderIdSpan = document.getElementById('modalOrderId');
+
+    if (modalOrderIdSpan) modalOrderIdSpan.textContent = orderId;
+    if (modalBody) modalBody.innerHTML = '<div class="loading">Загрузка деталей заказа...</div>';
+
+    orderDetailsModal.style.display = 'block';
+
+    try {
+        // Пытаемся получить заказ по ID через доступные эндпоинты
+        let order = null;
+
+        // Сначала пробуем получить из назначенных заказов
+        const assignedResponse = await fetch(`${API_BASE}/couriers/assignedOrders?pageSize=100&pageNumber=0`);
+        if (assignedResponse.ok) {
+            const assignedData = await assignedResponse.json();
+            order = assignedData.content?.find(o => o.id === orderId);
         }
 
-        throw new Error(errorMessage);
+        // Если не нашли, пробуем из доступных
+        if (!order) {
+            const availableResponse = await fetch(`${API_BASE}/couriers/availableOrders?pageSize=100&pageNumber=0`);
+            if (availableResponse.ok) {
+                const availableData = await availableResponse.json();
+                order = availableData.content?.find(o => o.id === orderId);
+            }
+        }
+
+        if (!order) {
+            modalBody.innerHTML = `
+                <div class="error-message">
+                    Не удалось найти заказ #${orderId}
+                    <br><br>
+                    <button onclick="orderDetailsModal.style.display='none'" class="btn btn-primary">Закрыть</button>
+                </div>
+            `;
+            return;
+        }
+
+        // Отображаем детали заказа
+        displayOrderDetails(order, modalBody);
+
+    } catch (error) {
+        console.error('Ошибка при получении деталей заказа:', error);
+        modalBody.innerHTML = `
+            <div class="error-message">
+                Ошибка при загрузке деталей заказа: ${error.message}
+                <br><br>
+                <button onclick="orderDetailsModal.style.display='none'" class="btn btn-primary">Закрыть</button>
+            </div>
+        `;
+    }
+}
+
+// Отображение деталей заказа в модальном окне
+function displayOrderDetails(order, modalBody) {
+    const customer = order.customer || {};
+    const orderItems = order.orderItems || [];
+
+    let itemsHtml = '';
+    if (orderItems.length > 0) {
+        itemsHtml = `
+            <table class="items-table">
+                <thead>
+                    <tr>
+                   
+                        <th>Товар</th>
+                        <th>Кол-во</th>
+                        <th>Цена</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${orderItems.map(item => `
+                        <tr> 
+                            <td>
+                                <strong>${item.productName || 'Товар'}</strong><br>
+                                <small style="color:#666">Код: ${item.productCode || '-'}</small><br>
+                                <small style="color:#999">${item.productDescription || ''}</small>
+                            </td>
+                            <td>${item.quantity || 0} шт.</td>
+                            <td>${(item.price || 0).toLocaleString('ru-RU')} ₽</td>
+                            <td><strong>${(item.totalPrice || 0).toLocaleString('ru-RU')} ₽</strong></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <div class="total-amount">
+                Итого: ${(order.totalAmount || 0).toLocaleString('ru-RU')} ₽
+            </div>
+        `;
+    } else {
+        itemsHtml = '<p style="color:#999; text-align:center;">Нет товаров в заказе</p>';
     }
 
-    const result = await response.json();
-    console.log(`Ответ ${action}:`, result);
-
-    // Проверяем формат ответа
-    if (result.success !== undefined) {
-        return result;
-    }
-
-    // Если в ответе нет поля success, считаем успешным
-    return { success: true, data: result };
+    modalBody.innerHTML = `
+        <div class="detail-section">
+            <h3>Информация о заказе</h3>
+            <div class="detail-row">
+                <div class="detail-label">Номер заказа:</div>
+                <div class="detail-value">#${order.id}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Дата заказа:</div>
+                <div class="detail-value">${formatDate(order.orderDate)}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Статус:</div>
+                <div class="detail-value"><span class="order-status ${order.status}">${getStatusText(order.status)}</span></div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Сообщение:</div>
+                <div class="detail-value">${order.message || 'Нет сообщения'}</div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Информация о клиенте</h3>
+            <div class="detail-row">
+                <div class="detail-label">Имя:</div>
+                <div class="detail-value">${customer.fullName || 'Не указано'}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Email:</div>
+                <div class="detail-value">${customer.email || 'Не указан'}</div>
+            </div>
+            <div class="detail-row">
+                <div class="detail-label">Адрес доставки:</div>
+                <div class="detail-value">${order.shippingAddress || 'Не указан'}</div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Состав заказа</h3>
+            ${itemsHtml}
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="orderDetailsModal.style.display='none'" class="btn btn-primary">Закрыть</button>
+        </div>
+    `;
 }
 
 // Обновление всех данных
@@ -631,17 +797,6 @@ async function refreshData() {
     }
 }
 
-// Показать детали заказа
-async function showOrderDetails(orderId) {
-    try {
-        // Здесь можно добавить запрос на получение детальной информации о заказе
-        alert(`Детали заказа #${orderId}\n\nФункция в разработке`);
-    } catch (error) {
-        console.error('Ошибка при получении деталей заказа:', error);
-        alert(`Ошибка при получении деталей заказа: ${error.message}`);
-    }
-}
-
 // Вспомогательные функции
 function getStatusText(status) {
     const statusMap = {
@@ -652,18 +807,7 @@ function getStatusText(status) {
         'CANCELLED': 'Отменен',
         'RETURNED': 'Возвращен'
     };
-    return statusMap[status.toUpperCase()] || status || 'Неизвестно';
-}
-
-function getActionText(status, role) {
-    const actionMap = {
-        'DISPATCHED': 'начать доставку',
-        'DELIVERED_TO_DESTINATION': 'отметить как доставленный',
-        'COMPLETED': 'завершить заказ',
-        'CANCELLED': 'отменить заказ',
-        'RETURNED': 'вернуть заказ'
-    };
-    return actionMap[status.toUpperCase()] || 'выполнить действие';
+    return statusMap[status] || status || 'Неизвестно';
 }
 
 function getRoleText(role) {
@@ -678,15 +822,6 @@ function getRoleText(role) {
 
 function getUserTitle() {
     return currentUser?.role === 'ADMIN' ? 'Администратор' : 'Курьер';
-}
-
-function formatPrice(price) {
-    if (!price) return '0';
-    const numPrice = typeof price === 'string' ? parseFloat(price) : Number(price);
-    return isNaN(numPrice) ? '0' : numPrice.toLocaleString('ru-RU', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2
-    });
 }
 
 function formatDate(dateString) {
@@ -704,20 +839,11 @@ function formatDate(dateString) {
     }
 }
 
-function getErrorMessage(error) {
-    if (error.message && error.message.includes('Failed to fetch')) {
-        return 'Ошибка соединения с сервером';
-    }
-    if (error.message && error.message.includes('HTTP')) {
-        return 'Ошибка сервера';
-    }
-    return error.message || 'Неизвестная ошибка';
-}
-
 function setActiveFilter(filter) {
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.textContent.includes(filter === 'assigned' ? 'Мои' : 'Доступные')) {
+        if ((filter === 'assigned' && btn.textContent.includes('Мои')) ||
+            (filter === 'available' && btn.textContent.includes('Доступные'))) {
             btn.classList.add('active');
         }
     });
@@ -746,38 +872,33 @@ function addPaginationControls(container, filter) {
     const paginationDiv = document.createElement('div');
     paginationDiv.className = 'pagination';
 
-    // Информация о странице
     const pageInfo = document.createElement('span');
     pageInfo.className = 'page-info';
     pageInfo.textContent = `Страница ${currentPage + 1} из ${totalPages}`;
 
-    // Кнопка "Назад"
     const prevButton = document.createElement('button');
     prevButton.className = 'btn btn-outline pagination-btn';
     prevButton.innerHTML = '&larr; Назад';
     prevButton.disabled = currentPage === 0;
-    prevButton.onclick = function() {
+    prevButton.onclick = () => {
         if (currentPage > 0) {
             loadOrdersData(filter, currentPage - 1);
         }
     };
 
-    // Кнопка "Вперед"
     const nextButton = document.createElement('button');
     nextButton.className = 'btn btn-outline pagination-btn';
     nextButton.innerHTML = 'Вперед &rarr;';
     nextButton.disabled = currentPage >= totalPages - 1;
-    nextButton.onclick = function() {
+    nextButton.onclick = () => {
         if (currentPage < totalPages - 1) {
             loadOrdersData(filter, currentPage + 1);
         }
     };
 
-    // Добавляем элементы
     paginationDiv.appendChild(prevButton);
     paginationDiv.appendChild(pageInfo);
     paginationDiv.appendChild(nextButton);
-
     container.appendChild(paginationDiv);
 }
 
@@ -785,12 +906,12 @@ function addPaginationControls(container, filter) {
 window.setFilter = function(filter) {
     setActiveFilter(filter);
     currentPage = 0;
-    loadOrdersData(filter, 0).catch(error => {
-        console.error('Ошибка при смене фильтра:', error);
-        showError('Ошибка загрузки заказов');
-    });
+    loadOrdersData(filter, 0);
 };
 
 window.refreshOrders = function() {
-    refreshData().catch(console.error);
+    refreshData();
 };
+
+// Для доступа из модального окна
+window.orderDetailsModal = orderDetailsModal;

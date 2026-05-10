@@ -1,35 +1,15 @@
 package org.example.kortex.products.domain;
 
-import org.example.kortex.products.api.ProductSearchFilter;
-import org.example.kortex.products.api.dto.ProductPageResponse;
+import org.example.kortex.products.api.dto.ProductSearchFilter;
 import org.example.kortex.products.api.dto.ProductResponse;
-import org.example.kortex.products.api.mapper.ProductMapper;
-import org.example.kortex.products.db.Category;
+import org.example.kortex.products.domain.mapper.ProductMapper;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.db.ProductRepository;
 import org.example.kortex.users.db.User;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-
-import javax.persistence.EntityNotFoundException;
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {

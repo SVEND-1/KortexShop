@@ -1,10 +1,10 @@
 package org.example.kortex.web;
 
-import org.example.kortex.orders.api.exception.ProductZeroException;
-import org.example.kortex.orders.api.exception.UserNotCourierException;
-import org.example.kortex.roleRequest.api.exception.PendingRequestException;
-import org.example.kortex.users.api.exception.CourierHasActiveOrderException;
-import org.example.kortex.users.api.exception.IncorrectUpdateRoleException;
+import org.example.kortex.orders.domain.exception.ProductZeroException;
+import org.example.kortex.orders.domain.exception.UserNotCourierException;
+import org.example.kortex.roleRequest.domain.exception.PendingRequestException;
+import org.example.kortex.users.domain.exception.CourierHasActiveOrderException;
+import org.example.kortex.users.domain.exception.IncorrectUpdateRoleException;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

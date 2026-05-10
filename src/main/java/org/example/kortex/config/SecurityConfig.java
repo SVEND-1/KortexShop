@@ -47,6 +47,10 @@ public class SecurityConfig {
                         "/error", "/api/products/**", "/*.html", "/*.css", "/*.js")
                 .permitAll()
 
+                .antMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                        "/v3/api-docs", "/swagger-resources/**", "/webjars/**")
+                .hasAnyRole("ADMIN","COURIER")
+
                 .antMatchers("/profile", "/cart", "/api/users/role-request/**",
                         "/api/users/**", "/api/orders/**", "/api/carts/**")
                 .hasAnyRole("USER", "ADMIN", "COURIER", "SELLER")

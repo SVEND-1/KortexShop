@@ -1,4 +1,4 @@
-package org.example.kortex.users.api.mapper;
+package org.example.kortex.users.domain.mapper;
 
 import org.example.kortex.users.api.dto.user.UserResponse;
 import org.example.kortex.users.db.User;

@@ -45,4 +45,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT DISTINCT o FROM Order o WHERE o.courier IS NULL AND o.status = 'PENDING' ORDER BY o.orderDate DESC")
     Page<Order> availableOrdersPage(Pageable pageable);
 
+
+    @Query("""
+        SELECT DISTINCT o FROM Order o
+        LEFT JOIN FETCH o.orderItems oi
+        LEFT JOIN FETCH oi.product
+        WHERE o.user.email = :email
+        ORDER BY o.orderDate DESC
+    """)
+    List<Order> findOrdersWithItemsByUserEmail(@Param("email") String email);
 }

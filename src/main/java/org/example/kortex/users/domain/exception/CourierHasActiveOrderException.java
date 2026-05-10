@@ -1,4 +1,4 @@
-package org.example.kortex.users.api.exception;
+package org.example.kortex.users.domain.exception;
 
 public class CourierHasActiveOrderException extends IllegalStateException{
     public CourierHasActiveOrderException(String message) {

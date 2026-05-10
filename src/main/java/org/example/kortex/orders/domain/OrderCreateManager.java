@@ -7,8 +7,8 @@ import org.example.kortex.carts.domain.CartService;
 import org.example.kortex.notify.event.NotifyEvent;
 import org.example.kortex.notify.event.NotifyType;
 import org.example.kortex.notify.kafka.NotifyKafkaProducer;
-import org.example.kortex.orders.api.exception.ProductZeroException;
-import org.example.kortex.orders.api.mapper.OrderMapper;
+import org.example.kortex.orders.domain.exception.ProductZeroException;
+import org.example.kortex.orders.domain.mapper.OrderMapper;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
@@ -19,11 +19,9 @@ import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -57,10 +55,15 @@ public class OrderCreateManager {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public OrderResponseDTO createOrderFromCart() {
+    public OrderResponseDTO createOrderFromCart(String comment) {
         log.info("Создания заказа из корзины");
         try {
             User user = userService.getCurrentUser();
+
+            if(user.getAddress() == null){
+                log.warn("Для создание заказа необходим адрес");
+                throw new NoSuchElementException("Для создание заказа необходим адрес");
+            }
 
             Cart cart = user.getCart();
             if (cart == null) {
@@ -78,6 +81,8 @@ public class OrderCreateManager {
             Order order = new Order();
             order.setUser(user);
             order.setStatus(Order.OrderStatus.PENDING);
+            order.setShippingAddress(user.getAddress());
+            order.setMessage(comment);
 
             BigDecimal totalAmount = calculateTotalAmount(cart);
             order.setTotalAmount(totalAmount);
@@ -127,7 +132,7 @@ public class OrderCreateManager {
                 throw new NoSuchElementException("Товар не найден в корзине");
             }
 
-            Product actualProduct = productService.getById(product.getId());
+            Product actualProduct = productService.getByIdEntity(product.getId());
             if(actualProduct == null) {
                 log.warn("Товар не найден id={}",product.getId());
                 throw new NoSuchElementException("Товар не найден: " + product.getName());

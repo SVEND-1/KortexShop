@@ -3,9 +3,9 @@ package org.example.kortex.products.domain;
 import javax.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.products.api.ProductSearchFilter;
+import org.example.kortex.products.api.dto.ProductSearchFilter;
 import org.example.kortex.products.api.dto.ProductPageResponse;
-import org.example.kortex.products.api.mapper.ProductMapper;
+import org.example.kortex.products.domain.mapper.ProductMapper;
 import org.example.kortex.products.api.dto.ProductResponse;
 import org.example.kortex.products.db.Category;
 import org.example.kortex.products.db.Product;
@@ -78,6 +78,10 @@ public class ProductService {
 
     //================================Service Methods================================================
 
+    public Product getByIdEntity(Long id) {
+        return productRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
+    }
+
     public Product getById(Long id) {
         try {
             Product product = redisTemplate.opsForValue().get(CACHE_KEY_PREFIX + id);
@@ -105,7 +109,7 @@ public class ProductService {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void productSubtractQuantity(Long productId, int quantity) {
         try {
-            Product product = getById(productId);
+            Product product = getByIdEntity(productId);
             product.setCount(product.getCount() - quantity);
             productRepository.save(product);
 
@@ -119,7 +123,7 @@ public class ProductService {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void productAddQuantity(Long productId, int quantity) {
         try {
-            Product product = getById(productId);
+            Product product = getByIdEntity(productId);
             product.setCount(product.getCount() + quantity);
             productRepository.save(product);
 

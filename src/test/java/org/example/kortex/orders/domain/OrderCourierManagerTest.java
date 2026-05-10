@@ -1,13 +1,13 @@
 package org.example.kortex.orders.domain;
 
-import org.example.kortex.orders.api.OrdersSearchCourierFilter;
+import org.example.kortex.orders.api.dto.OrdersSearchCourierFilter;
 import org.example.kortex.orders.api.dto.OrderPageResponse;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.products.db.Product;
 import org.example.kortex.products.domain.ProductService;
-import org.example.kortex.users.api.dto.courier.CourierDTOMapper;
+import org.example.kortex.users.domain.mapper.CourierDTOMapper;
 import org.example.kortex.users.api.dto.courier.CourierOrderDTO;
 import org.example.kortex.users.api.dto.courier.CourierOrderItemDTO;
 import org.example.kortex.users.api.dto.courier.CustomerInfoDTO;

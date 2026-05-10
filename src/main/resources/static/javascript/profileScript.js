@@ -1,4 +1,4 @@
-// profileScript.js - ПОЛНАЯ ВЕРСИЯ С ЗАЯВКАМИ НА РОЛИ
+// profileScript.js - С ИСТОРИЕЙ ЗАКАЗОВ
 
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Загрузка страницы профиля...');
@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 3. Загружаем заявки пользователя на роли
         await loadUserRoleRequests();
 
-        // 4. Скрываем историю заказов (временно)
-        hideOrdersSection();
+        // 4. Загружаем историю заказов
+        await loadUserOrders();
 
     } catch (error) {
         console.error('Ошибка инициализации профиля:', error);
@@ -31,7 +31,17 @@ const API_ENDPOINTS = {
     GET_PROFILE: '/api/users/me',
     UPDATE_ADDRESS: '/api/users/address',
     CREATE_ROLE_REQUEST: '/api/users/role-request',
-    GET_ROLE_REQUESTS: '/api/users/role-request'
+    GET_ROLE_REQUESTS: '/api/users/role-request',
+    GET_ORDERS: '/api/orders'
+};
+
+const ORDER_STATUS_MAP = {
+    'PENDING': { text: 'Ожидает', class: 'pending', icon: '⏳' },
+    'DISPATCHED': { text: 'В доставке', class: 'dispatched', icon: '🚚' },
+    'DELIVERED_TO_DESTINATION': { text: 'Доставлен', class: 'delivered', icon: '📦' },
+    'COMPLETED': { text: 'Завершен', class: 'completed', icon: '✅' },
+    'CANCELLED': { text: 'Отменен', class: 'cancelled', icon: '❌' },
+    'RETURNED': { text: 'Возвращен', class: 'returned', icon: '🔄' }
 };
 
 const ROLE_MAP = {
@@ -45,6 +55,313 @@ const REQUEST_STATUS_MAP = {
     'PENDING': { text: '⏳ Ожидает', class: 'pending' },
     'APPROVED': { text: '✅ Одобрено', class: 'approved' },
     'REJECTED': { text: '❌ Отклонено', class: 'rejected' }
+};
+
+// ============ ЗАГРУЗКА ИСТОРИИ ЗАКАЗОВ ============
+
+async function loadUserOrders() {
+    try {
+        console.log('Загрузка истории заказов...');
+        showOrdersLoading();
+
+        const response = await fetch(API_ENDPOINTS.GET_ORDERS, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+        });
+
+        console.log('Статус заказов:', response.status);
+
+        if (response.status === 401) {
+            console.warn('Пользователь не авторизован');
+            renderEmptyOrders();
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
+        }
+
+        const orders = await response.json();
+        console.log('Получены заказы:', orders);
+
+        if (orders && orders.length > 0) {
+            renderOrders(orders);
+            updateOrderCount(orders.length);
+        } else {
+            renderEmptyOrders();
+        }
+
+    } catch (error) {
+        console.error('Ошибка загрузки заказов:', error);
+        renderEmptyOrders();
+        showProfileNotification('Не удалось загрузить историю заказов', 'warning');
+    }
+}
+
+function showOrdersLoading() {
+    const ordersGrid = document.getElementById('ordersGrid');
+    if (ordersGrid) {
+        ordersGrid.innerHTML = `
+            <div class="loading-orders">
+                <div class="loading-spinner"></div>
+                <p>Загрузка заказов...</p>
+            </div>
+        `;
+    }
+}
+
+function renderOrders(orders) {
+    const ordersGrid = document.getElementById('ordersGrid');
+    if (!ordersGrid) return;
+
+    let ordersHtml = '';
+
+    orders.forEach(order => {
+        const statusInfo = ORDER_STATUS_MAP[order.status] || ORDER_STATUS_MAP.PENDING;
+        const orderDate = formatOrderDate(order.orderDate);
+        const totalAmount = order.totalAmount || 0;
+        const items = order.items || [];
+        const itemsCount = items.length;
+
+        ordersHtml += `
+            <div class="order-card" data-order-id="${order.orderId}">
+                <div class="order-header">
+                    <div class="order-info">
+                        <span class="order-number">Заказ #${order.orderId}</span>
+                        <span class="order-date">${orderDate}</span>
+                    </div>
+                    <span class="order-status-badge ${statusInfo.class}">
+                        ${statusInfo.icon} ${statusInfo.text}
+                    </span>
+                </div>
+                
+                <div class="order-items-preview">
+                    ${renderOrderItemsPreview(items)}
+                </div>
+                
+                <div class="order-footer">
+                    <div class="order-total">
+                        <span class="total-label">Итого:</span>
+                        <span class="total-amount">${formatPrice(totalAmount)}</span>
+                    </div>
+                    <div class="order-items-count">
+                        📦 ${itemsCount} ${getItemsText(itemsCount)}
+                    </div>
+                    <button class="btn-view-order" onclick="viewOrderDetails(${order.orderId})">
+                        Подробнее →
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    ordersGrid.innerHTML = ordersHtml;
+}
+
+function renderOrderItemsPreview(items) {
+    if (!items || items.length === 0) {
+        return '<div class="no-items">Нет товаров</div>';
+    }
+
+    // Показываем первые 3 товара
+    const itemsToShow = items.slice(0, 3);
+    const remainingCount = items.length - 3;
+
+    let itemsHtml = '<div class="preview-items">';
+
+    itemsToShow.forEach(item => {
+        const productName = item.nameProduct || 'Товар';
+        const quantity = item.count || 1;
+        const price = item.priceProduct || 0;
+        const imageUrl = item.image ? `/uploads/images/${item.image}` : '/images/no-image.png';
+
+        itemsHtml += `
+            <div class="preview-item">
+                <img src="${imageUrl}" alt="${productName}" class="preview-item-image" 
+                     onerror="this.src='/images/no-image.png'">
+                <div class="preview-item-info">
+                    <div class="preview-item-name">${truncateText(productName, 30)}</div>
+                    <div class="preview-item-price">${formatPrice(price)}</div>
+                    <div class="preview-item-quantity">${quantity} шт.</div>
+                </div>
+            </div>
+        `;
+    });
+
+    if (remainingCount > 0) {
+        itemsHtml += `
+            <div class="preview-more">
+                + еще ${remainingCount} ${getItemsText(remainingCount)}
+            </div>
+        `;
+    }
+
+    itemsHtml += '</div>';
+    return itemsHtml;
+}
+
+function updateOrderCount(count) {
+    const ordersCountEl = document.getElementById('ordersCount');
+    if (ordersCountEl) {
+        ordersCountEl.textContent = count;
+    }
+}
+
+function renderEmptyOrders() {
+    const ordersGrid = document.getElementById('ordersGrid');
+    if (!ordersGrid) return;
+
+    ordersGrid.innerHTML = `
+        <div class="empty-orders">
+            <div class="empty-orders-icon">📦</div>
+            <h3>У вас пока нет заказов</h3>
+            <p>Начните shopping прямо сейчас!</p>
+            <a href="/" class="btn-shop-now">Перейти в каталог</a>
+        </div>
+    `;
+}
+
+// ============ ДЕТАЛИ ЗАКАЗА (МОДАЛЬНОЕ ОКНО) ============
+
+// ТОЛЬКО функция показа деталей заказа (исправленная)
+
+window.viewOrderDetails = async function(orderId) {
+    try {
+
+        const response = await fetch(API_ENDPOINTS.GET_ORDERS, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки: ${response.status}`);
+        }
+
+        const orders = await response.json();
+        const order = orders.find(o => o.orderId === orderId);
+
+        if (!order) {
+            throw new Error('Заказ не найден');
+        }
+
+        showOrderDetailsModal(order);
+
+    } catch (error) {
+        console.error('Ошибка загрузки деталей заказа:', error);
+        showProfileNotification('Не удалось загрузить детали заказа', 'error');
+    }
+};
+
+function showOrderDetailsModal(order) {
+    let modal = document.getElementById('orderDetailsModal');
+
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'orderDetailsModal';
+        modal.className = 'modal order-details-modal';
+        document.body.appendChild(modal);
+    }
+
+    const statusInfo = ORDER_STATUS_MAP[order.status] || ORDER_STATUS_MAP.PENDING;
+    const orderDate = formatOrderDate(order.orderDate);
+    const items = order.items || [];
+
+    modal.innerHTML = `
+        <div class="modal-content order-details-content">
+            <div class="modal-header">
+                <h3>Детали заказа #${order.orderId}</h3>
+                <button class="modal-close" onclick="closeOrderDetailsModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Информация о заказе -->
+                <div class="order-info-block">
+                    <div class="info-line">
+                        <span class="info-label">📅 Дата заказа:</span>
+                        <span class="info-value">${orderDate}</span>
+                    </div>
+                    <div class="info-line">
+                        <span class="info-label">💰 Сумма:</span>
+                        <span class="info-value total">${formatPrice(order.totalAmount)}</span>
+                    </div>
+                    <div class="info-line">
+                        <span class="info-label">📦 Статус:</span>
+                        <span class="info-value"><span class="status-badge ${statusInfo.class}">${statusInfo.icon} ${statusInfo.text}</span></span>
+                    </div>
+                    <div class="info-line">
+                        <span class="info-label">🎁 Товаров:</span>
+                        <span class="info-value">${items.length} шт.</span>
+                    </div>
+                </div>
+                
+                <!-- Состав заказа с прокруткой -->
+                <div class="order-items-block">
+                    <h4>Состав заказа</h4>
+                    <div class="items-scrollable">
+                        ${renderOrderItemsList(items)}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeOrderDetailsModal()">Закрыть</button>
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeOrderDetailsModal();
+        }
+    });
+}
+
+function renderOrderItemsList(items) {
+    if (!items || items.length === 0) {
+        return '<div class="no-items">Нет товаров в заказе</div>';
+    }
+
+    return `
+        <div class="items-list">
+            ${items.map(item => {
+        const imageUrl = item.image ? `/uploads/images/${item.image}` : '/images/no-image.png';
+        const productName = item.nameProduct || 'Товар';
+        const quantity = item.count || 1;
+        const price = item.priceProduct || 0;
+        const totalPrice = price * quantity;
+
+        return `
+                    <div class="item-row">
+                        <div class="item-image">
+                            <img src="${imageUrl}" alt="${productName}" onerror="this.src='/images/no-image.png'">
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name">${escapeHtml(productName)}</div>
+                            <div class="item-details">
+                                <span class="item-price">${formatPrice(price)} × ${quantity} шт.</span>
+                                <span class="item-total">= ${formatPrice(totalPrice)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+    }).join('')}
+        </div>
+        <div class="items-total">
+            <span>Общая сумма:</span>
+            <strong>${formatPrice(items.reduce((sum, item) => sum + (item.priceProduct * item.count), 0))}</strong>
+        </div>
+    `;
+}
+
+window.closeOrderDetailsModal = function() {
+    const modal = document.getElementById('orderDetailsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
 };
 
 // ============ ЗАГРУЗКА ПРОФИЛЯ ============
@@ -79,8 +396,6 @@ async function loadUserProfile() {
 
     } catch (error) {
         console.error('Ошибка загрузки профиля:', error);
-
-        // Пробуем загрузить из кэша
         const cachedProfile = loadProfileFromCache();
         if (cachedProfile) {
             console.log('Используем кэшированный профиль');
@@ -92,42 +407,27 @@ async function loadUserProfile() {
     }
 }
 
-// ============ ОТОБРАЖЕНИЕ ПРОФИЛЯ ============
-
 function renderUserProfile(user) {
     console.log('Рендерим профиль из DTO:', user);
 
-    // Основные поля из UserCartDTO
     const name = user.name || 'Не указано';
     const email = user.email || 'Не указан';
     const address = user.address || 'Адрес не указан';
     const role = user.role || 'USER';
-    const cartId = user.cartId || null;
 
-    // Заполняем форму
     document.getElementById('profileName').value = name;
     document.getElementById('profileEmail').value = email;
     document.getElementById('profileAddress').value = address;
 
-    // Заголовок профиля
     const profileNameElement = document.querySelector('.profile-name');
     const profileEmailElement = document.querySelector('.profile-email');
 
-    if (profileNameElement) {
-        profileNameElement.textContent = name;
-    }
+    if (profileNameElement) profileNameElement.textContent = name;
+    if (profileEmailElement) profileEmailElement.textContent = email;
 
-    if (profileEmailElement) {
-        profileEmailElement.textContent = email;
-    }
-
-    // Отображаем роль
     updateRoleDisplay(role);
-
-    // Обновляем кнопки ролей
     updateRoleButtons(role);
 
-    // Сохраняем роль для использования в формах
     document.body.dataset.userRole = role;
 }
 
@@ -142,7 +442,6 @@ function renderDefaultProfile() {
     document.querySelector('.profile-name').textContent = name;
     document.querySelector('.profile-email').textContent = email;
 
-    // Блокируем форму
     const inputs = document.querySelectorAll('#personalForm input, #personalForm textarea');
     inputs.forEach(input => input.disabled = true);
 
@@ -152,14 +451,10 @@ function renderDefaultProfile() {
 
 function updateRoleDisplay(role) {
     const roleInfo = ROLE_MAP[role] || ROLE_MAP.USER;
-
-    // Обновляем отображение роли
     const roleElements = document.querySelectorAll('.user-role-display');
     roleElements.forEach(el => {
         el.innerHTML = `${roleInfo.icon} ${roleInfo.text}`;
     });
-
-    // Обновляем кнопки в боковой панели на основе реальной роли
     updateSidebarRoleButtons(role);
 }
 
@@ -167,127 +462,50 @@ function updateSidebarRoleButtons(userRole) {
     const roleButtonsContainer = document.querySelector('.role-buttons');
     if (!roleButtonsContainer) return;
 
-    // Очищаем контейнер
     roleButtonsContainer.innerHTML = '';
 
-    // Добавляем кнопки в зависимости от роли пользователя
     if (userRole === 'USER') {
-        // Пользователь может подать заявку на продавца или курьера
         roleButtonsContainer.innerHTML = `
-            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">
-                🏪 Для продавца
-            </a>
-            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">
-                🚚 Для курьера
-            </a>
-            <a href="/admin" class="btn btn-admin" style="width: 100%; display: none;">
-                ⚙️ Для админа
-            </a>
+            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">🏪 Для продавца</a>
+            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">🚚 Для курьера</a>
         `;
     } else if (userRole === 'SELLER') {
-        // Продавец видит кнопку для своей панели
-        roleButtonsContainer.innerHTML = `
-            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">
-                🏪 Панель продавца
-            </a>
-            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px; opacity: 0.6; cursor: not-allowed;" onclick="return false;">
-                🚚 Для курьера
-            </a>
-            <a href="/admin" class="btn btn-admin" style="width: 100%; display: none;">
-                ⚙️ Для админа
-            </a>
-        `;
+        roleButtonsContainer.innerHTML = `<a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">🏪 Панель продавца</a>`;
     } else if (userRole === 'COURIER') {
-        // Курьер видит кнопку для своей панели
-        roleButtonsContainer.innerHTML = `
-            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px; opacity: 0.6; cursor: not-allowed;" onclick="return false;">
-                🏪 Для продавца
-            </a>
-            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">
-                🚚 Панель курьера
-            </a>
-            <a href="/admin" class="btn btn-admin" style="width: 100%; display: none;">
-                ⚙️ Для админа
-            </a>
-        `;
+        roleButtonsContainer.innerHTML = `<a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">🚚 Панель курьера</a>`;
     } else if (userRole === 'ADMIN') {
-        // Админ видит кнопку для админ панели
-        roleButtonsContainer.innerHTML = `
-            <a href="/seller" class="btn btn-seller" style="width: 100%; margin-bottom: 10px;">
-                🏪 Панель продавца
-            </a>
-            <a href="/courier" class="btn btn-courier" style="width: 100%; margin-bottom: 10px;">
-                🚚 Панель курьера
-            </a>
-            <a href="/admin" class="btn btn-admin" style="width: 100%;">
-                ⚙️ Панель администратора
-            </a>
-        `;
+        roleButtonsContainer.innerHTML = `<a href="/admin" class="btn btn-admin" style="width: 100%;">⚙️ Панель администратора</a>`;
     }
 }
-
-// ============ ОБНОВЛЕНИЕ КНОПОК ЗАЯВОК НА РОЛИ ============
 
 function updateRoleButtons(userRole) {
     const requestCards = document.querySelectorAll('.request-card');
     if (!requestCards || requestCards.length < 3) return;
 
-    const sellerCard = requestCards[0];
-    const courierCard = requestCards[1];
-    const downgradeCard = requestCards[2];
+    const [sellerCard, courierCard, downgradeCard] = requestCards;
 
-    // Сбрасываем все карточки
     [sellerCard, courierCard, downgradeCard].forEach(card => {
         card.style.opacity = '1';
         const button = card.querySelector('button');
-        if (button) {
-            button.disabled = false;
-        }
+        if (button) button.disabled = false;
     });
 
-    // Настраиваем в зависимости от роли
     if (userRole === 'USER') {
-        // Пользователь может подать заявку на продавца или курьера
         sellerCard.querySelector('button').textContent = '📝 Стать продавцом';
         courierCard.querySelector('button').textContent = '📝 Стать курьером';
-        sellerCard.style.opacity = '1';
-        courierCard.style.opacity = '1';
         downgradeCard.style.opacity = '0.6';
         downgradeCard.querySelector('button').disabled = true;
-        downgradeCard.querySelector('button').textContent = '📝 Сняться с роли';
-
     } else if (userRole === 'SELLER') {
-        // Продавец не может подать заявку на продавца
         sellerCard.style.opacity = '0.6';
         sellerCard.querySelector('button').disabled = true;
         sellerCard.querySelector('button').textContent = '✅ Вы уже продавец';
-
-        // Может подать заявку на курьера
-        courierCard.querySelector('button').textContent = '📝 Стать курьером';
-        courierCard.style.opacity = '1';
-
-        // Может подать заявку на снятие с роли
-        downgradeCard.style.opacity = '1';
-        downgradeCard.querySelector('button').disabled = false;
         downgradeCard.querySelector('button').textContent = '📝 Сняться с роли продавца';
-
     } else if (userRole === 'COURIER') {
-        // Курьер не может подать заявку на курьера
         courierCard.style.opacity = '0.6';
         courierCard.querySelector('button').disabled = true;
         courierCard.querySelector('button').textContent = '✅ Вы уже курьер';
-
-        // Может подать заявку на продавца
-        sellerCard.querySelector('button').textContent = '📝 Стать продавцом';
-        sellerCard.style.opacity = '1';
-
-        // Может подать заявку на снятие с роли
-        downgradeCard.style.opacity = '1';
-        downgradeCard.querySelector('button').disabled = false;
         downgradeCard.querySelector('button').textContent = '📝 Сняться с роли курьера';
-
     } else if (userRole === 'ADMIN') {
-        // Админ не может подавать заявки на смену роли
         [sellerCard, courierCard, downgradeCard].forEach(card => {
             card.style.opacity = '0.6';
             const button = card.querySelector('button');
@@ -324,7 +542,6 @@ async function updateUserProfile() {
         submitBtn.disabled = true;
         submitBtn.innerHTML = 'Сохранение...';
 
-        // Обновляем адрес через API
         let serverUpdated = false;
         try {
             const params = new URLSearchParams();
@@ -339,30 +556,18 @@ async function updateUserProfile() {
 
             if (response.ok) {
                 serverUpdated = true;
-                console.log('Адрес обновлен на сервере');
             }
         } catch (serverError) {
             console.warn('Не удалось обновить на сервере:', serverError);
         }
 
-        // Обновляем локальные данные
         const currentUser = loadProfileFromCache() || {};
-        const updatedProfile = {
-            ...currentUser,
-            name: name,
-            address: address,
-            updatedAt: new Date().toISOString()
-        };
+        const updatedProfile = { ...currentUser, name, address, updatedAt: new Date().toISOString() };
 
         saveProfileToCache(updatedProfile);
         document.querySelector('.profile-name').textContent = name;
 
-        // Показываем уведомление
-        if (serverUpdated) {
-            showProfileNotification('✅ Профиль успешно обновлен!', 'success');
-        } else {
-            showProfileNotification('⚠️ Изменения сохранены локально', 'warning');
-        }
+        showProfileNotification(serverUpdated ? '✅ Профиль успешно обновлен!' : '⚠️ Изменения сохранены локально', serverUpdated ? 'success' : 'warning');
 
     } catch (error) {
         console.error('Ошибка обновления профиля:', error);
@@ -380,8 +585,6 @@ async function updateUserProfile() {
 
 async function loadUserRoleRequests() {
     try {
-        console.log('Загрузка заявок на роли...');
-
         const response = await fetch(API_ENDPOINTS.GET_ROLE_REQUESTS, {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
@@ -390,13 +593,10 @@ async function loadUserRoleRequests() {
 
         if (response.ok) {
             const requests = await response.json();
-            console.log('Получены заявки:', requests);
             renderRoleRequests(requests);
         } else {
-            console.warn('Не удалось загрузить заявки:', response.status);
             renderEmptyRequests();
         }
-
     } catch (error) {
         console.error('Ошибка загрузки заявок:', error);
         renderEmptyRequests();
@@ -413,11 +613,10 @@ function renderRoleRequests(requests) {
     }
 
     let requestsHtml = '';
-
     requests.forEach(request => {
         const statusInfo = REQUEST_STATUS_MAP[request.status] || REQUEST_STATUS_MAP.PENDING;
         const date = formatDate(request.createdAt);
-        const roleText = getRoleText(request.requestedRole);
+        const roleText = ROLE_MAP[request.requestedRole]?.text || request.requestedRole;
         const actionText = request.typeAction === 'ENHANCE' ? 'Повышение до' : 'Снятие роли';
 
         requestsHtml += `
@@ -428,7 +627,7 @@ function renderRoleRequests(requests) {
                     <span class="request-date">${date}</span>
                 </div>
                 <div class="request-body">
-                    <p class="request-message">${request.message || 'Без описания'}</p>
+                    <p class="request-message">${escapeHtml(request.message) || 'Без описания'}</p>
                 </div>
                 <div class="request-footer">
                     <span class="request-status ${statusInfo.class}">${statusInfo.text}</span>
@@ -437,61 +636,40 @@ function renderRoleRequests(requests) {
             </div>
         `;
     });
-
     requestsList.innerHTML = requestsHtml;
 }
 
 function renderEmptyRequests() {
     const requestsList = document.getElementById('requestsList');
-    if (!requestsList) return;
-
-    requestsList.innerHTML = `
-        <div class="no-requests">
-            <div class="no-requests-icon">📭</div>
-            <p>У вас еще нет отправленных заявок</p>
-            <p class="no-requests-hint">Отправьте заявку на изменение роли выше</p>
-        </div>
-    `;
+    if (requestsList) {
+        requestsList.innerHTML = `
+            <div class="no-requests">
+                <div class="no-requests-icon">📭</div>
+                <p>У вас еще нет отправленных заявок</p>
+                <p class="no-requests-hint">Отправьте заявку на изменение роли выше</p>
+            </div>
+        `;
+    }
 }
 
 async function submitRoleRequest(type, requestedRole, message) {
     try {
-        const params = new URLSearchParams();
-        params.append('requestedRole', requestedRole);
-        params.append('typeAction', type);
-        params.append('message', message);
-
-        console.log('Отправка заявки:', { type, requestedRole, message });
-
-// Вместо URLSearchParams используем JSON
         const response = await fetch(API_ENDPOINTS.CREATE_ROLE_REQUEST, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',  // ✅ Меняем на JSON
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({                    // ✅ Отправляем JSON
-                requestedRole: requestedRole,
-                typeAction: type,
-                message: message
-            }),
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ requestedRole, typeAction: type, message }),
             credentials: 'include'
         });
+
         if (response.ok) {
             const result = await response.json();
-            console.log('Заявка создана:', result);
-
             showProfileNotification('✅ Заявка успешно отправлена!', 'success');
-
-            // Обновляем список заявок
             await loadUserRoleRequests();
-
             return result;
         } else {
             const errorText = await response.text();
             throw new Error(errorText || 'Ошибка сервера');
         }
-
     } catch (error) {
         console.error('Ошибка отправки заявки:', error);
         throw error;
@@ -501,18 +679,14 @@ async function submitRoleRequest(type, requestedRole, message) {
 // ============ ИНИЦИАЛИЗАЦИЯ МОДАЛЬНЫХ ОКОН ============
 
 function initModals() {
-    // Счетчики символов
     const textAreas = document.querySelectorAll('textarea[maxlength]');
     textAreas.forEach(textarea => {
         textarea.addEventListener('input', function() {
             const counter = this.parentNode.querySelector('.char-counter span');
-            if (counter) {
-                counter.textContent = this.value.length;
-            }
+            if (counter) counter.textContent = this.value.length;
         });
     });
 
-    // Обработка формы повышения роли
     const requestForm = document.getElementById('requestForm');
     if (requestForm) {
         requestForm.addEventListener('submit', async function(e) {
@@ -521,7 +695,6 @@ function initModals() {
         });
     }
 
-    // Обработка формы снятия роли
     const downgradeForm = document.getElementById('downgradeForm');
     if (downgradeForm) {
         downgradeForm.addEventListener('submit', async function(e) {
@@ -530,7 +703,6 @@ function initModals() {
         });
     }
 
-    // Закрытие модалок
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
         modal.addEventListener('click', function(e) {
@@ -541,7 +713,6 @@ function initModals() {
         });
     });
 
-    // Закрытие по Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             modals.forEach(modal => {
@@ -551,7 +722,6 @@ function initModals() {
         }
     });
 
-    // Обновление текста при выборе роли
     const roleSelect = document.getElementById('requestRole');
     if (roleSelect) {
         roleSelect.addEventListener('change', function() {
@@ -582,11 +752,8 @@ async function handleEnhanceRequest() {
         submitBtn.innerHTML = 'Отправка...';
 
         await submitRoleRequest('ENHANCE', role, message);
-
         closeRequestModal();
-
     } catch (error) {
-        console.error('Ошибка отправки заявки:', error);
         showProfileNotification(`❌ Ошибка: ${error.message}`, 'error');
     } finally {
         const submitBtn = requestForm.querySelector('button[type="submit"]');
@@ -617,13 +784,9 @@ async function handleDowngradeRequest() {
         submitBtn.disabled = true;
         submitBtn.innerHTML = 'Отправка...';
 
-        // При downgrade requestedRole = USER
         await submitRoleRequest('REMOVE', 'USER', message);
-
         closeDowngradeModal();
-
     } catch (error) {
-        console.error('Ошибка отправки заявки:', error);
         showProfileNotification(`❌ Ошибка: ${error.message}`, 'error');
     } finally {
         const submitBtn = downgradeForm.querySelector('button[type="submit"]');
@@ -636,20 +799,34 @@ async function handleDowngradeRequest() {
 
 // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
 
-function hideOrdersSection() {
-    const ordersSection = document.querySelector('.orders-history');
-    if (ordersSection) {
-        ordersSection.style.display = 'none';
-    }
+function getItemsText(count) {
+    if (count % 10 === 1 && count % 100 !== 11) return 'товар';
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return 'товара';
+    return 'товаров';
 }
 
-function getRoleText(role) {
-    return ROLE_MAP[role]?.text || role;
+function truncateText(text, maxLength) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
+function formatOrderDate(dateString) {
+    if (!dateString) return 'Не указана';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (e) {
+        return dateString;
+    }
 }
 
 function formatDate(dateString) {
     if (!dateString) return 'Не указана';
-
     try {
         const date = new Date(dateString);
         return date.toLocaleDateString('ru-RU', {
@@ -664,7 +841,20 @@ function formatDate(dateString) {
     }
 }
 
-// ============ КЭШИРОВАНИЕ ============
+function formatPrice(price) {
+    return new Intl.NumberFormat('ru-RU', {
+        style: 'decimal',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    }).format(price) + ' ₽';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 function saveProfileToCache(profile) {
     try {
@@ -682,15 +872,10 @@ function loadProfileFromCache() {
         const cached = localStorage.getItem('userProfileCache');
         if (cached) {
             const data = JSON.parse(cached);
-
-            // Проверяем свежесть кэша (24 часа)
             const cachedAt = new Date(data.cachedAt);
             const now = new Date();
             const hoursDiff = (now - cachedAt) / (1000 * 60 * 60);
-
-            if (hoursDiff < 24) {
-                return data;
-            }
+            if (hoursDiff < 24) return data;
         }
     } catch (e) {
         console.warn('Не удалось загрузить из кэша:', e);
@@ -698,18 +883,13 @@ function loadProfileFromCache() {
     return null;
 }
 
-// ============ UI КОМПОНЕНТЫ ============
-
 function initTabs() {
     const tabButtons = document.querySelectorAll('.tab-button');
-
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
             const tabId = this.getAttribute('data-tab');
-
             tabButtons.forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-
             this.classList.add('active');
             document.getElementById(`${tabId}-tab`).classList.add('active');
         });
@@ -719,37 +899,14 @@ function initTabs() {
 function showProfileNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `profile-notification ${type}`;
-
-    const icon = type === 'success' ? '✅' :
-        type === 'warning' ? '⚠️' : '❌';
-
-    const bgColor = type === 'success' ? '#28a745' :
-        type === 'warning' ? '#ffc107' : '#dc3545';
-
+    const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌';
+    const bgColor = type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#dc3545';
     const textColor = type === 'warning' ? '#212529' : 'white';
 
-    notification.innerHTML = `
-        <div class="notification-content">
-            <span class="notification-icon">${icon}</span>
-            <span class="notification-text">${message}</span>
-        </div>
-    `;
-
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${bgColor};
-        color: ${textColor};
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 9999;
-        animation: slideIn 0.3s ease;
-    `;
+    notification.innerHTML = `<div class="notification-content"><span class="notification-icon">${icon}</span><span class="notification-text">${message}</span></div>`;
+    notification.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${bgColor}; color: ${textColor}; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; animation: slideIn 0.3s ease;`;
 
     document.body.appendChild(notification);
-
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
@@ -775,7 +932,6 @@ window.openRequestModal = function(type) {
         roleNameSpan.textContent = 'курьером';
         title.textContent = 'Заявка на роль курьера';
     }
-
     modal.style.display = 'flex';
 };
 
@@ -792,15 +948,12 @@ window.openDowngradeModal = function() {
     const modal = document.getElementById('downgradeModal');
     if (!modal) return;
 
-    // Автоматически заполняем текущую роль пользователя
     const currentRole = document.body.dataset.userRole || 'USER';
     const roleSelect = document.getElementById('currentRole');
-
     if (roleSelect && currentRole !== 'USER') {
         roleSelect.value = currentRole;
         roleSelect.disabled = true;
     }
-
     modal.style.display = 'flex';
 };
 
@@ -810,8 +963,6 @@ window.closeDowngradeModal = function() {
         modal.style.display = 'none';
         modal.querySelector('form').reset();
         document.getElementById('downgradeCharCount').textContent = '0';
-
-        // Разблокируем select
         const roleSelect = document.getElementById('currentRole');
         if (roleSelect) roleSelect.disabled = false;
     }
@@ -825,109 +976,273 @@ style.textContent = `
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
     }
-    
     @keyframes slideOut {
         from { transform: translateX(0); opacity: 1; }
         to { transform: translateX(100%); opacity: 0; }
     }
     
-    .user-role-display {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 4px 8px;
-        background: #f0f0f0;
-        border-radius: 4px;
-        font-size: 12px;
-        margin-left: 10px;
-    }
-    
-    .request-item {
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 15px;
+    .order-card {
         background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        border: 1px solid #e0e0e0;
     }
-    
-    .request-header {
+    .order-card:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    .order-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
-    }
-    
-    .request-action {
-        font-weight: bold;
-    }
-    
-    .request-role {
-        background: #667eea;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-    }
-    
-    .request-date {
-        color: #666;
-        font-size: 12px;
-    }
-    
-    .request-message {
-        color: #333;
-        margin-bottom: 10px;
-        line-height: 1.5;
-    }
-    
-    .request-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 12px;
-    }
-    
-    .request-status {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-weight: bold;
-    }
-    
-    .status-pending {
-        background: #fff3cd;
-        color: #856404;
-    }
-    
-    .status-approved {
-        background: #d4edda;
-        color: #155724;
-    }
-    
-    .status-rejected {
-        background: #f8d7da;
-        color: #721c24;
-    }
-    
-    .no-requests {
-        text-align: center;
-        padding: 40px 20px;
-        color: #666;
-    }
-    
-    .no-requests-icon {
-        font-size: 48px;
         margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #f0f0f0;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .order-number { font-weight: bold; font-size: 16px; color: #333; }
+    .order-date { font-size: 12px; color: #999; margin-left: 10px; }
+    .order-status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .order-status-badge.pending { background: #fff3cd; color: #856404; }
+    .order-status-badge.dispatched { background: #cce5ff; color: #004085; }
+    .order-status-badge.delivered { background: #d4edda; color: #155724; }
+    .order-status-badge.completed { background: #d4edda; color: #155724; }
+    .order-status-badge.cancelled { background: #f8d7da; color: #721c24; }
+    .order-status-badge.returned { background: #fff3cd; color: #856404; }
+    
+    .preview-items { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+    .preview-item { display: flex; align-items: center; gap: 10px; background: #f8f9fa; padding: 8px 12px; border-radius: 8px; }
+    .preview-item-image { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; }
+    .preview-item-name { font-size: 13px; color: #333; }
+    .preview-item-price { font-size: 12px; color: #28a745; font-weight: bold; }
+    .preview-item-quantity { font-size: 11px; color: #999; }
+    .preview-more { display: flex; align-items: center; padding: 0 12px; color: #667eea; font-size: 13px; }
+    
+    .order-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid #f0f0f0; flex-wrap: wrap; gap: 15px; }
+    .order-total { font-weight: bold; }
+    .total-amount { color: #28a745; font-size: 18px; margin-left: 8px; }
+    .btn-view-order { padding: 8px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.3s ease; }
+    .btn-view-order:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+    
+    .empty-orders { text-align: center; padding: 60px 20px; background: white; border-radius: 16px; }
+    .empty-orders-icon { font-size: 64px; margin-bottom: 20px; }
+    .btn-shop-now { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 30px; }
+    
+    .loading-orders { text-align: center; padding: 40px; }
+    .loading-spinner { width: 40px; height: 40px; margin: 0 auto 20px; border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    
+    /* Стили для модального окна деталей заказа */
+.order-details-modal .modal-content {
+    max-width: 600px;
+    width: 90%;
+    border-radius: 20px;
+}
+
+.order-info-block {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.info-line {
+    display: flex;
+    margin-bottom: 10px;
+    padding: 5px 0;
+}
+
+.info-line:last-child {
+    margin-bottom: 0;
+}
+
+.info-label {
+    width: 110px;
+    font-weight: 600;
+    color: #555;
+}
+
+.info-value {
+    flex: 1;
+    color: #333;
+}
+
+.info-value.total {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-badge.pending { background: #fff3cd; color: #856404; }
+.status-badge.dispatched { background: #cce5ff; color: #004085; }
+.status-badge.delivered { background: #d4edda; color: #155724; }
+.status-badge.completed { background: #d4edda; color: #155724; }
+.status-badge.cancelled { background: #f8d7da; color: #721c24; }
+.status-badge.returned { background: #fff3cd; color: #856404; }
+
+.order-items-block h4 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 16px;
+}
+
+.items-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.items-scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.items-scrollable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.items-scrollable::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 3px;
+}
+
+.item-row {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: #fff;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.item-row:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.item-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.item-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.item-price {
+    color: #666;
+    font-size: 13px;
+}
+
+.item-total {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.items-total {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #e0e0e0;
+    text-align: right;
+    font-size: 16px;
+}
+
+.items-total strong {
+    color: #28a745;
+    font-size: 18px;
+    margin-left: 10px;
+}
+
+.no-items {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+@media (max-width: 768px) {
+    .item-row {
+        flex-direction: column;
+        text-align: center;
     }
     
-    .no-requests-hint {
-        font-size: 14px;
-        margin-top: 10px;
-        color: #999;
+    .item-image {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
     }
     
-    input:disabled, textarea:disabled {
-        background-color: #f8f9fa;
-        cursor: not-allowed;
+    .item-details {
+        flex-direction: column;
+    }
+    
+    .info-line {
+        flex-direction: column;
+    }
+    
+    .info-label {
+        width: auto;
+        margin-bottom: 5px;
+    }
+}
+    
+    .order-items-table { width: 100%; border-collapse: collapse; }
+    .order-items-table th, .order-items-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+    .order-items-table th { background: #f8f9fa; font-weight: 600; }
+    .product-cell { display: flex; align-items: center; gap: 12px; }
+    .product-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; }
+    .product-name { font-weight: 500; }
+    .total-cell { font-weight: bold; color: #28a745; }
+    .total-row { font-weight: bold; }
+    .total-label { text-align: right; }
+    .total-amount-cell { color: #28a745; font-size: 18px; }
+    
+    @media (max-width: 768px) {
+        .order-header { flex-direction: column; align-items: flex-start; }
+        .order-footer { flex-direction: column; align-items: stretch; }
+        .preview-items { flex-direction: column; }
+        .product-cell { flex-direction: column; text-align: center; }
+        .order-items-table { font-size: 12px; }
+        .order-items-table th, .order-items-table td { padding: 8px; }
     }
 `;
 document.head.appendChild(style);

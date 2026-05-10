@@ -1,4 +1,4 @@
-package org.example.kortex.products.api.mapper;
+package org.example.kortex.products.domain.mapper;
 
 import org.example.kortex.products.api.dto.ProductPageResponse;
 import org.example.kortex.products.api.dto.ProductResponse;

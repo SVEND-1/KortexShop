@@ -8,7 +8,7 @@ import org.example.kortex.notify.event.NotifyType;
 import org.example.kortex.notify.kafka.NotifyKafkaProducer;
 import org.example.kortex.orders.api.dto.OrderItemDTO;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
-import org.example.kortex.orders.api.mapper.OrderMapper;
+import org.example.kortex.orders.domain.mapper.OrderMapper;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.db.OrderRepository;
@@ -26,8 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;

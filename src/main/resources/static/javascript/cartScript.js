@@ -1,10 +1,8 @@
-// cartScript.js - отображение корзины с сервера (jQuery версия)
-// Ждем cartManager и обновляем при событиях
+// cartScript.js - отображение корзины с правильным расчетом суммы
 
 let cartManager = null;
 
 async function initCartPage() {
-    // Ждем пока cartManager загрузится
     if (!window.cartManager) {
         console.error('cartManager не найден');
         return;
@@ -13,11 +11,10 @@ async function initCartPage() {
     cartManager = window.cartManager;
     await cartManager.ready();
 
-    // Первоначальная отрисовка
     renderCart();
 
-    // Слушаем события обновления корзины (jQuery способ)
-    $(window).on('cartUpdated', function(event, cartData) {
+    window.addEventListener('cartUpdated', function(event) {
+        console.log('Событие cartUpdated, обновляем корзину');
         renderCart();
     });
 }
@@ -26,50 +23,53 @@ function renderCart() {
     if (!cartManager) return;
 
     const items = cartManager.getItems();
+    // Используем правильную сумму из cartManager
     const total = cartManager.getTotal();
 
-    const $cartItemsContainer = $('#cartItems');
-    const $emptyCart = $('#emptyCart');
-    const $cartWithItems = $('#cartWithItems');
-    const $totalItemsText = $('#totalItemsText');
-    const $totalPrice = $('#totalPrice');
-    const $finalTotal = $('#finalTotal');
-    const $checkoutBtn = $('#checkoutBtn');
+    console.log('Рендер корзины:', { itemsCount: items.length, total: total });
+
+    // Детальный лог каждого товара
+    items.forEach(item => {
+        console.log(`Товар: ${item.productName}, цена: ${item.price}, кол-во: ${item.quantity}, сумма: ${item.price * item.quantity}`);
+    });
+
+    const cartItemsContainer = document.getElementById('cartItems');
+    const emptyCart = document.getElementById('emptyCart');
+    const cartWithItems = document.getElementById('cartWithItems');
+    const totalItemsText = document.getElementById('totalItemsText');
+    const totalPrice = document.getElementById('totalPrice');
+    const finalTotal = document.getElementById('finalTotal');
+    const checkoutBtn = document.getElementById('checkoutBtn');
 
     if (!items || items.length === 0) {
-        // Показываем пустую корзину
-        $emptyCart.show();
-        $cartWithItems.hide();
-
-        if ($totalItemsText.length) $totalItemsText.text('Товары (0)');
-        if ($totalPrice.length) $totalPrice.text(formatPrice(0));
-        if ($finalTotal.length) $finalTotal.text(formatPrice(0));
-        if ($cartItemsContainer.length) $cartItemsContainer.empty();
-
-        // Деактивируем кнопку оформления
-        if ($checkoutBtn.length) {
-            $checkoutBtn.prop('disabled', true).css('opacity', '0.6');
+        if (emptyCart) emptyCart.style.display = 'block';
+        if (cartWithItems) cartWithItems.style.display = 'none';
+        if (totalItemsText) totalItemsText.textContent = 'Товары (0)';
+        if (totalPrice) totalPrice.textContent = formatPrice(0);
+        if (finalTotal) finalTotal.textContent = formatPrice(0);
+        if (cartItemsContainer) cartItemsContainer.innerHTML = '';
+        if (checkoutBtn) {
+            checkoutBtn.disabled = true;
+            checkoutBtn.style.opacity = '0.6';
         }
         return;
     }
 
-    // Показываем корзину с товарами
-    $emptyCart.hide();
-    $cartWithItems.show();
-
-    // Активируем кнопку оформления
-    if ($checkoutBtn.length) {
-        $checkoutBtn.prop('disabled', false).css('opacity', '1');
+    if (emptyCart) emptyCart.style.display = 'none';
+    if (cartWithItems) cartWithItems.style.display = 'block';
+    if (checkoutBtn) {
+        checkoutBtn.disabled = false;
+        checkoutBtn.style.opacity = '1';
     }
 
-    // Отрисовываем товары
-    if ($cartItemsContainer.length) {
+    // Отрисовываем товары с правильной суммой
+    if (cartItemsContainer) {
         const itemsHtml = items.map(item => {
             const imagePath = item.image ? `/uploads/images/${item.image}` : '/images/product-img.png';
-            const name = item.productName || item.name || 'Товар';
+            const name = item.productName || 'Товар';
             const price = Number(item.price) || 0;
             const quantity = Number(item.quantity) || 1;
-            const subtotal = price * quantity;
+            const subtotal = price * quantity; // ПРАВИЛЬНЫЙ расчет суммы товара
 
             return `
             <div class="cart-item" data-item-id="${item.id}">
@@ -79,7 +79,6 @@ function renderCart() {
                 </div>
                 <div class="item-details">
                     <h3 class="item-name">${escapeHtml(name)}</h3>
-                    <p class="item-description">${escapeHtml(item.description || '').substring(0,120)}${(item.description && item.description.length > 120) ? '...' : ''}</p>
                     <div class="item-price">${formatPrice(price)}</div>
                     <div class="item-subtotal">Итого: ${formatPrice(subtotal)}</div>
                 </div>
@@ -98,43 +97,41 @@ function renderCart() {
             </div>`;
         }).join('');
 
-        $cartItemsContainer.html(itemsHtml);
+        cartItemsContainer.innerHTML = itemsHtml;
     }
 
-    // Обновляем итоги
-    const uniqueCount = cartManager.getUniqueCount();
-    if ($totalItemsText.length) $totalItemsText.text(`Товары (${uniqueCount})`);
-    if ($totalPrice.length) $totalPrice.text(formatPrice(total));
-    if ($finalTotal.length) $finalTotal.text(formatPrice(total));
+    // Обновляем итоговые суммы
+    const uniqueCount = items.length;
+    if (totalItemsText) totalItemsText.textContent = `Товары (${uniqueCount})`;
+    if (totalPrice) totalPrice.textContent = formatPrice(total);
+    if (finalTotal) finalTotal.textContent = formatPrice(total);
 
-    // Вешаем обработчики событий
     attachCartEvents();
 }
 
-// Вешаем обработчики на кнопки
 function attachCartEvents() {
-    const $container = $('#cartItems');
-    if (!$container.length) return;
+    const container = document.getElementById('cartItems');
+    if (!container) return;
 
-    // Удаляем старые обработчики и вешаем новые
-    $container.off('click', handleCartClick);
-    $container.on('click', handleCartClick);
+    // Обработчики для кнопок
+    document.querySelectorAll('[data-action]').forEach(btn => {
+        btn.removeEventListener('click', handleCartClick);
+        btn.addEventListener('click', handleCartClick);
+    });
 }
 
-// Обработчик кликов по кнопкам в корзине
 async function handleCartClick(event) {
-    const $button = $(event.target).closest('[data-action]');
-    if (!$button.length) return;
+    const button = event.target.closest('[data-action]');
+    if (!button) return;
 
     event.preventDefault();
 
-    const action = $button.data('action');
-    const itemId = $button.data('id');
+    const action = button.dataset.action;
+    const itemId = button.dataset.id;
 
     if (!action || !itemId) return;
 
-    // Блокируем кнопку на время запроса
-    $button.prop('disabled', true);
+    button.disabled = true;
 
     try {
         if (action === 'increase') {
@@ -143,37 +140,33 @@ async function handleCartClick(event) {
             await cartManager.decrease(itemId);
         } else if (action === 'remove') {
             if (!confirm('Удалить товар из корзины?')) {
-                $button.prop('disabled', false);
+                button.disabled = false;
                 return;
             }
             await cartManager.remove(itemId);
         }
 
-        // КОРЗИНА ОБНОВИТСЯ АВТОМАТИЧЕСКИ ЧЕРЕЗ СОБЫТИЕ cartUpdated
-        // которое отправляет cartManager после успешного запроса
-
     } catch (error) {
         console.error('Ошибка:', error);
         alert('Не удалось выполнить действие: ' + error.message);
-        $button.prop('disabled', false);
+        button.disabled = false;
     }
 }
 
-// Форматирование цены
 function formatPrice(price) {
     return new Intl.NumberFormat('ru-RU', {
         style: 'currency',
         currency: 'RUB',
-        minimumFractionDigits: 0
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
     }).format(price || 0);
 }
 
-// Безопасное HTML
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-// Запускаем при загрузке страницы (jQuery способ)
-$(document).ready(initCartPage);
+document.addEventListener('DOMContentLoaded', initCartPage);

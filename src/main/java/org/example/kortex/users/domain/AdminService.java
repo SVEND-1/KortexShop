@@ -1,7 +1,7 @@
 package org.example.kortex.users.domain;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.kortex.users.api.exception.IncorrectUpdateRoleException;
+import org.example.kortex.users.domain.exception.IncorrectUpdateRoleException;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;

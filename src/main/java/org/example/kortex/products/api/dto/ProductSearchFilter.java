@@ -1,4 +1,4 @@
-package org.example.kortex.products.api;
+package org.example.kortex.products.api.dto;
 
 
 

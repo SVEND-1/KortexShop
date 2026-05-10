@@ -1,4 +1,4 @@
-package org.example.kortex.roleRequest.api.exception;
+package org.example.kortex.roleRequest.domain.exception;
 
 public class PendingRequestException extends RuntimeException {
     public PendingRequestException(String message) {

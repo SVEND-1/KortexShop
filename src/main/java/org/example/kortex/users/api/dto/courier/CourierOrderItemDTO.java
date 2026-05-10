@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 public record CourierOrderItemDTO(
         Long id,
         String productName,
-        String productCode,
         String productImageUrl,
         String productDescription,
         Integer quantity,

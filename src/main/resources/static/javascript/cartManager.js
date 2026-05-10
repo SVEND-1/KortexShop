@@ -1,5 +1,4 @@
 // cartManager.js - Исправленная версия для твоего CartController (jQuery версия)
-
 class CartManager {
     constructor() {
         this.cart = { items: [], total: 0 };

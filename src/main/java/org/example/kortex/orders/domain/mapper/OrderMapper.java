@@ -1,4 +1,4 @@
-package org.example.kortex.orders.api.mapper;
+package org.example.kortex.orders.domain.mapper;
 
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
@@ -19,6 +19,11 @@ public interface OrderMapper {
     @Mapping(target = "items", source = "orderItems", qualifiedByName = "mapOrderItems")
     @Mapping(target = "orderDate", source = "orderDate", qualifiedByName = "toLocalDate")
     OrderResponseDTO toDto(Order order);
+
+    @Mapping(target = "orderId", source = "id")
+    @Mapping(target = "items", source = "orderItems", qualifiedByName = "mapOrderItems")
+    @Mapping(target = "orderDate", source = "orderDate", qualifiedByName = "toLocalDate")
+    List<OrderResponseDTO> toDtoListOrder(List<Order> order);
 
     List<OrderResponseDTO> toDtoList(List<Order> orders);
 

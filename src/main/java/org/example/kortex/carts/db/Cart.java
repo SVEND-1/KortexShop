@@ -40,10 +40,15 @@ public class Cart {
     }
 
 
-    public BigDecimal totalPrice(){
-        List<BigDecimal> result = new ArrayList<>();
-        cartItems.forEach(el -> {result.add(el.getPrice());});
-        return result.stream().reduce(BigDecimal.valueOf(0),BigDecimal::add);
+    public BigDecimal totalPrice() {
+        if (cartItems == null || cartItems.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        // Так как price уже содержит цену × количество, просто складываем
+        return cartItems.stream()
+                .map(CartItem::calculatePrice)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public int getQuantity() {

@@ -1,10 +1,13 @@
-package org.example.kortex.users.api.dto.courier;
+package org.example.kortex.users.domain.mapper;
 
 
 import org.example.kortex.orders.api.dto.OrderPageResponse;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.products.db.Product;
+import org.example.kortex.users.api.dto.courier.CourierOrderDTO;
+import org.example.kortex.users.api.dto.courier.CourierOrderItemDTO;
+import org.example.kortex.users.api.dto.courier.CustomerInfoDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -51,7 +54,6 @@ public class CourierDTOMapper {//TODO Переделать
         return new CourierOrderItemDTO(
                 orderItem.getId(),
                 product.getName(),
-                null,
                 product.getImage(),
                 product.getDescription(),
                 orderItem.getQuantity(),

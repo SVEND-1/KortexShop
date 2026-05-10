@@ -2,10 +2,10 @@ package org.example.kortex.roleRequest.domain;
 
 import org.example.kortex.notify.event.NotifyEvent;
 import org.example.kortex.notify.kafka.NotifyKafkaProducer;
-import org.example.kortex.roleRequest.api.RoleRequestFilter;
+import org.example.kortex.roleRequest.api.dto.RoleRequestFilter;
 import org.example.kortex.roleRequest.api.dto.RolePageResponse;
 import org.example.kortex.roleRequest.api.dto.RoleRequestResponse;
-import org.example.kortex.roleRequest.api.mapper.RoleRequestMapper;
+import org.example.kortex.roleRequest.domain.mapper.RoleRequestMapper;
 import org.example.kortex.roleRequest.db.RoleRequest;
 import org.example.kortex.roleRequest.db.RoleRequestRepository;
 import org.example.kortex.users.db.Role;
@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 
-import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

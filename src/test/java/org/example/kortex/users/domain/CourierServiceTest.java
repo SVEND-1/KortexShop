@@ -1,13 +1,11 @@
 package org.example.kortex.users.domain;
 
 import org.example.kortex.notify.event.NotifyEvent;
-import org.example.kortex.notify.event.NotifyType;
 import org.example.kortex.notify.kafka.NotifyKafkaProducer;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.users.api.dto.courier.CourierAssignResponse;
 import org.example.kortex.users.api.dto.courier.SetStatusOrderResponse;
-import org.example.kortex.users.api.exception.CourierHasActiveOrderException;
 import org.example.kortex.users.db.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,12 +15,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
