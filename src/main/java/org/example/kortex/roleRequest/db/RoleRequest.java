@@ -1,14 +1,16 @@
 package org.example.kortex.roleRequest.db;
 
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.example.kortex.users.db.Role;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @Setter
 @Entity
@@ -51,8 +53,4 @@ public class RoleRequest {
         REMOVE,
         ENHANCE
     }
-
-
-    public RoleRequest() {}
-
 }

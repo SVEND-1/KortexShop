@@ -9,6 +9,7 @@ import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -38,9 +39,7 @@ public class SellerService {//TODO проверять что это товар �
     public List<ProductResponse> getMyProducts() {
         try {
             User seller = userService.getCurrentUser();
-            List<ProductResponse> products = productService.getProductsBySeller(seller.getId());
-            log.info("Выданы продукты продовца");
-            return products;
+            return productService.getProductsBySeller(seller.getId());
         } catch (Exception e) {
             log.error("Ошибка при получении товаров, ex={}", e.getMessage());
             return new ArrayList<>();
@@ -57,41 +56,35 @@ public class SellerService {//TODO проверять что это товар �
         }
     }
 
+    @Transactional
     public ProductResponse createProduct(ProductRequest request) {
         try {
-            log.info("Создания товара");
             User seller = userService.getCurrentUser();
-            Product product = new Product();
-
-            product.setName(request.name());
-            product.setPrice(request.price());
-            product.setCount(request.count());
-            product.setDescription(request.description());
-            product.setCategory(request.category());
-            product.setSeller(seller);
+            Product product = Product.builder()
+                    .name(request.name())
+                    .price(request.price())
+                    .count(request.count())
+                    .description(request.description())
+                    .category(request.category())
+                    .seller(seller)
+                    .build();
 
             if (request.imageFile() != null && !request.imageFile().isEmpty()) {
                 String imageName = saveImage(request.imageFile());
                 product.setImage(imageName);
-                log.debug("Картинка продукта сохранена");
             }
 
             Product createdProduct = productService.create(product);
-
-            log.info("Товар создан успешно id={}", createdProduct.getId());
-
             return productMapper.toDto(createdProduct);
         } catch (Exception e) {
             log.error("Ошибка при создании товара, ex={} ", e.getMessage());
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
 
     public ProductResponse updateProduct(Long id, ProductRequest request) {
-
         try {
-            log.info("Обновление товара с id={}", id);
             Product existingProduct = productService.getById(id);
 
             existingProduct.setName(request.name());
@@ -103,7 +96,6 @@ public class SellerService {//TODO проверять что это товар �
             if (request.imageFile() != null && !request.imageFile().isEmpty()) {
                 if (existingProduct.getImage() != null) {
                     deleteImage(existingProduct.getImage());
-                    log.debug("Старая картинка удалена");
                 }
 
                 String imageName = saveImage(request.imageFile());
@@ -111,8 +103,6 @@ public class SellerService {//TODO проверять что это товар �
             }
 
             Product updatedProduct = productService.update(id, existingProduct);
-
-            log.info("Товар успешно обновлен");
             return productMapper.toDto(updatedProduct);
         } catch (Exception e) {
             log.error("Ошибка при обновлении товара, ex={}", e.getMessage());
@@ -120,22 +110,19 @@ public class SellerService {//TODO проверять что это товар �
         }
     }
 
-
+    @Transactional
     public boolean deleteProduct(Long id) {//TODO Поменять Return
         try {
-            log.info("Удаление товара с id, ex={}", id);
             Product product = productService.getById(id);
-
             if (product.getImage() != null && !product.getImage().isEmpty()) {
                 deleteImage(product.getImage());
             }
 
             productService.deleted(id);
-            log.info("Товар успешно удален");
             return true;
         } catch (Exception e) {
             log.error("Ошибка при удалении товара, ex={}",e.getMessage());
-            return false;
+            throw new RuntimeException(e);
         }
     }
 

@@ -1,13 +1,15 @@
 package org.example.kortex.orders.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.example.kortex.products.db.Product;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @Setter
 @Entity
@@ -32,14 +34,4 @@ public class OrderItem {
 
     @Column(name = "price", nullable = false)
     private BigDecimal price;
-
-    public OrderItem() {
-    }
-
-    public OrderItem(Order order, Product product, Integer quantity, BigDecimal price) {
-        this.order = order;
-        this.product = product;
-        this.quantity = quantity;
-        this.price = price;
-    }
 }

@@ -6,6 +6,7 @@ import org.example.kortex.notify.event.NotifyType;
 import org.example.kortex.notify.kafka.NotifyKafkaProducer;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.domain.OrderService;
+import org.example.kortex.roleRequest.db.RoleRequest;
 import org.example.kortex.users.api.dto.courier.CourierAssignResponse;
 import org.example.kortex.users.api.dto.courier.SetStatusOrderResponse;
 import org.example.kortex.users.domain.exception.CourierHasActiveOrderException;
@@ -37,29 +38,20 @@ public class CourierService {
             User courier = userService.getCurrentUser();
 
             if(isValidAssignOrder(courier.getId())){
-                throw new CourierHasActiveOrderException(
-                        "Невозможно взять новый заказ у курьера уже есть активный заказ в доставке."
-                );
+                throw new CourierHasActiveOrderException("Невозможно взять новый заказ у курьера уже есть активный заказ в доставке.");
             }
-
             Order updateOrder = orderService.setCourier(orderService.getById(id), courier.getId());
 
-            NotifyEvent notifyEvent = new NotifyEvent(
-                    updateOrder.getUser().getEmail(),
-                    Map.of("userName", updateOrder.getUser().getName(),
-                            "courierName",updateOrder.getCourier().getName()),
-                    NotifyType.COURIER_TAKE_ORDER
-            );
-            kafkaProducer.sendMessageToKafka(notifyEvent);
+            notify(updateOrder,Map.of(
+                    "userName", updateOrder.getUser().getName(),
+                    "courierName",updateOrder.getCourier().getName()));
+
             log.info("Курьер с id={} взял заказ с id={}" , courier.getId(), updateOrder.getId());
-
-
             return new CourierAssignResponse(
                     updateOrder.getId(),
                     courier.getId(),
                     courier.getName()
             );
-
         }catch (IllegalStateException e) {
             log.warn("Невозможно взять заказ: {}", e.getMessage());
             throw new IllegalStateException("Невозможно взять заказ: " + e.getMessage());
@@ -73,15 +65,8 @@ public class CourierService {
         try {
             Order orderUpdate = orderService.setStatus(orderService.getById(id), status);
             if(status.equals(Order.OrderStatus.DELIVERED_TO_DESTINATION)) {
-                NotifyEvent notifyEvent = new NotifyEvent(
-                        orderUpdate.getUser().getEmail(),
-                        Map.of("userName", orderUpdate.getUser().getName()),
-                        NotifyType.COURIER_BRING_ORDER
-                );
-                kafkaProducer.sendMessageToKafka(notifyEvent);
+                notify(orderUpdate, Map.of("userName", orderUpdate.getUser().getName()));
             }
-            log.info("У заказа с id={} изменен статус на status={}",id, status.name());
-
             return new SetStatusOrderResponse(
                     orderUpdate.getId(),
                     status.name()
@@ -105,5 +90,14 @@ public class CourierService {
             }
         }
         return false;
+    }
+
+    private void notify(Order order, Map<String,String> message) {
+        NotifyEvent notifyEvent = new NotifyEvent(
+                order.getUser().getEmail(),
+                message,
+                NotifyType.COURIER_BRING_ORDER
+        );
+        kafkaProducer.sendMessageToKafka(notifyEvent);
     }
 }

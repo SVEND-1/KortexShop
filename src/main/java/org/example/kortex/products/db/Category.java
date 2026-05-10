@@ -15,8 +15,4 @@ public enum Category {
     public String getDisplayName() {
         return displayName;
     }
-
-    public SimpleGrantedAuthority toAuthority() {
-        return new SimpleGrantedAuthority("ROLE_" + this.name());
-    }
 }

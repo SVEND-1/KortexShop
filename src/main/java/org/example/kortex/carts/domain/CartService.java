@@ -39,27 +39,21 @@ public class CartService {
             return cartMapper.toCartResponse(cart);
         }catch (Exception e) {
             log.error("Ошибка при получении данных корзины, ex={}", e.getMessage());
-            throw new RuntimeException(
-                    "Ошибка сервера при получении корзины"
-            );
+            throw new RuntimeException("Ошибка сервера при получении корзины",e);
         }
     }
 
     @Transactional
     public CartResponse addItemToCart(Long productId) {
         try {
-            log.info("Добавление товара в корзину");
             User user = userService.getCurrentUserCart();
             cartItemService.addItemToCart(user.getCart().getId(),productId);
             Cart saveCart = cartRepository.save(user.getCart());
-            log.info("Продукт с id={} добавлен в корзину с id={}" ,productId, saveCart.getId());
             return cartMapper.toCartResponse(saveCart);
         }
         catch (Exception e) {
             log.error("Ошибка при добавлении товара в корзину, ex={}", e.getMessage());
-            throw new RuntimeException(
-                    "Ошибка при добавлении товара в корзину"
-            );
+            throw new RuntimeException("Ошибка при добавлении товара в корзину",e);
         }
     }
 
@@ -69,38 +63,26 @@ public class CartService {
         }
         catch (Exception e) {
             log.error("Ошибка инкремента элемента корзины id={},ex={} ",itemId, e.getMessage());
-            throw new RuntimeException(
-                    "Ошибка при увеличении количества"
-            );
+            throw new RuntimeException("Ошибка при увеличении количества",e);
         }
     }
 
     public void decreaseQuantity(Long itemId) {
         try {
-            CartItem updated = cartItemService.decreaseQuantityOrRemove(itemId);
-
-            if (updated == null) {
-                log.info("Элемент корзины id={} удален из корзины", itemId);
-            }
+            cartItemService.decreaseQuantityOrRemove(itemId);
         }
         catch (Exception e) {
-            log.error("Ошибка декремента элемента корзины id={},ex={}",itemId, e.getMessage());
-            throw new RuntimeException(
-                    "Ошибка при уменьшении количества"
-            );
+            throw new RuntimeException("Ошибка при уменьшении количества",e);
         }
     }
 
     public void removeItemFromCart( Long itemId) {
         try {
-            log.info("Удаление товара из корзины cartItemId={}", itemId);
             cartItemService.removeItemFromCart(itemId);
         }
         catch (Exception e) {
             log.error("Не удалось удалить товар, ex={}", e.getMessage());
-            throw new RuntimeException(
-                    "Ошибка при удалении товара из корзины"
-            );
+            throw new RuntimeException("Ошибка при удалении товара из корзины",e);
         }
     }
 
@@ -112,28 +94,23 @@ public class CartService {
 
     public Cart create(Cart cartToCreate) {
         try {
-            log.info("Создания корзины у пользователя id={}", cartToCreate.getUser().getId());
-            Cart cart = cartRepository.save(cartToCreate);
-            log.info("Корзина создана id={}", cart.getId());
-            return cart;
+            return cartRepository.save(cartToCreate);
         }
         catch (Exception e){
             log.error("Не удалось создать корзину, ex={}", e.getMessage());
-            throw new RuntimeException(
-                    "Внутренняя ошибка сервера при создании корзины"
-            );
+            throw new RuntimeException("Внутренняя ошибка сервера при создании корзины",e);
         }
     }
 
+    @Transactional
     public void clearCartByUserId(Long userID)  {
-        log.info("Очистка корзины");
         try {
             Cart cart = getCartWithUser(userID);
             cart.clearCart();
             cartRepository.save(cart);
-            log.info("Корзина очищена");
         }catch (Exception e) {
             log.error("Не удалось очистить корзину пользователя id={},ex={}", userID, e.getMessage());
+            throw new RuntimeException("Не удалось очистить корзину ex=" + e);
         }
     }
 

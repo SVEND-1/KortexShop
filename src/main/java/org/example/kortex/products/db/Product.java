@@ -1,13 +1,15 @@
 package org.example.kortex.products.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @Setter
 @Entity
@@ -41,20 +43,5 @@ public class Product {
     @Enumerated(EnumType.STRING)
     @Column(name = "category")
     private Category category;
-
-
-    public Product(User seller,String name, BigDecimal price, int count, String description, String image, Category category) {
-        this.seller = seller;
-        this.name = name;
-        this.price = price;
-        this.count = count;
-        this.description = description;
-        this.image = image;
-        this.category = category;
-    }
-
-    public Product() {
-
-    }
 
 }

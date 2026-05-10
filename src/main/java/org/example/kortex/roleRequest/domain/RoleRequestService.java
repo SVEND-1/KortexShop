@@ -61,8 +61,6 @@ public class RoleRequestService {
     @Async("asyncExecutor")
     public CompletableFuture<RolePageResponse> getRoleRequestsPage(RoleRequestFilter filter) {
         return CompletableFuture.supplyAsync(() -> {
-            log.info("Получение заявок с фильтром: {}", filter);
-
             int pageSize = filter.pageSize() != null ? filter.pageSize() : 10;
             int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
             Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
@@ -83,8 +81,6 @@ public class RoleRequestService {
 
     public RoleRequestResponse create(Role requestedRole,
                                          RoleRequest.TypeAction typeAction, String message) {
-        log.info("Создания подачи заявки на роль");
-
         try {
             User currentUser = userService.getCurrentUser();
 
@@ -93,16 +89,14 @@ public class RoleRequestService {
                 throw new PendingRequestException("У вас уже есть активная заявка на это действие");
             }
 
-            RoleRequest roleRequest = new RoleRequest();
-            roleRequest.setUser(currentUser);
-            roleRequest.setRequestedRole(requestedRole);
-            roleRequest.setTypeAction(typeAction);
-            roleRequest.setMessage(message);
-            roleRequest.setStatus(RoleRequest.Status.PENDING);
-
-            RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
-            log.info("Заявка создана id: {}", savedRoleRequest.getId());
-            return roleRequestMapper.toDto(savedRoleRequest);
+            RoleRequest roleRequest = RoleRequest.builder()
+                    .user(currentUser)
+                    .requestedRole(requestedRole)
+                    .typeAction(typeAction)
+                    .message(message)
+                    .status(RoleRequest.Status.PENDING)
+                    .build();
+            return roleRequestMapper.toDto(roleRequestRepository.save(roleRequest));
         }catch (Exception ex){
             log.error("Не удалось создать заявку, ex={} ", ex.getMessage());
             throw new IllegalArgumentException("Ошибка в заявке на создания role ex=" + ex.getMessage(),ex);
@@ -119,17 +113,9 @@ public class RoleRequestService {
             adminService.downgrade(roleRequest.getUser().getId(), roleRequest.getRequestedRole());
 
             roleRequest.setStatus(RoleRequest.Status.APPROVED);
-
             RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
 
-            log.info("Понижения пользователя с id={}", roleRequest.getUser().getId());
-
-            NotifyEvent notifyEvent = new NotifyEvent(
-                    roleRequest.getUser().getEmail(),
-                    Map.of("userName", savedRoleRequest.getUser().getName()),
-                    NotifyType.REQUEST_DOWNGRADE
-            );
-            kafkaProducer.sendMessageToKafka(notifyEvent);
+            notify(roleRequest,Map.of("userName", savedRoleRequest.getUser().getName()));
             return roleRequestMapper.toDto(savedRoleRequest);
         }
         catch (Exception ex){
@@ -147,18 +133,11 @@ public class RoleRequestService {
             adminService.appoint(roleRequest.getUser().getId(), roleRequest.getRequestedRole());
 
             roleRequest.setStatus(RoleRequest.Status.APPROVED);
-
             RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
 
-            log.info("Повышение пользователя с id={}", roleRequest.getUser().getId());
-
-            NotifyEvent notifyEvent = new NotifyEvent(
-                    roleRequest.getUser().getEmail(),
-                    Map.of("userName", savedRoleRequest.getUser().getName(),
-                            "newRole", savedRoleRequest.getRequestedRole().name()),
-                    NotifyType.REQUEST_APPROVED
-            );
-            kafkaProducer.sendMessageToKafka(notifyEvent);
+            notify(roleRequest, Map.of(
+                    "userName", savedRoleRequest.getUser().getName(),
+                    "newRole", savedRoleRequest.getRequestedRole().name()));
 
             return roleRequestMapper.toDto(savedRoleRequest);
         }catch (Exception ex){
@@ -174,17 +153,9 @@ public class RoleRequestService {
                     .orElseThrow(() -> new EntityNotFoundException("Запрос не найден"));
 
             roleRequest.setStatus(RoleRequest.Status.REJECTED);
-
             RoleRequest savedRoleRequest = roleRequestRepository.save(roleRequest);
 
-            log.info("Запрос пользователя на смену роли отклонен id={}", roleRequestId);
-
-            NotifyEvent notifyEvent = new NotifyEvent(
-                    roleRequest.getUser().getEmail(),
-                    Map.of("userName", savedRoleRequest.getUser().getName()),
-                    NotifyType.REQUEST_REJECTED
-            );
-            kafkaProducer.sendMessageToKafka(notifyEvent);
+            notify(roleRequest,Map.of("userName", savedRoleRequest.getUser().getName()));
             return roleRequestMapper.toDto(savedRoleRequest);
         }catch (Exception ex){
             log.error("Ошибка отмены заявки пользователя, ex={} ", ex.getMessage());
@@ -197,5 +168,14 @@ public class RoleRequestService {
 
     private boolean hasPendingRequestForSameAction(Long userId) {
         return roleRequestRepository.existsByUserIdAndStatus(userId, RoleRequest.Status.PENDING);
+    }
+
+    private void notify(RoleRequest roleRequest,Map<String,String> message) {
+        NotifyEvent notifyEvent = new NotifyEvent(
+                roleRequest.getUser().getEmail(),
+                message,
+                NotifyType.REQUEST_REJECTED
+        );
+        kafkaProducer.sendMessageToKafka(notifyEvent);
     }
 }

@@ -63,7 +63,7 @@ public class OrderService {
         );
     }
 
-    public List<OrderResponseDTO> getHistoryOrders(){
+    public List<OrderResponseDTO> getHistoryOrders(){//TODO Добавить паггинацию
         try {
             User user = userService.getCurrentUser();
             return orderMapper.toDtoListOrder(orderRepository.findOrdersWithItemsByUserEmail(user.getEmail()));
@@ -87,7 +87,7 @@ public class OrderService {
             );
         }catch (Exception e) {
             log.error("Ошибка при получении данных заказов, ex={}", e.getMessage());
-            return null;
+            throw new RuntimeException(e);
         }
     }
 

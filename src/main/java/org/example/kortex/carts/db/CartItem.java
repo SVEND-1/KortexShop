@@ -2,13 +2,15 @@ package org.example.kortex.carts.db;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.example.kortex.products.db.Product;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @Setter
 @Entity
@@ -34,17 +36,11 @@ public class CartItem {
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 
-    public CartItem(Long id, Cart cart, Product product, Integer quantity) {
-        this.id = id;
-        this.cart = cart;
-        this.product = product;
-        this.quantity = quantity;
+    @PrePersist
+    @PreUpdate
+    private void init(){
         calculatePrice();
     }
-
-    public CartItem() {
-    }
-
 
     public BigDecimal  calculatePrice() {
         if (product != null && product.getPrice() != null) {

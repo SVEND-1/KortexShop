@@ -39,7 +39,6 @@ public class CartItemService {
     @Transactional
     public void addItemToCart(Long cartId, Long productId) {
         try {
-            log.info("Добавление CartItem в корзину cartId={}", cartId);
             Cart cart = cartRepository.findById(cartId)
                     .orElseThrow(() -> new EntityNotFoundException("Корзина не найдена"));
 
@@ -55,16 +54,15 @@ public class CartItemService {
                 cartItem.calculatePrice();
 
                 CartItem savedCartItem = cartItemRepository.save(cartItem);
-                log.info("CartItem уже был в корзине и добавилось количество товара к нему cartItemId={}", savedCartItem.getId());
             } else {
-                CartItem cartItem = new CartItem();
-                cartItem.setCart(cart);
-                cartItem.setProduct(product);
-                cartItem.setQuantity(1);
+                CartItem cartItem = CartItem.builder()
+                        .cart(cart)
+                        .product(product)
+                        .quantity(1)
+                        .build();
                 cartItem.calculatePrice();
 
                 CartItem savedCartItem = cartItemRepository.save(cartItem);
-                log.info("Создан CartItem id={}", savedCartItem.getId());
             }
         }catch (Exception e) {
             log.error("Не удалось создать элемент корзины, ex={}", e.getMessage());
@@ -74,8 +72,6 @@ public class CartItemService {
     @Transactional
     public void updateIncrement(Long cartItemId) {
         try {
-            log.info("Увеличение количества cartItem: {}", cartItemId);
-
             CartItem cartItem = cartItemRepository.findById(cartItemId)
                     .orElseThrow(() -> new EntityNotFoundException("CartItem не найден"));
 
@@ -101,8 +97,6 @@ public class CartItemService {
     @Transactional
     public CartItem decreaseQuantityOrRemove(Long cartItemId) {
         try {
-            log.info("Уменьшение количества cartItem: {}", cartItemId);
-
             CartItem cartItem = cartItemRepository.findById(cartItemId)
                     .orElseThrow(() -> new EntityNotFoundException("CartItem не найден"));
 
@@ -128,7 +122,6 @@ public class CartItemService {
                     .orElseThrow(() -> new EntityNotFoundException("CartItem не найден"));
 
             cartItemRepository.delete(cartItem);
-            log.info("CartItem удален id={}", cartItemId);
         }catch (Exception e){
             log.error("Не удалось удалить элемент корзины, ex={}", e.getMessage());
         }

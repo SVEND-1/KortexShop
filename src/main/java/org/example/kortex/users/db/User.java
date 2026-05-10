@@ -1,8 +1,7 @@
 package org.example.kortex.users.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.example.kortex.carts.db.Cart;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.roleRequest.db.RoleRequest;
@@ -11,6 +10,9 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Setter
 @Getter
 @Entity
@@ -49,29 +51,4 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<RoleRequest> roleRequests = new ArrayList<>();
-
-    public User(Long id, String email, String name, String password, Role role, String address, List<Order> orders, Cart cart, List<RoleRequest> roleRequests) {
-        this.id = id;
-        this.email = email;
-        this.name = name;
-        this.password = password;
-        this.role = role;
-        this.address = address;
-        this.orders = orders;
-        this.cart = cart;
-        this.roleRequests = roleRequests;
-    }
-
-    public User(String email, String name, String password, String address, Cart cart) {
-        this.email = email;
-        this.name = name;
-        this.password = password;
-        this.role = Role.USER;
-        this.address = address;
-        this.cart = cart;
-    }
-
-    public User() {
-    }
-
 }

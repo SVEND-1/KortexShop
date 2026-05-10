@@ -105,7 +105,7 @@ class OrderCreateManagerTest {
 
         ArgumentCaptor<NotifyEvent> eventCaptor = ArgumentCaptor.forClass(NotifyEvent.class);
 
-        OrderResponseDTO result = orderCreateManager.createOrderFromCart();
+        OrderResponseDTO result = orderCreateManager.createOrderFromCart("dasd");
 
         assertEquals(expectedDTO, result);
         assertEquals(1L, result.orderId());

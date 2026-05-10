@@ -1,8 +1,7 @@
 package org.example.kortex.orders.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
@@ -11,6 +10,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @Setter
 @Entity
@@ -49,20 +51,9 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    public Order() {
+    @PrePersist
+    private void init(){
         this.orderDate = LocalDateTime.now();
-    }
-
-    public Order(Long id, User user,User courier, OrderStatus status,String message ,BigDecimal totalAmount, List<OrderItem> orderItems) {
-        this.id = id;
-        this.user = user;
-        this.courier = courier;
-        this.status = status;
-        this.message = message;
-        this.orderDate = LocalDateTime.now();
-        this.shippingAddress = user.getAddress();
-        this.totalAmount = totalAmount;
-        this.orderItems = orderItems;
     }
 
     public enum OrderStatus {

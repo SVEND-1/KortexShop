@@ -27,20 +27,16 @@ public class AdminService {
     public void appoint(Long userId, Role role) {
         try {
             User user = userService.getById(userId);
-            log.info("Повышение пользователя id={} на роль : {}", user.getId(), role.name());
-
             if (isValidRoleAppoint(user.getRole(), role)) {
-                throw new IncorrectUpdateRoleException(
-                        "Нельзя назначить на роль" + role.name() + " пользователя с ролью: " + user.getRole()
-                );
+                throw new IncorrectUpdateRoleException("Нельзя назначить на роль" + role.name() + " пользователя с ролью: " + user.getRole());
             }
 
             user.setRole(role);
             userService.update(user.getId(),user);
-            log.info("Пользователь повышен успешно");
         }
         catch(Exception e) {
             log.error("Ошибка при повышение пользователя, ex={}", e.getMessage());
+            throw new IncorrectUpdateRoleException(e.getMessage());
         }
     }
 
@@ -48,20 +44,15 @@ public class AdminService {
     public void downgrade(Long userId, Role role) {
         try {
             User user = userService.getById(userId);
-            log.info("Понижение пользователя id={} на роль : {}", user.getId(), role.name());
-
             if (isValidRoleDowngrade(user.getRole(), role)) {
-                throw new IncorrectUpdateRoleException(
-                        "Нельзя забрать роль " + role + " у пользователя с ролью: " + user.getRole()
-                );
+                throw new IncorrectUpdateRoleException("Нельзя забрать роль " + role + " у пользователя с ролью: " + user.getRole());
             }
-
             user.setRole(Role.USER);
             userService.update(user.getId(),user);
-            log.info("Пользователь успешно понижен");
         }
         catch(Exception e) {
             log.error("Ошибка при повышение понижении, ex={}", e.getMessage());
+            throw new IncorrectUpdateRoleException(e.getMessage());
         }
     }
 

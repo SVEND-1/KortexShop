@@ -35,49 +35,54 @@ public class OrderCourierManager {
     }
 
     public List<Order> assignedCourierOrders(Long userId) {
-        User courier = userService.getById(userId);
-        validateCourier(courier);
-        List<Order> orders = orderRepository.assignedOrders(userId);
-        log.info("Заказы курьера выданы courierId={}", userId);
-        return orders;
+        try {
+            User courier = userService.getById(userId);
+            validateCourier(courier);
+            return orderRepository.assignedOrders(userId);
+        }catch (Exception e){
+            log.error("Не удалось загрузить заказы курьера,ex={}",e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     @Transactional
     public OrderPageResponse assignedCourierOrdersPage(OrdersSearchCourierFilter filter) {
-        log.info("Заказы курьера с filter={}", filter);
+        try {
+            User courier = userService.getCurrentUser();
+            validateCourier(courier);
 
-        User courier = userService.getCurrentUser();
-        validateCourier(courier);
+            int pageSize = filter.pageSize() != null ? filter.pageSize() : 8;
+            int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
+            Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        int pageSize = filter.pageSize() != null ? filter.pageSize() : 8;
-        int pageNumber = filter.pageNumber() != null ? filter.pageNumber() : 0;
-        Pageable pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
-
-        var orders = orderRepository.assignedOrdersPage(courier.getId(), pageable);
-        OrderPageResponse response = courierDTOMapper.toPageResponse(orders);
-        log.info("Заказы курьера с фильтром выданы");
-        return response;
+            var orders = orderRepository.assignedOrdersPage(courier.getId(), pageable);
+            return courierDTOMapper.toPageResponse(orders);
+        }catch (Exception e){
+            log.error("Не удалось загрузить заказы assignedCourierOrdersPage,ex={}",e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
+    @Transactional(readOnly = true)
     public OrderPageResponse availableCourierOrdersPage(Integer pageSize ,Integer pageNumber){
-        log.info("Запрос доступный заказов для курьеров");
+        try {
+            pageSize = pageSize != null ? pageSize : 36;
+            pageNumber = pageNumber != null ? pageNumber : 0;
+            Pageable pageable = Pageable
+                    .ofSize(pageSize)
+                    .withPage(pageNumber);
 
-        pageSize = pageSize != null ? pageSize : 36;
-        pageNumber = pageNumber != null ? pageNumber : 0;
-        Pageable pageable = Pageable
-                .ofSize(pageSize)
-                .withPage(pageNumber);
-
-        var orders = orderRepository.availableOrdersPage(pageable);
-        OrderPageResponse response = courierDTOMapper.toPageResponse(orders);
-        log.info("Доступные заказы для курьеров выданы ");
-        return response;
+            var orders = orderRepository.availableOrdersPage(pageable);
+            return courierDTOMapper.toPageResponse(orders);
+        }catch (Exception e){
+            log.error("Не удалось загрузить доступные заказы,ex={}",e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Order setCourier(Order order,Long courierId) {
         try {
-            log.info("Назначения курьера на заказ");
             User user = userService.getById(courierId);
             validateCourier(user);
 
@@ -95,40 +100,33 @@ public class OrderCourierManager {
     @Transactional
     public Order setStatus(Order order, Order.OrderStatus status) {
         try {
-            log.info("Изменения статуса заказа orderId={} на status={}", order.getId(), status.name());
-
             if (status == Order.OrderStatus.CANCELLED) {
-                log.info("Запрос курьера на отказ от заказа");
                 order.setCourier(null);
                 status = Order.OrderStatus.PENDING;
-                log.info("Курьер отказался от заказа");
+                log.warn("Курьер отказался от заказа, id={}", order.getId());
             }
-
             if (status == Order.OrderStatus.RETURNED) {
                 returningProductsToBack(order.getId());
             }
 
             order.setStatus(status);
-            Order saveOrder = orderRepository.save(order);
-            log.info("Статус заказа изменен");
-            return saveOrder;
+            return orderRepository.save(order);
         }
         catch (Exception e){
             log.error("Не удалось изменить статус заказа id={},ex={}",order.getId(),e.getMessage());
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
     private void returningProductsToBack(Long orderId) {
         try {
-            log.info("Вернуть заказ");
             Order orderWithItems = orderRepository.findByIdWithItems(orderId);
             for (OrderItem orderItem : orderWithItems.getOrderItems()) {
                 productService.productAddQuantity(orderItem.getProduct().getId(), orderItem.getQuantity());
             }
-            log.info("Заказ был возвращен");
         }catch (Exception e){
             log.error("Ошибка возврата заказа на склад orderId={},ex={}",orderId,e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -140,5 +138,4 @@ public class OrderCourierManager {
             );
         }
     }
-
 }

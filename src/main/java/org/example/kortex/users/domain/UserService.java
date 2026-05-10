@@ -39,13 +39,13 @@ public class UserService {
         return userMapper.convertEntityToDto(getCurrentUser());
     }
 
+    @Transactional
     public UserResponse changeAddress(String newAddress) {
         try {
             if(newAddress == null){
                 throw new IllegalArgumentException("Пустой адрес,укажите правильно адрес");
             }
             User user = getCurrentUser();
-            log.info("Обновление адреса у пользователя id={}", user.getId());
             user.setAddress(newAddress);
             return userMapper.convertEntityToDto(userRepository.save(user));
         }catch (Exception  e){
@@ -94,28 +94,15 @@ public class UserService {
     }
 
     public User getByEmail(String email) {
-        log.info("Поиск пользователя с email={}", email);
-
         if (email == null) {
             throw new IllegalArgumentException("Пустой email пользователя");
         }
-
-        User user = userRepository.findByEmailEqualsIgnoreCase(email);
-
-        if (user == null) {
-            log.debug("Пользователь не найден с email={}", email);
-        } else {
-            log.debug("Пользователь найден с email={}", user.getEmail());
-        }
-        return user;
+        return userRepository.findByEmailEqualsIgnoreCase(email);
     }
 
     public User create(User userToCreate) {
         try {
-            log.info("Создания пользователя");
-            User createdUser = userRepository.save(userToCreate);
-            log.info("Пользователь создан его id={}", createdUser.getId());
-            return createdUser;
+            return userRepository.save(userToCreate);
         } catch (Exception e) {
             log.error("Ошибка создание пользователя, ex={}", e.getMessage());
             throw new RuntimeException("Пользователь с email " + userToCreate.getEmail() + " уже существует");
@@ -125,22 +112,21 @@ public class UserService {
     @Transactional
     public User update(Long id, User userToUpdate) {
         try {
-            log.info("Обновление пользователя с id={}", id);
             User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
-            User updatedUser = new User(
-                    user.getId(),
-                    userToUpdate.getEmail(),
-                    userToUpdate.getName(),
-                    userToUpdate.getPassword(),
-                    userToUpdate.getRole(),
-                    userToUpdate.getAddress(),
-                    user.getOrders(),
-                    user.getCart(),
-                    userToUpdate.getRoleRequests());
+            User updatedUser = User.builder()
+                    .id(user.getId())
+                    .email(userToUpdate.getEmail())
+                    .name(userToUpdate.getName())
+                    .password(userToUpdate.getPassword())
+                    .address(userToUpdate.getAddress())
+                    .role(userToUpdate.getRole())
+                    .orders(user.getOrders())
+                    .cart(user.getCart())
+                    .roleRequests(user.getRoleRequests())
+                    .build();
 
             User savedUser = userRepository.save(updatedUser);
-            log.info("Пользователь обновлен с id={}", savedUser.getId());
             return userRepository.save(savedUser);
         }
         catch (DataIntegrityViolationException e) {
@@ -152,7 +138,6 @@ public class UserService {
     @Transactional
     public User changePassword(Long id, String newPassword) {
         try {
-            log.info("Обновление пароля у пользователя с id={}", id);
             User user = userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
             user.setPassword(newPassword);
@@ -162,9 +147,7 @@ public class UserService {
             return userRepository.save(savedUser);
         }catch (Exception e) {
             log.error("Ошибка смена пароля пользователя id={}, ex={}", id ,e.getMessage());
-            throw new RuntimeException(
-                    "Не удалось изменить пароль, ex=" + e.getMessage()
-            );
+            throw new RuntimeException("Не удалось изменить пароль, ex=" + e.getMessage());
         }
     }
 

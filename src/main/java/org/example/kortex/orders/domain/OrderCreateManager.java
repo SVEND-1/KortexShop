@@ -56,56 +56,28 @@ public class OrderCreateManager {
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public OrderResponseDTO createOrderFromCart(String comment) {
-        log.info("Создания заказа из корзины");
         try {
             User user = userService.getCurrentUser();
-
-            if(user.getAddress() == null){
-                log.warn("Для создание заказа необходим адрес");
-                throw new NoSuchElementException("Для создание заказа необходим адрес");
-            }
-
             Cart cart = user.getCart();
-            if (cart == null) {
-                log.warn("Корзина не найдена для пользователя с id={}", user.getId());
-                throw new NoSuchElementException("Корзина не найдена для пользователя с ID: " + user.getId());
-            }
 
-            if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {//TODO Добавить свою ошибку
-                log.warn("Корзина пуста, невозможно создать заказ");
-                throw new RuntimeException("Корзина пуста, невозможно создать заказ");
-            }
-
+            isValid(user,cart);
             validateCartItems(cart);
 
-            Order order = new Order();
-            order.setUser(user);
-            order.setStatus(Order.OrderStatus.PENDING);
-            order.setShippingAddress(user.getAddress());
-            order.setMessage(comment);
-
-            BigDecimal totalAmount = calculateTotalAmount(cart);
-            order.setTotalAmount(totalAmount);
-
-            Order savedOrder = orderRepository.save(order);
+            Order order = Order.builder()
+                    .user(user)
+                    .status(Order.OrderStatus.PENDING)
+                    .shippingAddress(user.getAddress())
+                    .message(comment)
+                    .totalAmount(calculateTotalAmount(cart))
+                    .build();
+            Order savedOrder = orderRepository.save(order);//Переписать логику
 
             List<OrderItem> orderItems = createOrderItemsFromCart(cart, savedOrder);
             savedOrder.setOrderItems(orderItems);
 
             cartService.clearCartByUserId(user.getId());
-
-            Order finalOrder = orderRepository.save(savedOrder);
-            for (OrderItem orderItem : finalOrder.getOrderItems()) {
-                productService.productSubtractQuantity(orderItem.getProduct().getId(), orderItem.getQuantity());
-            }
-            NotifyEvent notifyEvent = new NotifyEvent(
-                    user.getEmail(),
-                    Map.of("userName", user.getName()),
-                    NotifyType.ORDER_CREATED
-            );
-            kafkaProducer.sendMessageToKafka(notifyEvent);
-
-            log.info("Заказ создан id={}", finalOrder.getId());
+            Order finalOrder = productSubtractQuantity(savedOrder);
+            notify(user);
 
             return orderMapper.toDto(finalOrder);
         }
@@ -123,6 +95,56 @@ public class OrderCreateManager {
         }
     }
 
+    private List<OrderItem> createOrderItemsFromCart(Cart cart, Order order) {
+        try {
+            List<OrderItem> orderItems = new ArrayList<>();
+
+            for (CartItem cartItem : cart.getCartItems()) {
+                BigDecimal itemPrice = cartItem.getProduct().getPrice();
+                OrderItem orderItem = OrderItem.builder()
+                        .order(order)
+                        .product(cartItem.getProduct())
+                        .quantity(cartItem.getQuantity())
+                        .price(itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity())))
+                        .build();
+                orderItems.add(orderItem);
+            }
+
+            return orderItemService.saveAll(orderItems);
+        }catch (Exception e){
+            log.error("Ошибка создание элементов заказа cartId={},orderId={},ex={}",cart.getId(),order.getId(), e.getMessage());
+            throw new RuntimeException("Ошибка создание элементов заказа",e);
+        }
+    }
+
+    private Order productSubtractQuantity(Order savedOrder){
+        Order finalOrder = orderRepository.save(savedOrder);
+        for (OrderItem orderItem : finalOrder.getOrderItems()) {
+            productService.productSubtractQuantity(orderItem.getProduct().getId(), orderItem.getQuantity());
+        }
+        return finalOrder;
+    }
+
+    private void notify(User user){
+        NotifyEvent notifyEvent = new NotifyEvent(
+                user.getEmail(),
+                Map.of("userName", user.getName()),
+                NotifyType.ORDER_CREATED
+        );
+        kafkaProducer.sendMessageToKafka(notifyEvent);
+    }
+
+    private BigDecimal calculateTotalAmount(Cart cart) {
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (CartItem cartItem : cart.getCartItems()) {
+            BigDecimal itemPrice = cartItem.getProduct().getPrice();
+            BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            total = total.add(itemTotal);
+        }
+
+        return total;
+    }
 
     private void validateCartItems(Cart cart) {
         for (CartItem cartItem : cart.getCartItems()) {
@@ -146,43 +168,20 @@ public class OrderCreateManager {
         }
     }
 
-    private BigDecimal calculateTotalAmount(Cart cart) {
-        BigDecimal total = BigDecimal.ZERO;
-
-        for (CartItem cartItem : cart.getCartItems()) {
-            BigDecimal itemPrice = cartItem.getProduct().getPrice();
-            BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-            total = total.add(itemTotal);
+    private void isValid(User user,Cart cart) {
+        if(user.getAddress() == null){
+            log.warn("Для создание заказа необходим адрес");
+            throw new NoSuchElementException("Для создание заказа необходим адрес");
         }
 
-        return total;
-    }
+        if (cart == null) {
+            log.warn("Корзина не найдена для пользователя с id={}", user.getId());
+            throw new NoSuchElementException("Корзина не найдена для пользователя с ID: " + user.getId());
+        }
 
-    private List<OrderItem> createOrderItemsFromCart(Cart cart, Order order) {
-        log.info("Создания OrderItem");
-        try {
-            List<OrderItem> orderItems = new ArrayList<>();
-
-            for (CartItem cartItem : cart.getCartItems()) {
-                OrderItem orderItem = new OrderItem();
-                orderItem.setOrder(order);
-                orderItem.setProduct(cartItem.getProduct());
-                orderItem.setQuantity(cartItem.getQuantity());
-
-                BigDecimal itemPrice = cartItem.getProduct().getPrice();
-                orderItem.setPrice(itemPrice);
-
-                orderItem.setPrice(itemPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
-
-                orderItems.add(orderItem);
-            }
-
-            List<OrderItem> finalOrderItems = orderItemService.saveAll(orderItems);
-            log.info("Созданы все OrderItem");
-            return finalOrderItems;
-        }catch (Exception e){
-            log.error("Ошибка создание элементов заказа cartId={},orderId={},ex={}",cart.getId(),order.getId(), e.getMessage());
-            return null;
+        if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {//TODO Добавить своё исключение
+            log.warn("Корзина пуста, невозможно создать заказ");
+            throw new RuntimeException("Корзина пуста, невозможно создать заказ");
         }
     }
 }

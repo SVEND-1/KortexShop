@@ -1,9 +1,7 @@
 package org.example.kortex.carts.db;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.example.kortex.users.db.User;
 
 import javax.persistence.*;
@@ -12,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @Setter
 @Entity
@@ -29,15 +30,6 @@ public class Cart {
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<CartItem> cartItems = new ArrayList<>();
-
-    public Cart() {
-    }
-
-    public Cart(Long id, User user, List<CartItem> cartItems) {
-        this.id = id;
-        this.user = user;
-        this.cartItems = cartItems;
-    }
 
 
     public BigDecimal totalPrice() {

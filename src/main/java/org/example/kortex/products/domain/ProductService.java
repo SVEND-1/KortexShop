@@ -46,8 +46,6 @@ public class ProductService {
 
     @Async("asyncExecutor")
     public CompletableFuture<ProductPageResponse> findProductsFilter(ProductSearchFilter filter) {
-        log.info("Запрос на выдачу всех товаров с фильром: {}", filter);
-
         try {
             Category category = filter.category() != null ? Category.valueOf(filter.category()) : null;
             int pageSize = filter.size() != null ? filter.size() : 10;
@@ -65,7 +63,6 @@ public class ProductService {
 
             ProductPageResponse response = productMapper.toPageResponse(productsPage);
             return CompletableFuture.completedFuture(response);
-
         } catch (Exception ex) {
             log.error("Ошибка при загрузке продуктов: {}", ex.getMessage(), ex);
             return null;
@@ -97,12 +94,11 @@ public class ProductService {
         }
         catch (Exception e){
             log.error("REDIS ex={}",e.getMessage());
-            throw  new RuntimeException();
+            throw new RuntimeException(e);
         }
     }
 
     public List<ProductResponse> getProductsBySeller(Long sellerId) {
-        log.info("Запрос на товары у продавца: {}", sellerId);
         return productMapper.toDtoList(productRepository.findBySellerId(sellerId));
     }
 
@@ -117,6 +113,7 @@ public class ProductService {
             redisTemplate.delete(cacheKey);
         }catch (Exception e){
             log.error("Ошибка уменьшение количество продукта productId: {}, ex={}", productId, e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -131,26 +128,23 @@ public class ProductService {
             redisTemplate.delete(cacheKey);
         }catch (Exception e){
             log.error("Ошибка добавление количество продукта productId: {}, ex={}", productId, e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
 
     public Product create(Product productToCreate) {
         try {
-            log.info("Создания продкута");
-            Product product = productRepository.save(productToCreate);
-            log.info("Продукт создан id: {}", product.getId());
-            return product;
+            return productRepository.save(productToCreate);
         }catch (Exception e){
             log.error("Ошибка сохранение продукта");
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Product update(Long id, Product productToUpdate) {
         try {
-            log.info("Обновлние продукта с id: {}", id);
             Product existingProduct = productRepository.findById(id)
                     .orElseThrow(() -> new EntityNotFoundException("Продукт не найден"));
 
@@ -165,7 +159,6 @@ public class ProductService {
             }
 
             Product productUpdated = productRepository.save(existingProduct);
-            log.info("Продукт обновлени id: {}", productUpdated.getId());
 
             String cacheKey = CACHE_KEY_PREFIX + id;
             redisTemplate.delete(cacheKey);
@@ -174,7 +167,7 @@ public class ProductService {
         }
         catch (Exception e){
             log.error("Ошибка обновление продукта с id: {}, ex={}", id, e.getMessage());
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
@@ -188,10 +181,10 @@ public class ProductService {
 
             String cacheKey = CACHE_KEY_PREFIX + id;
             redisTemplate.delete(cacheKey);
-            log.info("Продукт удален id: {}", id);
         }
         catch (Exception e){
             log.error("Ошибка удаление продукта с id: {}, ex={}", id, e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 }

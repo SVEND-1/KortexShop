@@ -28,15 +28,12 @@ public class OrderItemService {
 
 
     public List<OrderItem> saveAll(List<OrderItem> orderItems) {
-        log.info("Сохранения всех orderItem");
-        if (orderItems == null || orderItems.isEmpty()) {
-            throw new IllegalStateException("Элементы заказа не найдены");
-        }
-
         try {
-            List<OrderItem> savedItems = orderItemRepository.saveAll(orderItems);
-            log.info("Успешно сохранения всех orderItem");
-            return savedItems;
+            if (orderItems == null || orderItems.isEmpty()) {
+                throw new IllegalStateException("Элементы заказа не найдены");
+            }
+
+            return orderItemRepository.saveAll(orderItems);
         } catch (Exception e) {
             log.error("Не удалось сохранить элементы заказа, ex={}",e.getMessage());
             throw new RuntimeException("Не удалось сохранить элементы заказа", e);
