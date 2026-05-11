@@ -51,8 +51,8 @@ services:
       - SPRING_REDIS_PORT=6379
       - SPRING_REDIS_PASSWORD=svend123
 
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 
       - SERVER_PORT=8080
       - TZ=Europe/Moscow
