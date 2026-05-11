@@ -153,6 +153,7 @@ import org.example.kortex.payments.api.dto.response.receipt.ReceiptResponse;
 import org.example.kortex.payments.db.PaymentEntity;
 import org.example.kortex.payments.domain.mapper.ReceiptMapper;
 import org.example.kortex.users.domain.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import ru.loolzaaa.youkassa.model.Payment;
@@ -171,8 +172,8 @@ public class YooKassaManager {
     private final PaymentService paymentService;
     private final UserService userService;
 
-    // ФИКС: редиректим на страницу которая создаёт чек и подписку
-    private final String RETURN_URL = "http://localhost:8080/payments";
+    @Value("${app.base-url:http://localhost:8080/payments}")
+    private String RETURN_URL;
 
     private final ReceiptMapper receiptMapper;
 

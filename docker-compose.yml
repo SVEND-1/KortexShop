@@ -62,6 +62,7 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - PAYMENT_KEY=${PAYMENT_KEY}
       - SHOP_ID=${SHOP_ID}
+      - BASE_URL=${BASE_URL}
     volumes:
       - ./uploads:/app/uploads
 
