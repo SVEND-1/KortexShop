@@ -3,6 +3,8 @@ version: '3.8'
 volumes:
   postgres_data:
   redis_data:
+  certbot_www:
+  certbot_conf:
 
 services:
   postgres:
@@ -41,12 +43,6 @@ services:
       - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED=true
       - SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE=false
       - SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_TRUST=smtp.gmail.com
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=svend123
-
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -55,8 +51,10 @@ services:
       - SPRING_REDIS_PORT=6379
       - SPRING_REDIS_PASSWORD=svend123
 
-      - SERVER_PORT=8080
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 
+      - SERVER_PORT=8080
       - TZ=Europe/Moscow
 
       - SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=30000
@@ -78,6 +76,17 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./uploads:/usr/share/nginx/html/uploads
+      - certbot_www:/var/www/certbot:ro
+      - certbot_conf:/etc/letsencrypt:ro
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: "no"
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_conf:/etc/letsencrypt
+    # Запуск вручную: docker compose run --rm certbot certonly ...
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
 
   redis:
     image: redis:7.2-alpine
