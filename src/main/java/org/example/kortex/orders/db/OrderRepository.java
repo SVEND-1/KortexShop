@@ -1,5 +1,6 @@
 package org.example.kortex.orders.db;
 
+import org.example.kortex.orders.api.dto.OrderResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -12,8 +13,6 @@ import java.util.List;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-
-    List<Order> findOrderByUserId(Long userId);
 
     @EntityGraph(attributePaths = {"orderItems", "orderItems.product"})
     @Query("SELECT DISTINCT o FROM Order o WHERE o.id = :id")
@@ -56,4 +55,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findOrdersWithItemsByUserEmail(@Param("email") String email);
 
     Order findByPaymentId(String paymentId);
+
+    List<Order> findAllByStatus(Order.OrderStatus status);
 }

@@ -1,12 +1,15 @@
 package org.example.kortex.orders.domain.mapper;
 
+import org.example.kortex.orders.api.dto.OrderPaymentApproved;
 import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderItem;
 import org.example.kortex.orders.api.dto.OrderItemDTO;
 import org.example.kortex.orders.api.dto.OrderResponseDTO;
+import org.example.kortex.payments.domain.PaymentService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

@@ -16,4 +16,8 @@ ALTER TABLE payments
         FOREIGN KEY (user_id) REFERENCES users(id);
 
 -- changeset SVEND-1.1:3
+ALTER TABLE orders
+    ADD COLUMN payment_id VARCHAR(255);
+
+-- changeset SVEND-1.1:4
 CREATE INDEX idx_payments_user_id ON payments(user_id);

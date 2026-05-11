@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление платежами | Kortex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/design/mainFormStyle.css">
+    <style>
+        /* ── STATS ── */
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 24px;
+            padding: 28px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+        }
+
+        .stat-card-value {
+            font-size: 40px;
+            font-weight: 800;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .stat-card-value.paid   { color: #28a745; }
+        .stat-card-value.unpaid { color: #dc3545; }
+        .stat-card-value.amount {
+            font-size: 26px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #888;
+            letter-spacing: 0.04em;
+        }
+
+        /* ── ORDERS ── */
+        .orders-list { display: flex; flex-direction: column; gap: 20px; }
+
+        .order-payment-card {
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.07);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .order-payment-card:hover {
+            transform: translateX(6px);
+            box-shadow: 0 10px 32px rgba(0,0,0,0.1);
+        }
+
+        .order-payment-card.paid   { border-left: 5px solid #28a745; }
+        .order-payment-card.unpaid { border-left: 5px solid #dc3545; }
+
+        .order-body { padding: 28px 32px; }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .order-id {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .order-id span { color: #667eea; }
+
+        .payment-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .payment-status.paid   { background: #d4edda; color: #155724; }
+        .payment-status.unpaid { background: #f8d7da; color: #721c24; }
+        .payment-status svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+        /* ── ORDER MID ── */
+        .order-info {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: center;
+        }
+
+        @media (max-width: 640px) { .order-info { grid-template-columns: 1fr; } }
+
+        .order-items-preview { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: #f8f9fa;
+            border-radius: 14px;
+            border: 1px solid #eee;
+        }
+
+        .preview-item-image {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: #e9ecef;
+            flex-shrink: 0;
+        }
+
+        .preview-item-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a2e;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preview-item-price {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .more-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            background: #f8f9fa;
+            border-radius: 14px;
+            border: 1px solid #eee;
+            color: #999;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* ── TOTAL ── */
+        .order-total { text-align: right; min-width: 170px; }
+
+        .total-label {
+            font-size: 11px;
+            color: #999;
+            font-weight: 600;
+            margin-bottom: 4px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .total-amount {
+            font-size: 30px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+        }
+
+        .payment-ref {
+            font-size: 11px;
+            color: #bbb;
+            margin-top: 4px;
+        }
+
+        /* ── FOOTER ── */
+        .order-footer {
+            padding: 16px 32px;
+            border-top: 1px solid #f0f0f0;
+            background: #fafafa;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-confirm-payment {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-confirm-payment:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(40,167,69,0.3);
+        }
+
+        .btn-confirm-payment:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-confirm-payment svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+        .paid-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #28a745;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .paid-label svg { width: 16px; height: 16px; }
+
+        /* ── STATES ── */
+        .state-box { text-align: center; padding: 80px 20px; }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .state-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .state-text { font-size: 15px; color: #666; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: white;
+            border-radius: 16px;
+            padding: 16px 22px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 2000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            font-size: 14px;
+            font-weight: 500;
+            color: #1a1a2e;
+            max-width: 320px;
+            animation: slideInRight 0.25s ease;
+            border-left: 4px solid;
+        }
+
+        .toast.success { border-left-color: #28a745; }
+        .toast.error   { border-left-color: #dc3545; }
+        .toast svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .toast.success svg { color: #28a745; }
+        .toast.error   svg { color: #dc3545; }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="container">
+        <div class="header-content">
+            <a href="/" class="logo">Kortex</a>
+            <nav class="nav">
+                <a href="/cart" class="nav-link">
+                    <img src="images/cart-img.png" alt="Корзина" class="nav-icon">
+                    Корзина
+                </a>
+                <a href="/profile" class="nav-link">
+                    <img src="images/profile-img.png" alt="Профиль" class="nav-icon profile-icon">
+                    <span class="profile-text">Профиль</span>
+                </a>
+                <a href="/login" class="nav-link">
+                    <img src="images/join-img.png" alt="Войти" class="nav-icon">
+                    Войти
+                </a>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+    <div class="hero-section">
+        <h1 class="hero-title">Управление платежами</h1>
+        <p class="hero-subtitle">Подтверждение оплаты заказов</p>
+    </div>
+
+    <div class="main-content">
+        <div class="catalog">
+            <div class="catalog-header">
+                <h2 class="catalog-title">Заказы</h2>
+                <button class="filter-select" onclick="loadPayments()" style="cursor:pointer;">
+                    ↻ Обновить
+                </button>
+            </div>
+
+            <div id="statsContainer"></div>
+            <div id="ordersContainer"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadPayments() {
+        const container = document.getElementById('ordersContainer');
+        container.innerHTML = `
+            <div class="state-box">
+                <div class="spinner"></div>
+                <div class="state-title">Загрузка заказов...</div>
+            </div>
+        `;
+
+        try {
+            const response = await fetch('/api/payments', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+            const data = await response.json();
+            renderStats(data);
+            renderOrders(data);
+        } catch (error) {
+            console.error('Ошибка:', error);
+            container.innerHTML = `
+                <div class="state-box">
+                    <div class="state-title">Ошибка загрузки</div>
+                    <div class="state-text">${escapeHtml(error.message)}</div>
+                </div>
+            `;
+        }
+    }
+
+    function renderStats(orders) {
+        const el = document.getElementById('statsContainer');
+        if (!orders?.length) { el.innerHTML = ''; return; }
+
+        const total  = orders.length;
+        const paid   = orders.filter(o => o.approved === true).length;
+        const unpaid = orders.filter(o => o.approved === false).length;
+        const amount = orders.reduce((s, o) => s + (o.orders?.totalAmount || 0), 0);
+
+        el.innerHTML = `
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-card-value">${total}</div>
+                    <div class="stat-card-label">Всего заказов</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value paid">${paid}</div>
+                    <div class="stat-card-label">Оплачено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value unpaid">${unpaid}</div>
+                    <div class="stat-card-label">Ожидают оплаты</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value amount">${formatPrice(amount)}</div>
+                    <div class="stat-card-label">Общая сумма</div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderOrders(orders) {
+        const container = document.getElementById('ordersContainer');
+
+        if (!orders?.length) {
+            container.innerHTML = `
+                <div class="state-box">
+                    <div class="state-title">Нет заказов</div>
+                    <div class="state-text">У вас пока нет заказов для оплаты</div>
+                </div>
+            `;
+            return;
+        }
+
+        const sorted = [
+            ...orders.filter(o => !o.approved),
+            ...orders.filter(o =>  o.approved)
+        ];
+
+        const checkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+        const clockIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+        const html = sorted.map(order => {
+            const statusClass = order.approved ? 'paid' : 'unpaid';
+            const statusText  = order.approved ? 'Оплачен' : 'Ожидает оплаты';
+
+            const footer = order.approved
+                ? `<div class="paid-label">${checkIcon} Платёж подтверждён</div>`
+                : `<button class="btn-confirm-payment" onclick="confirmPayment(${order.id}, event)">
+                       ${checkIcon} Подтвердить оплату
+                   </button>`;
+
+            return `
+                <div class="order-payment-card ${statusClass}">
+                    <div class="order-body">
+                        <div class="order-header">
+                            <div class="order-id">Заказ&nbsp;<span>#${order.id}</span></div>
+                            <div class="payment-status ${statusClass}">
+                                ${order.approved ? checkIcon : clockIcon}
+                                ${statusText}
+                            </div>
+                        </div>
+                        <div class="order-info">
+                            <div class="order-items-preview">
+                                ${renderItems(order.orders?.items || [])}
+                            </div>
+                            <div class="order-total">
+                                <div class="total-label">Сумма заказа</div>
+                                <div class="total-amount">${formatPrice(order.orders?.totalAmount || 0)}</div>
+                                ${order.paymentId ? `<div class="payment-ref">${order.paymentId.substring(0, 12)}…</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="order-footer">${footer}</div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `<div class="orders-list">${html}</div>`;
+    }
+
+    function renderItems(items) {
+        if (!items?.length) return '<div class="more-item">Нет товаров</div>';
+
+        const display   = items.slice(0, 3);
+        const remaining = items.length - 3;
+
+        const chips = display.map(item => `
+            <div class="preview-item">
+                <img src="/uploads/images/${escapeHtml(item.image || 'default.jpg')}"
+                     class="preview-item-image"
+                     onerror="this.src='/images/product-img.png'"
+                     alt="">
+                <div>
+                    <div class="preview-item-name">${escapeHtml(item.nameProduct)}</div>
+                    <div class="preview-item-price">${formatPrice(item.priceProduct)} × ${item.count}</div>
+                </div>
+            </div>
+        `).join('');
+
+        const extra = remaining > 0 ? `<div class="more-item">+${remaining} шт.</div>` : '';
+        return chips + extra;
+    }
+
+    /* ─── ИСПРАВЛЕНО: event передаётся аргументом ─── */
+    async function confirmPayment(orderId, event) {
+        if (!confirm('Подтвердить оплату этого заказа?')) return;
+
+        const button = event?.target?.closest('.btn-confirm-payment');
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Обработка...';
+        }
+
+        try {
+            const response = await fetch(`/api/payments/${orderId}`, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const err = await response.text();
+                throw new Error(err || `HTTP ${response.status}`);
+            }
+
+            showToast('Платёж успешно подтверждён!', 'success');
+            setTimeout(loadPayments, 900);
+
+        } catch (error) {
+            console.error('Ошибка подтверждения:', error);
+            showToast(error.message || 'Не удалось подтвердить платёж', 'error');
+
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Подтвердить оплату
+                `;
+            }
+        }
+    }
+
+    function showToast(message, type) {
+        document.querySelector('.toast')?.remove();
+
+        const icon = type === 'success'
+            ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>`;
+
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerHTML = `${icon}<span>${escapeHtml(message)}</span>`;
+        document.body.appendChild(t);
+
+        setTimeout(() => {
+            t.style.transition = 'opacity 0.25s, transform 0.25s';
+            t.style.opacity = '0';
+            t.style.transform = 'translateX(20px)';
+            setTimeout(() => t.remove(), 260);
+        }, 3200);
+    }
+
+    function formatPrice(price) {
+        return new Intl.NumberFormat('ru-RU', {
+            style: 'currency', currency: 'RUB',
+            minimumFractionDigits: 0, maximumFractionDigits: 0
+        }).format(price || 0);
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPayments);
+</script>
+</body>
+</html>

@@ -45,6 +45,11 @@ public class PageController {
         return "forward:/mainForm.html";
     }
 
+    @GetMapping("/payments")
+    public String payments() {
+        return "forward:/payment.html";
+    }
+
     @GetMapping("/profile")
     public String profile() {
         return "forward:/profile.html";

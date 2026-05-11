@@ -23,6 +23,7 @@ import org.example.kortex.products.domain.ProductService;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
@@ -50,7 +51,7 @@ public class OrderCreateManager {
     public OrderCreateManager(UserService userService, OrderRepository orderRepository,
                               CartService cartService, ProductService productService,
                               OrderItemService orderItemService,
-                              NotifyKafkaProducer notifyKafkaProducer, PaymentService paymentService) {
+                              NotifyKafkaProducer notifyKafkaProducer,@Lazy PaymentService paymentService) {
         this.userService = userService;
         this.orderRepository = orderRepository;
         this.cartService = cartService;
@@ -72,7 +73,7 @@ public class OrderCreateManager {
             BigDecimal total = calculateTotalAmount(cart);//TODO ИСПРАВИТЬ МАТЕМАТИКУ
             Order order = Order.builder()
                     .user(user)
-                    .status(Order.OrderStatus.PENDING)//TODO РАЗОБРАТЬСЯ С ВЕБХУК И ДОПИСАТЬ
+                    .status(Order.OrderStatus.PAYMENT)
                     .shippingAddress(user.getAddress())
                     .message(comment)
                     .totalAmount(total)
@@ -85,9 +86,7 @@ public class OrderCreateManager {
             cartService.clearCartByUserId(user.getId());
             Order paymentOrder = productSubtractQuantity(savedOrder);
 
-            BigDecimal yookassaAmount = total.setScale(2, RoundingMode.HALF_UP);
-            String value = yookassaAmount.toPlainString();
-            PaymentCreateResponse response = paymentService.createPayment(value,paymentOrder.getId());
+            PaymentCreateResponse response = paymentService.createPayment(paymentOrder.getId());
             paymentOrder.setPaymentId(response.paymentId());
             orderRepository.save(paymentOrder);
 
@@ -109,15 +108,22 @@ public class OrderCreateManager {
     }
 
     @Transactional
-    public String paymentApprove(OrderPaymentApproved request){//TODO добавить id платежа в Order
+    public String paymentApprove(Long orderId){
         try {
-            String validationError = validatePayment(request.paymentId());
+            log.info("AAAAAAAAAAAAAAAAAA{}",orderId);
+            Order order = orderRepository.findById(orderId).orElseThrow(() -> new EntityNotFoundException("Не найден заказ"));
+            String paymentId = order.getPaymentId();
+            String validationError = validatePayment(paymentId,order);
             if (validationError != null) {
                 return validationError;
             }
-            Order order = orderRepository.findById(request.orderId()).orElseThrow(() -> new EntityNotFoundException("Не найден заказ"));
+
             order.setStatus(Order.OrderStatus.PENDING);
             orderRepository.save(order);
+
+            PaymentEntity payment = paymentService.findByPaymentId(paymentId);
+            payment.setUse(true);
+            paymentService.save(payment);
             return "Успешно";
         }catch (Exception e){
             log.error("Не получилось подтвердить оплату");
@@ -176,7 +182,7 @@ public class OrderCreateManager {
         return total;
     }
 
-    private String validatePayment(String paymentId) {
+    private String validatePayment(String paymentId,Order order) {
         if (paymentId == null || paymentId.trim().isEmpty()) {
             return "Неверный paymentId";
         }
@@ -185,6 +191,9 @@ public class OrderCreateManager {
         PaymentResponse payment = paymentService.findPaymentDto(paymentId);
         if (!"succeeded".equals(payment.status())) {
             return "Платёж не прошёл";
+        }
+        if(paymentService.findByPaymentId(paymentId).getUse()) {
+            return "Этот платеж уже был использован для оплаты";
         }
         return null;
     }

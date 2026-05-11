@@ -172,7 +172,7 @@ public class YooKassaManager {
     private final UserService userService;
 
     // ФИКС: редиректим на страницу которая создаёт чек и подписку
-    private final String RETURN_URL = "http://localhost:8080/";
+    private final String RETURN_URL = "http://localhost:8080/payments";
 
     private final ReceiptMapper receiptMapper;
 

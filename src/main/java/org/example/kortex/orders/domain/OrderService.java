@@ -11,6 +11,8 @@ import org.example.kortex.orders.db.Order;
 import org.example.kortex.orders.db.OrderRepository;
 import org.example.kortex.orders.domain.mapper.OrderMapper;
 import org.example.kortex.payments.api.dto.response.payment.PaymentCreateResponse;
+import org.example.kortex.payments.db.PaymentEntity;
+import org.example.kortex.payments.domain.PaymentService;
 import org.example.kortex.users.domain.mapper.UserMapper;
 import org.example.kortex.users.db.User;
 import org.example.kortex.users.domain.UserService;
@@ -18,9 +20,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import ru.loolzaaa.youkassa.model.Payment;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -61,6 +66,24 @@ public class OrderService {
         );
     }
 
+    public List<OrderPaymentApproved> getOrdersPayment(){
+        try {
+            User user = userService.getCurrentUser();
+            List<Order> orders = orderRepository.findOrdersWithItemsByUserEmail(user.getEmail());
+            return orders.stream()
+                    .map(el -> {
+                        return new  OrderPaymentApproved(
+                                el.getId(),
+                                orderMapper.toDto(el),
+                                el.getPaymentId(),
+                                el.getStatus() != Order.OrderStatus.PAYMENT);
+                    }).toList();
+        }catch (Exception e) {
+            log.error("Не удалось загрузить данные оплаты и заказов,ex={}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
     public List<OrderResponseDTO> getHistoryOrders(){//TODO Добавить паггинацию
         try {
             User user = userService.getCurrentUser();
@@ -93,8 +116,8 @@ public class OrderService {
         return orderCreateManager.createOrderFromCart(comment);
     }
 
-    public String paymentApprove(OrderPaymentApproved request) {
-        return orderCreateManager.paymentApprove(request);
+    public String paymentApprove(Long orderId) {
+        return orderCreateManager.paymentApprove(orderId);
     }
 
     //================================Service Methods================================================

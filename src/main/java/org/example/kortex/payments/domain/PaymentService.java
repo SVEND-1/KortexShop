@@ -2,6 +2,8 @@ package org.example.kortex.payments.domain;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.errors.ApiException;
+import org.example.kortex.orders.db.Order;
+import org.example.kortex.orders.domain.OrderService;
 import org.example.kortex.payments.api.dto.response.payment.PaymentCreateResponse;
 import org.example.kortex.payments.api.dto.response.payment.PaymentPageResponse;
 import org.example.kortex.payments.api.dto.response.payment.PaymentResponse;
@@ -13,6 +15,7 @@ import org.example.kortex.payments.domain.mapper.PaymentMapper;
 import org.example.kortex.payments.domain.mapper.ReceiptMapper;
 import org.example.kortex.users.domain.UserService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.loolzaaa.youkassa.client.ApiClient;
@@ -26,6 +29,8 @@ import ru.loolzaaa.youkassa.processors.ReceiptProcessor;
 import ru.loolzaaa.youkassa.processors.WebhookProcessor;
 
 import javax.annotation.PostConstruct;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 @Service
@@ -38,6 +43,7 @@ public class PaymentService {
     private final ReceiptManager receiptManager;
     private final UserService userService;
     private final ReceiptMapper receiptMapper;
+    private final OrderService orderService;
     @Value("${shop_id}")
     private String shopId;
 
@@ -49,7 +55,10 @@ public class PaymentService {
     private PaymentProcessor paymentProcessor;
     private ReceiptProcessor receiptProcessor;
 
-    public PaymentService(PaymentRepository paymentRepository, PaymentMapper paymentMapper, YooKassaManager yooKassaManager, PaymentManager paymentManager, ReceiptManager receiptManager, UserService userService, ReceiptMapper receiptMapper) {
+    public PaymentService(PaymentRepository paymentRepository, PaymentMapper paymentMapper,
+                          YooKassaManager yooKassaManager, PaymentManager paymentManager,
+                          ReceiptManager receiptManager, UserService userService,
+                          ReceiptMapper receiptMapper,OrderService orderService) {//TODO поменять
         this.paymentRepository = paymentRepository;
         this.paymentMapper = paymentMapper;
         this.yooKassaManager = yooKassaManager;
@@ -57,6 +66,7 @@ public class PaymentService {
         this.receiptManager = receiptManager;
         this.userService = userService;
         this.receiptMapper = receiptMapper;
+        this.orderService = orderService;
     }
 
     @PostConstruct
@@ -85,10 +95,14 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentCreateResponse createPayment(String summa,Long orderId) {//TODO если у фронтенда не получиться с оплатой сделатьь через куки
+    public PaymentCreateResponse createPayment(Long orderId) {//TODO если у фронтенда не получиться с оплатой сделатьь через куки
         String idempotencyKey = UUID.randomUUID().toString();
         try {
-            Payment saved = yooKassaManager.createYooKassaPayment(paymentProcessor,idempotencyKey,summa,orderId);
+            Order order = orderService.getById(orderId);
+
+            BigDecimal yookassaAmount = order.getTotalAmount().setScale(2, RoundingMode.HALF_UP);
+            String value = yookassaAmount.toPlainString();
+            Payment saved = yooKassaManager.createYooKassaPayment(paymentProcessor,idempotencyKey,value,orderId);
 
             paymentManager.savePayment(idempotencyKey,saved);
 

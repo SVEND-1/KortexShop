@@ -3,7 +3,7 @@ const API_BASE = '/api';
 let currentUser = null;
 let currentFilter = 'assigned';
 let currentPage = 0;
-const pageSize = 3;
+const pageSize = 10;
 let totalPages = 0;
 let totalElements = 0;
 

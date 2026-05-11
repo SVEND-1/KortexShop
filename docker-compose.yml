@@ -61,6 +61,9 @@ services:
 
       - SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=30000
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
+      - PAYMENT_KEY=${PAYMENT_KEY}
+      - SHOP_ID=${SHOP_ID}
     volumes:
       - ./uploads:/app/uploads
 
