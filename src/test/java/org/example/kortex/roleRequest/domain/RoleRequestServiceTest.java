@@ -252,7 +252,8 @@ class RoleRequestServiceTest {
                 LocalDateTime.now(),
                 testUserId,
                 "Test name",
-                "test@inbox.ru"
+                "test@inbox.ru",
+                Role.COURIER
         );
     }
 }
