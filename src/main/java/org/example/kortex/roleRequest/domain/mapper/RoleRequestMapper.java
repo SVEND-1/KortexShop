@@ -15,6 +15,7 @@ public interface RoleRequestMapper {
     @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "name", source = "user.name")
     @Mapping(target = "email", source = "user.email")
+    @Mapping(target = "requestedRole", source = "requestedRole")
     RoleRequestResponse toDto(RoleRequest roleRequest);
 
 

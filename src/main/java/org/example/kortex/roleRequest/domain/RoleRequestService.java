@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -95,6 +96,7 @@ public class RoleRequestService {
                     .typeAction(typeAction)
                     .message(message)
                     .status(RoleRequest.Status.PENDING)
+                    .createdAt(LocalDateTime.now())
                     .build();
             return roleRequestMapper.toDto(roleRequestRepository.save(roleRequest));
         }catch (Exception ex){

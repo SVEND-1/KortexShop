@@ -1,4 +1,4 @@
-// profileScript.js - С ИСТОРИЕЙ ЗАКАЗОВ
+// profileScript.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Загрузка страницы профиля...');
@@ -164,7 +164,6 @@ function renderOrderItemsPreview(items) {
         return '<div class="no-items">Нет товаров</div>';
     }
 
-    // Показываем первые 3 товара
     const itemsToShow = items.slice(0, 3);
     const remainingCount = items.length - 3;
 
@@ -224,11 +223,8 @@ function renderEmptyOrders() {
 
 // ============ ДЕТАЛИ ЗАКАЗА (МОДАЛЬНОЕ ОКНО) ============
 
-// ТОЛЬКО функция показа деталей заказа (исправленная)
-
 window.viewOrderDetails = async function(orderId) {
     try {
-
         const response = await fetch(API_ENDPOINTS.GET_ORDERS, {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
@@ -276,7 +272,6 @@ function showOrderDetailsModal(order) {
             </div>
             
             <div class="modal-body">
-                <!-- Информация о заказе -->
                 <div class="order-info-block">
                     <div class="info-line">
                         <span class="info-label">📅 Дата заказа:</span>
@@ -296,7 +291,6 @@ function showOrderDetailsModal(order) {
                     </div>
                 </div>
                 
-                <!-- Состав заказа с прокруткой -->
                 <div class="order-items-block">
                     <h4>Состав заказа</h4>
                     <div class="items-scrollable">
@@ -581,7 +575,7 @@ async function updateUserProfile() {
     }
 }
 
-// ============ ЗАЯВКИ НА РОЛИ ============
+// ============ ЗАЯВКИ НА РОЛИ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ============
 
 async function loadUserRoleRequests() {
     try {
@@ -593,6 +587,7 @@ async function loadUserRoleRequests() {
 
         if (response.ok) {
             const requests = await response.json();
+            console.log('Получены заявки:', requests); // Для отладки
             renderRoleRequests(requests);
         } else {
             renderEmptyRequests();
@@ -616,7 +611,13 @@ function renderRoleRequests(requests) {
     requests.forEach(request => {
         const statusInfo = REQUEST_STATUS_MAP[request.status] || REQUEST_STATUS_MAP.PENDING;
         const date = formatDate(request.createdAt);
-        const roleText = ROLE_MAP[request.requestedRole]?.text || request.requestedRole;
+
+        // ИСПРАВЛЕНО: правильное получение текста роли
+        let roleText = 'Роль не указана';
+        if (request.requestedRole) {
+            roleText = ROLE_MAP[request.requestedRole]?.text || request.requestedRole;
+        }
+
         const actionText = request.typeAction === 'ENHANCE' ? 'Повышение до' : 'Снятие роли';
 
         requestsHtml += `
@@ -652,12 +653,26 @@ function renderEmptyRequests() {
     }
 }
 
+// ============ ОТПРАВКА ЗАЯВКИ ============
+
 async function submitRoleRequest(type, requestedRole, message) {
     try {
+        const payload = {
+            requestedRole: requestedRole,
+            typeAction: type,
+            message: message,
+            create_at: new Date().toISOString()
+        };
+
+        console.log('Отправка заявки:', payload);
+
         const response = await fetch(API_ENDPOINTS.CREATE_ROLE_REQUEST, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ requestedRole, typeAction: type, message }),
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload),
             credentials: 'include'
         });
 
@@ -668,7 +683,17 @@ async function submitRoleRequest(type, requestedRole, message) {
             return result;
         } else {
             const errorText = await response.text();
-            throw new Error(errorText || 'Ошибка сервера');
+            console.error('Ошибка сервера:', errorText);
+
+            let errorMessage = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.message || errorJson.errorMessage || errorText;
+            } catch(e) {
+                // Если не JSON, оставляем как есть
+            }
+
+            throw new Error(errorMessage || 'Ошибка сервера');
         }
     } catch (error) {
         console.error('Ошибка отправки заявки:', error);
@@ -708,7 +733,8 @@ function initModals() {
         modal.addEventListener('click', function(e) {
             if (e.target === this || e.target.classList.contains('modal-close')) {
                 this.style.display = 'none';
-                this.querySelector('form')?.reset();
+                const form = this.querySelector('form');
+                if (form) form.reset();
             }
         });
     });
@@ -717,7 +743,8 @@ function initModals() {
         if (e.key === 'Escape') {
             modals.forEach(modal => {
                 modal.style.display = 'none';
-                modal.querySelector('form')?.reset();
+                const form = modal.querySelector('form');
+                if (form) form.reset();
             });
         }
     });
@@ -734,6 +761,7 @@ function initModals() {
 async function handleEnhanceRequest() {
     const role = document.getElementById('requestRole').value;
     const message = document.getElementById('requestMessage').value.trim();
+    const requestForm = document.getElementById('requestForm');
 
     if (!role) {
         showProfileNotification('Выберите роль', 'error');
@@ -745,6 +773,11 @@ async function handleEnhanceRequest() {
         return;
     }
 
+    if (message.length > 500) {
+        showProfileNotification('Сообщение не должно превышать 500 символов', 'error');
+        return;
+    }
+
     try {
         const submitBtn = requestForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
@@ -753,6 +786,7 @@ async function handleEnhanceRequest() {
 
         await submitRoleRequest('ENHANCE', role, message);
         closeRequestModal();
+        showProfileNotification('✅ Заявка успешно отправлена!', 'success');
     } catch (error) {
         showProfileNotification(`❌ Ошибка: ${error.message}`, 'error');
     } finally {
@@ -767,6 +801,7 @@ async function handleEnhanceRequest() {
 async function handleDowngradeRequest() {
     const currentRole = document.getElementById('currentRole').value;
     const message = document.getElementById('downgradeMessage').value.trim();
+    const downgradeForm = document.getElementById('downgradeForm');
 
     if (!currentRole) {
         showProfileNotification('Выберите текущую роль', 'error');
@@ -778,6 +813,11 @@ async function handleDowngradeRequest() {
         return;
     }
 
+    if (message.length > 500) {
+        showProfileNotification('Сообщение не должно превышать 500 символов', 'error');
+        return;
+    }
+
     try {
         const submitBtn = downgradeForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
@@ -786,6 +826,7 @@ async function handleDowngradeRequest() {
 
         await submitRoleRequest('REMOVE', 'USER', message);
         closeDowngradeModal();
+        showProfileNotification('✅ Заявка на снятие роли отправлена!', 'success');
     } catch (error) {
         showProfileNotification(`❌ Ошибка: ${error.message}`, 'error');
     } finally {
@@ -939,8 +980,10 @@ window.closeRequestModal = function() {
     const modal = document.getElementById('requestModal');
     if (modal) {
         modal.style.display = 'none';
-        modal.querySelector('form').reset();
-        document.getElementById('charCount').textContent = '0';
+        const form = modal.querySelector('form');
+        if (form) form.reset();
+        const charCount = document.getElementById('charCount');
+        if (charCount) charCount.textContent = '0';
     }
 };
 
@@ -961,8 +1004,10 @@ window.closeDowngradeModal = function() {
     const modal = document.getElementById('downgradeModal');
     if (modal) {
         modal.style.display = 'none';
-        modal.querySelector('form').reset();
-        document.getElementById('downgradeCharCount').textContent = '0';
+        const form = modal.querySelector('form');
+        if (form) form.reset();
+        const downgradeCharCount = document.getElementById('downgradeCharCount');
+        if (downgradeCharCount) downgradeCharCount.textContent = '0';
         const roleSelect = document.getElementById('currentRole');
         if (roleSelect) roleSelect.disabled = false;
     }
@@ -1036,213 +1081,191 @@ style.textContent = `
     .loading-spinner { width: 40px; height: 40px; margin: 0 auto 20px; border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     
-    
-    /* Стили для модального окна деталей заказа */
-.order-details-modal .modal-content {
-    max-width: 600px;
-    width: 90%;
-    border-radius: 20px;
-}
-
-.order-info-block {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-}
-
-.info-line {
-    display: flex;
-    margin-bottom: 10px;
-    padding: 5px 0;
-}
-
-.info-line:last-child {
-    margin-bottom: 0;
-}
-
-.info-label {
-    width: 110px;
-    font-weight: 600;
-    color: #555;
-}
-
-.info-value {
-    flex: 1;
-    color: #333;
-}
-
-.info-value.total {
-    color: #28a745;
-    font-weight: bold;
-    font-size: 18px;
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.status-badge.pending { background: #fff3cd; color: #856404; }
-.status-badge.dispatched { background: #cce5ff; color: #004085; }
-.status-badge.delivered { background: #d4edda; color: #155724; }
-.status-badge.completed { background: #d4edda; color: #155724; }
-.status-badge.cancelled { background: #f8d7da; color: #721c24; }
-.status-badge.returned { background: #fff3cd; color: #856404; }
-
-.order-items-block h4 {
-    margin-bottom: 15px;
-    color: #333;
-    font-size: 16px;
-}
-
-.items-scrollable {
-    max-height: 400px;
-    overflow-y: auto;
-    padding-right: 10px;
-}
-
-.items-scrollable::-webkit-scrollbar {
-    width: 6px;
-}
-
-.items-scrollable::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.items-scrollable::-webkit-scrollbar-thumb {
-    background: #667eea;
-    border-radius: 3px;
-}
-
-.item-row {
-    display: flex;
-    gap: 12px;
-    padding: 12px;
-    background: #fff;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-}
-
-.item-row:hover {
-    transform: translateX(5px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.item-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 10px;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.item-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.item-info {
-    flex: 1;
-}
-
-.item-name {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 8px;
-    font-size: 14px;
-}
-
-.item-details {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.item-price {
-    color: #666;
-    font-size: 13px;
-}
-
-.item-total {
-    color: #28a745;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.items-total {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 2px solid #e0e0e0;
-    text-align: right;
-    font-size: 16px;
-}
-
-.items-total strong {
-    color: #28a745;
-    font-size: 18px;
-    margin-left: 10px;
-}
-
-.no-items {
-    text-align: center;
-    padding: 40px;
-    color: #999;
-}
-
-@media (max-width: 768px) {
-    .item-row {
-        flex-direction: column;
-        text-align: center;
+    .order-details-modal .modal-content {
+        max-width: 600px;
+        width: 90%;
+        border-radius: 20px;
     }
     
-    .item-image {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto;
-    }
-    
-    .item-details {
-        flex-direction: column;
+    .order-info-block {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
     }
     
     .info-line {
-        flex-direction: column;
+        display: flex;
+        margin-bottom: 10px;
+        padding: 5px 0;
+    }
+    
+    .info-line:last-child {
+        margin-bottom: 0;
     }
     
     .info-label {
-        width: auto;
-        margin-bottom: 5px;
+        width: 110px;
+        font-weight: 600;
+        color: #555;
     }
-}
     
-    .order-items-table { width: 100%; border-collapse: collapse; }
-    .order-items-table th, .order-items-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
-    .order-items-table th { background: #f8f9fa; font-weight: 600; }
-    .product-cell { display: flex; align-items: center; gap: 12px; }
-    .product-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; }
-    .product-name { font-weight: 500; }
-    .total-cell { font-weight: bold; color: #28a745; }
-    .total-row { font-weight: bold; }
-    .total-label { text-align: right; }
-    .total-amount-cell { color: #28a745; font-size: 18px; }
+    .info-value {
+        flex: 1;
+        color: #333;
+    }
+    
+    .info-value.total {
+        color: #28a745;
+        font-weight: bold;
+        font-size: 18px;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .status-badge.pending { background: #fff3cd; color: #856404; }
+    .status-badge.dispatched { background: #cce5ff; color: #004085; }
+    .status-badge.delivered { background: #d4edda; color: #155724; }
+    .status-badge.completed { background: #d4edda; color: #155724; }
+    .status-badge.cancelled { background: #f8d7da; color: #721c24; }
+    .status-badge.returned { background: #fff3cd; color: #856404; }
+    
+    .order-items-block h4 {
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 16px;
+    }
+    
+    .items-scrollable {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+    
+    .items-scrollable::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .items-scrollable::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .items-scrollable::-webkit-scrollbar-thumb {
+        background: #667eea;
+        border-radius: 3px;
+    }
+    
+    .item-row {
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        background: #fff;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+    
+    .item-row:hover {
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .item-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    
+    .item-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .item-info {
+        flex: 1;
+    }
+    
+    .item-name {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .item-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .item-price {
+        color: #666;
+        font-size: 13px;
+    }
+    
+    .item-total {
+        color: #28a745;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .items-total {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 2px solid #e0e0e0;
+        text-align: right;
+        font-size: 16px;
+    }
+    
+    .items-total strong {
+        color: #28a745;
+        font-size: 18px;
+        margin-left: 10px;
+    }
+    
+    .no-items {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
     
     @media (max-width: 768px) {
-        .order-header { flex-direction: column; align-items: flex-start; }
-        .order-footer { flex-direction: column; align-items: stretch; }
-        .preview-items { flex-direction: column; }
-        .product-cell { flex-direction: column; text-align: center; }
-        .order-items-table { font-size: 12px; }
-        .order-items-table th, .order-items-table td { padding: 8px; }
+        .item-row {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .item-image {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+        
+        .item-details {
+            flex-direction: column;
+        }
+        
+        .info-line {
+            flex-direction: column;
+        }
+        
+        .info-label {
+            width: auto;
+            margin-bottom: 5px;
+        }
     }
 `;
 document.head.appendChild(style);

@@ -89,7 +89,6 @@ async function renderCart() {
                     <div class="item-details">
                         <h3 class="item-name">${escapeHtml(name)}</h3>
                         <div class="item-price">${formatPrice(price)}</div>
-                        <div class="item-subtotal">Итого: ${formatPrice(subtotal)}</div>
                     </div>
                     <div class="item-controls">
                         <div class="quantity-controls">
